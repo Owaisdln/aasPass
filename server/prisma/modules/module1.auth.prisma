@@ -1,0 +1,456 @@
+// ======================================================
+// MODULE 1 - IDENTITY & ACCESS MANAGEMENT
+// ENUMS
+// ======================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  PENDING_VERIFICATION
+
+  @@map("user_status")
+}
+
+enum OTPPurpose {
+  REGISTRATION
+  LOGIN
+  PASSWORD_RESET
+  PHONE_VERIFICATION
+  EMAIL_VERIFICATION
+
+  @@map("otp_purpose")
+}
+
+enum OTPChannel {
+  SMS
+  EMAIL
+
+  @@map("otp_channel")
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+
+  @@map("auth_provider")
+}
+
+enum DeviceType {
+  MOBILE
+  TABLET
+  DESKTOP
+  WEB
+
+  @@map("device_type")
+}
+
+enum RevocationReason {
+  LOGOUT
+  PASSWORD_CHANGED
+  TOKEN_ROTATED
+  ACCOUNT_LOCKED
+  SECURITY
+  EXPIRED
+
+  @@map("revocation_reason")
+}
+
+// ======================================================
+// ROLES
+// ======================================================
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(50)
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+
+  isSystem    Boolean  @default(false) @map("is_system")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdBy   String?  @db.Uuid @map("created_by")
+  updatedBy   String?  @db.Uuid @map("updated_by")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users            User[]
+  rolePermissions  RolePermission[]
+
+  // Indexes
+  @@index([isActive])
+
+  @@map("roles")
+}
+
+// ======================================================
+// PERMISSIONS
+// ======================================================
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(100)
+  name        String   @unique @db.VarChar(100)
+  module      String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+
+  isSystem    Boolean  @default(false) @map("is_system")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdBy   String?  @db.Uuid @map("created_by")
+  updatedBy   String?  @db.Uuid @map("updated_by")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  // Indexes
+  @@index([module])
+  @@index([isActive])
+
+  @@map("permissions")
+}
+
+// ======================================================
+// ROLE PERMISSIONS
+// ======================================================
+
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+
+  roleId       String   @db.Uuid @map("role_id")
+  permissionId String   @db.Uuid @map("permission_id")
+
+  createdBy    String?  @db.Uuid @map("created_by")
+  updatedBy    String?  @db.Uuid @map("updated_by")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([roleId, permissionId])
+
+  // Indexes
+  @@index([roleId])
+  @@index([permissionId])
+
+  @@map("role_permissions")
+}
+
+// ======================================================
+// USERS
+// ======================================================
+
+model User {
+  id                  String      @id @default(uuid()) @db.Uuid
+
+  // Role
+  roleId              String      @db.Uuid @map("role_id")
+
+  // Basic Information
+  firstName           String      @db.VarChar(100) @map("first_name")
+  lastName            String?     @db.VarChar(100) @map("last_name")
+
+  // Authentication
+  phone               String      @db.VarChar(15)
+  email               String?     @db.VarChar(255)
+  passwordHash        String      @db.VarChar(255) @map("password_hash")
+
+  // Account Status
+  status              UserStatus  @default(PENDING_VERIFICATION)
+
+  // Verification
+  emailVerifiedAt     DateTime? @map("email_verified_at")
+  phoneVerifiedAt     DateTime? @map("phone_verified_at")
+
+  // Security
+  passwordChangedAt   DateTime? @map("password_changed_at")
+  failedLoginAttempts Int         @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+
+  // Login Activity
+  lastLoginAt         DateTime? @map("last_login_at")
+  lastLoginIp         String?     @db.VarChar(45) @map("last_login_ip")
+  lastSeenAt          DateTime? @map("last_seen_at")
+
+  // Audit
+  createdBy           String?     @db.Uuid @map("created_by")
+  updatedBy           String?     @db.Uuid @map("updated_by")
+
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  role               Role                  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  addresses          Address[]
+  otpVerifications   OTPVerification[]
+  authProviders      UserAuthProvider[]
+  sessions           UserSession[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@unique([phone])
+  @@unique([email])
+
+  @@index([roleId])
+  @@index([status])
+  @@index([phone])
+  @@index([email])
+
+  @@map("users")
+}
+
+// ======================================================
+// ADDRESSES
+// ======================================================
+
+model Address {
+  id              String   @id @default(uuid()) @db.Uuid
+
+  userId          String   @db.Uuid @map("user_id")
+
+  label           String?  @db.VarChar(50)
+
+  receiverName    String   @db.VarChar(100) @map("receiver_name")
+  receiverPhone   String   @db.VarChar(15) @map("receiver_phone")
+
+  houseNo         String   @db.VarChar(100) @map("house_no")
+  street          String?  @db.VarChar(255)
+  area            String   @db.VarChar(255)
+  landmark        String?  @db.VarChar(255)
+
+  city            String   @db.VarChar(100)
+  state           String   @db.VarChar(100)
+  country         String   @db.VarChar(100)
+  pincode         String   @db.VarChar(10)
+
+  latitude        Decimal? @db.Decimal(10, 8)
+  longitude       Decimal? @db.Decimal(11, 8)
+
+  isDefault       Boolean  @default(false) @map("is_default")
+
+  createdBy       String?  @db.Uuid @map("created_by")
+  updatedBy       String?  @db.Uuid @map("updated_by")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([userId])
+  @@index([city])
+  @@index([pincode])
+
+  @@map("addresses")
+}
+
+// ======================================================
+// OTP VERIFICATIONS
+// ======================================================
+
+model OTPVerification {
+  id              String      @id @default(uuid()) @db.Uuid
+
+  userId          String?     @db.Uuid @map("user_id")
+
+  purpose         OTPPurpose
+  channel         OTPChannel
+
+  destination     String      @db.VarChar(255)
+
+  otpHash         String      @db.VarChar(255) @map("otp_hash")
+
+  attempts        Int         @default(0)
+  maxAttempts     Int         @default(5) @map("max_attempts")
+
+  lastAttemptAt   DateTime? @map("last_attempt_at")
+  blockedUntil    DateTime? @map("blocked_until")
+
+  expiresAt       DateTime @map("expires_at")
+  verifiedAt      DateTime? @map("verified_at")
+
+  createdBy       String?     @db.Uuid @map("created_by")
+  updatedBy       String?     @db.Uuid @map("updated_by")
+
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  user            User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([userId])
+  @@index([purpose])
+  @@index([channel])
+  @@index([destination])
+  @@index([expiresAt])
+
+  @@map("otp_verifications")
+}
+
+// ======================================================
+// USER AUTH PROVIDERS
+// ======================================================
+
+model UserAuthProvider {
+  id                  String        @id @default(uuid()) @db.Uuid
+
+  userId              String        @db.Uuid @map("user_id")
+
+  provider            AuthProvider
+
+  providerUserId      String?       @db.VarChar(255) @map("provider_user_id")
+
+  createdBy           String?       @db.Uuid @map("created_by")
+  updatedBy           String?       @db.Uuid @map("updated_by")
+
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  @@unique([provider, providerUserId])
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([userId])
+  @@index([provider])
+
+  @@map("user_auth_providers")
+}
+
+// ======================================================
+// USER SESSIONS
+// ======================================================
+
+model UserSession {
+  id                String      @id @default(uuid()) @db.Uuid
+
+  userId            String      @db.Uuid @map("user_id")
+
+  deviceType        DeviceType @map("device_type")
+
+  deviceName        String?     @db.VarChar(255) @map("device_name")
+
+  deviceId          String?     @db.VarChar(255) @map("device_id")
+
+  ipAddress         String?     @db.VarChar(45) @map("ip_address")
+
+  userAgent         String?     @db.Text @map("user_agent")
+
+  lastActivityAt    DateTime @map("last_activity_at")
+
+  expiresAt         DateTime @map("expires_at")
+
+  revokedAt         DateTime? @map("revoked_at")
+
+  createdBy         String?     @db.Uuid @map("created_by")
+  updatedBy         String?     @db.Uuid @map("updated_by")
+
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  refreshTokens     RefreshToken[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+
+  @@map("user_sessions")
+}
+
+// ======================================================
+// REFRESH TOKENS
+// ======================================================
+
+model RefreshToken {
+  id                  String            @id @default(uuid()) @db.Uuid
+
+  sessionId           String            @db.Uuid @map("session_id")
+
+  tokenHash           String            @db.VarChar(255) @map("token_hash")
+
+  revokedReason       RevocationReason? @map("revoked_reason")
+
+  revokedAt           DateTime? @map("revoked_at")
+
+  expiresAt           DateTime @map("expires_at")
+
+  createdBy           String?           @db.Uuid @map("created_by")
+  updatedBy           String?           @db.Uuid @map("updated_by")
+
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  session             UserSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  @@unique([tokenHash])
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+
+  @@map("refresh_tokens")
+}

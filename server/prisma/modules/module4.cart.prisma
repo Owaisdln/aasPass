@@ -1,0 +1,237 @@
+// ======================================================
+// MODULE 4 - ENUMS
+// ======================================================
+
+enum CartStatus {
+  ACTIVE
+  CHECKED_OUT
+  ABANDONED
+  EXPIRED
+
+  @@map("cart_status")
+}
+
+// ======================================================
+// CARTS
+// ======================================================
+
+model Cart {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Owner
+  userId String @db.Uuid @map("user_id")
+
+  // One Cart = One Store
+  storeId String @db.Uuid @map("store_id")
+
+  // Status
+  status CartStatus @default(ACTIVE)
+
+  // Pricing
+  subtotal Decimal @default(0.00) @db.Decimal(10,2)
+
+  discountAmount Decimal @default(0.00) @db.Decimal(10,2) @map("discount_amount")
+
+  taxAmount Decimal @default(0.00) @db.Decimal(10,2) @map("tax_amount")
+
+  deliveryFee Decimal @default(0.00) @db.Decimal(10,2) @map("delivery_fee")
+
+  totalAmount Decimal @default(0.00) @db.Decimal(10,2) @map("total_amount")
+
+  // Customer Notes
+  notes String? @db.Text
+
+  // Expiration
+  expiresAt DateTime? @db.Timestamptz(6) @map("expires_at")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Restrict)
+
+  items CartItem[]
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  @@unique([userId, storeId])
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([userId])
+
+  @@index([storeId])
+
+  @@index([status])
+
+  @@index([expiresAt])
+
+  @@map("carts")
+}
+
+// ======================================================
+// CART ITEMS
+// ======================================================
+
+model CartItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  cartId String @db.Uuid @map("cart_id")
+
+  storeProductId String @db.Uuid @map("store_product_id")
+
+  // Quantity
+  quantity Int
+
+  // Product Snapshot
+  productNameSnapshot String @db.VarChar(200) @map("product_name_snapshot")
+
+  unitSnapshot String @db.VarChar(50) @map("unit_snapshot")
+
+  // Pricing Snapshot
+  mrpSnapshot Decimal @db.Decimal(10,2) @map("mrp_snapshot")
+
+  sellingPriceSnapshot Decimal @db.Decimal(10,2) @map("selling_price_snapshot")
+
+  gstRateSnapshot Decimal @db.Decimal(5,2) @map("gst_rate_snapshot")
+
+  subtotal Decimal @db.Decimal(10,2)
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  storeProduct StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Restrict)
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  @@unique([cartId, storeProductId])
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([cartId])
+
+  @@index([storeProductId])
+
+  @@map("cart_items")
+}
+
+// ======================================================
+// WISHLISTS
+// ======================================================
+
+model Wishlist {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Owner
+  userId String @db.Uuid @map("user_id")
+
+  // Wishlist Information
+  name String @db.VarChar(100)
+
+  isDefault Boolean @default(false) @map("is_default")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items WishlistItem[]
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  @@unique([userId, name])
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([userId])
+
+  @@index([isDefault])
+
+  @@map("wishlists")
+}
+
+// ======================================================
+// WISHLIST ITEMS
+// ======================================================
+
+model WishlistItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  wishlistId String @db.Uuid @map("wishlist_id")
+
+  storeProductId String @db.Uuid @map("store_product_id")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+
+  storeProduct StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Restrict)
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  @@unique([wishlistId, storeProductId])
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([wishlistId])
+
+  @@index([storeProductId])
+
+  @@map("wishlist_items")
+}

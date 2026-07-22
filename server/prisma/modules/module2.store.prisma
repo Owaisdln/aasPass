@@ -1,0 +1,238 @@
+// =========================================
+// MODULE 2 ENUMS (Merchant & Store)
+// =========================================
+
+enum StoreStatus {
+  PENDING
+  ACTIVE
+  TEMPORARILY_CLOSED
+  SUSPENDED
+  CLOSED
+
+  @@map("store_status")
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+
+  @@map("verification_status")
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+
+  @@map("week_day")
+}
+
+// =========================================
+// MODULE 2 - STORE
+// =========================================
+
+model Store {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Ownership
+  ownerId String @unique @map("owner_id") @db.Uuid
+  owner   User   @relation("StoreOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  // Basic Information
+  name        String  @db.VarChar(150)
+  slug        String  @unique @db.VarChar(180)
+  description String? @db.Text
+
+  // Contact Information
+  phone String  @unique @db.VarChar(15)
+  email String? @unique @db.VarChar(255)
+
+  // Business Information
+  gstNumber                  String? @unique @map("gst_number") @db.VarChar(20)
+  businessRegistrationNumber String? @unique @map("business_registration_number") @db.VarChar(50)
+
+  // Store Images
+  logoKey   String? @map("logo_key") @db.VarChar(500)
+  bannerKey String? @map("banner_key") @db.VarChar(500)
+
+  // Address
+  addressLine1 String  @map("address_line1") @db.VarChar(255)
+  addressLine2 String? @map("address_line2") @db.VarChar(255)
+
+  city    String @db.VarChar(100)
+  state   String @db.VarChar(100)
+  country String @db.VarChar(100)
+  pincode String @db.VarChar(20)
+
+  latitude  Decimal @db.Decimal(9, 6)
+  longitude Decimal @db.Decimal(9, 6)
+
+  timezone String @default("Asia/Kolkata") @db.VarChar(100)
+
+  // Status: Platform/Admin lifecycle (ACTIVE, SUSPENDED, CLOSED, PENDING)
+  status             StoreStatus        @default(PENDING)
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+
+  verifiedAt DateTime? @map("verified_at") @db.Timestamptz(6)
+
+  verifiedById String? @map("verified_by_id") @db.Uuid
+  verifiedBy   User?   @relation("StoreVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  // Real-time Merchant Override: Manual toggle to temporarily pause orders (e.g. rush hours)
+  isOpen Boolean @default(false) @map("is_open")
+
+  // Audit
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  // Relations
+  images          StoreImage[]
+  hours           StoreHour[]
+  deliverySetting StoreDeliverySetting?
+
+  @@index([status])
+  @@index([verificationStatus])
+  @@index([city])
+  @@index([state])
+  @@index([pincode])
+  @@index([latitude, longitude])
+  @@map("stores")
+}
+
+// ======================================================
+// STORE IMAGES
+// ======================================================
+
+model StoreImage {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Store
+  storeId String @map("store_id") @db.Uuid
+
+  // Image Information
+  objectKey String @map("object_key") @db.VarChar(500)
+
+  displayOrder Int @default(1) @map("display_order")
+
+  // Audit
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([storeId])
+  @@index([displayOrder])
+  @@map("store_images")
+}
+
+// ======================================================
+// STORE HOURS
+// ======================================================
+
+model StoreHour {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Store
+  storeId String @map("store_id") @db.Uuid
+
+  // Business Day
+  weekDay WeekDay @map("week_day")
+
+  // Opening Hours
+  openingTime DateTime? @map("opening_time") @db.Time(6)
+  closingTime DateTime? @map("closing_time") @db.Time(6)
+
+  // Store Availability
+  isClosed Boolean @default(false) @map("is_closed")
+
+  // Audit
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@unique([storeId, weekDay])
+  @@index([storeId])
+  @@index([weekDay])
+  @@map("store_hours")
+}
+
+// ======================================================
+// STORE DELIVERY SETTINGS
+// ======================================================
+
+model StoreDeliverySetting {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Store
+  storeId String @unique @map("store_id") @db.Uuid
+
+  // Delivery Configuration
+  isDeliveryAvailable Boolean @default(true) @map("is_delivery_available")
+  isPickupAvailable   Boolean @default(true) @map("is_pickup_available")
+
+  minimumOrderAmount Decimal @default(0.00) @map("minimum_order_amount") @db.Decimal(10, 2)
+
+  deliveryRadiusKm Decimal @default(5.00) @map("delivery_radius_km") @db.Decimal(5, 2)
+
+  deliveryCharge Decimal @default(0.00) @map("delivery_charge") @db.Decimal(10, 2)
+
+  freeDeliveryAbove Decimal? @map("free_delivery_above") @db.Decimal(10, 2)
+
+  estimatedDeliveryTime Int @default(30) @map("estimated_delivery_time")
+
+  // Audit
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([storeId])
+  @@map("store_delivery_settings")
+}

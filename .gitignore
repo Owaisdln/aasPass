@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Environment variables — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Prisma generated client
+generated/prisma/
+
+# Build outputs
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# MCP server — not part of the main project repository
+mcp-server/

@@ -1,0 +1,325 @@
+// ======================================================
+// MODULE 6 - PAYMENT & FINANCIAL MANAGEMENT
+// ENUMS
+// ======================================================
+
+enum PaymentMethod {
+  COD
+  UPI
+  CARD
+  NET_BANKING
+  WALLET
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  FAILED
+  CANCELLED
+  PARTIALLY_REFUNDED
+  REFUNDED
+
+  @@map("payment_status")
+}
+
+enum PaymentGateway {
+  RAZORPAY
+  CASH
+
+  @@map("payment_gateway")
+}
+
+enum PaymentTransactionStatus {
+  INITIATED
+  SUCCESS
+  FAILED
+  CANCELLED
+
+  @@map("payment_transaction_status")
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+
+  @@map("refund_status")
+}
+
+enum FinancialDocumentType {
+  INVOICE
+  RECEIPT
+  CREDIT_NOTE
+
+  @@map("financial_document_type")
+}
+
+// ======================================================
+// PAYMENTS
+// ======================================================
+
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  orderId String @unique @db.Uuid @map("order_id")
+
+  // Payment Details
+  paymentMethod PaymentMethod @map("payment_method")
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  gateway PaymentGateway
+
+  // Amounts
+  payableAmount Decimal @db.Decimal(10,2) @map("payable_amount")
+  paidAmount Decimal @default(0) @db.Decimal(10,2) @map("paid_amount")
+  refundedAmount Decimal @default(0) @db.Decimal(10,2) @map("refunded_amount")
+
+  currency String @default("INR") @db.VarChar(10)
+
+  paidAt DateTime? @db.Timestamptz(6) @map("paid_at")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  transactions PaymentTransaction[]
+
+  refunds Refund[]
+
+  webhooks PaymentWebhook[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([paymentStatus])
+
+  @@index([paymentMethod])
+
+  @@index([gateway])
+
+  @@index([paidAt])
+
+  @@map("payments")
+}
+
+// ======================================================
+// PAYMENT TRANSACTIONS
+// ======================================================
+
+model PaymentTransaction {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  paymentId String @db.Uuid @map("payment_id")
+
+  // Gateway Details
+  gateway PaymentGateway
+
+  gatewayOrderId String? @db.VarChar(255) @map("gateway_order_id")
+  gatewayPaymentId String? @db.VarChar(255) @map("gateway_payment_id")
+  gatewaySignature String? @db.VarChar(500) @map("gateway_signature")
+
+  // Transaction Status
+  transactionStatus PaymentTransactionStatus @default(INITIATED) @map("transaction_status")
+
+  // Amount
+  amount Decimal @db.Decimal(10,2)
+
+  currency String @default("INR") @db.VarChar(10)
+
+  // Gateway Response
+  gatewayResponse Json? @map("gateway_response")
+
+  failureReason String? @db.Text @map("failure_reason")
+
+  processedAt DateTime? @db.Timestamptz(6) @map("processed_at")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@unique([gateway, gatewayPaymentId])
+  @@index([paymentId])
+
+  @@index([transactionStatus])
+
+  @@index([gateway])
+
+  @@index([gatewayOrderId])
+
+  @@index([gatewayPaymentId])
+
+  @@index([processedAt])
+
+  @@map("payment_transactions")
+}
+
+// ======================================================
+// REFUNDS
+// ======================================================
+
+model Refund {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  paymentId String @db.Uuid @map("payment_id")
+
+  // Refund Details
+  refundAmount Decimal @db.Decimal(10,2) @map("refund_amount")
+
+  refundStatus RefundStatus @default(PENDING) @map("refund_status")
+
+  gatewayRefundId String? @db.VarChar(255) @map("gateway_refund_id")
+
+  refundReason String? @db.Text @map("refund_reason")
+
+  gatewayResponse Json? @map("gateway_response")
+
+  refundedAt DateTime? @db.Timestamptz(6) @map("refunded_at")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([paymentId])
+
+  @@index([refundStatus])
+
+  @@index([gatewayRefundId])
+
+  @@index([refundedAt])
+
+  @@map("refunds")
+}
+
+// ======================================================
+// PAYMENT WEBHOOKS
+// ======================================================
+
+model PaymentWebhook {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  paymentId String @db.Uuid @map("payment_id")
+
+  // Gateway Event
+  gatewayEventId String @db.VarChar(255) @map("gateway_event_id")
+
+  eventType String @db.VarChar(100) @map("event_type")
+
+  payload Json
+
+  // Processing
+  isProcessed Boolean @default(false) @map("is_processed")
+
+  processedAt DateTime? @db.Timestamptz(6) @map("processed_at")
+
+  processingError String? @db.Text @map("processing_error")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@unique([gatewayEventId])
+
+  @@index([paymentId])
+
+  @@index([eventType])
+
+  @@index([isProcessed])
+
+  @@index([processedAt])
+
+  @@map("payment_webhooks")
+}
+
+// ======================================================
+// FINANCIAL DOCUMENTS
+// ======================================================
+
+model FinancialDocument {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  orderId String @db.Uuid @map("order_id")
+
+  // Document Details
+  documentType FinancialDocumentType @map("document_type")
+
+  documentNumber String @unique @db.VarChar(100) @map("document_number")
+
+  pdfKey String @db.VarChar(500) @map("pdf_key")
+
+  generatedAt DateTime @default(now()) @db.Timestamptz(6) @map("generated_at")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([orderId])
+
+  @@index([documentType])
+
+  @@index([generatedAt])
+
+  @@map("financial_documents")
+}

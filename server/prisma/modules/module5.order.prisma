@@ -1,0 +1,391 @@
+// ======================================================
+// MODULE 5 - ORDER MANAGEMENT 
+// ENUMS
+// ======================================================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  FAILED
+
+  @@map("order_status")
+}
+
+
+enum FulfillmentType {
+  DELIVERY
+  PICKUP
+
+  @@map("fulfillment_type")
+}
+
+enum FulfillmentStatus {
+  PENDING
+  CONFIRMED
+  REPLACED
+  CANCELLED
+  DELIVERED
+
+  @@map("fulfillment_status")
+}
+
+enum ReplacementStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+
+  @@map("replacement_status")
+}
+
+enum OrderNoteType {
+  CUSTOMER
+  MERCHANT
+  SYSTEM
+  DELIVERY_PARTNER
+
+  @@map("order_note_type")
+}
+
+// ======================================================
+// ORDERS
+// ======================================================
+
+model Order {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  userId String @db.Uuid @map("user_id")
+  storeId String @db.Uuid @map("store_id")
+  addressId String @db.Uuid @map("address_id")
+
+  // Order Information
+  orderNumber String @unique @db.VarChar(50) @map("order_number")
+
+  status OrderStatus @default(PENDING)
+
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+
+  fulfillmentType FulfillmentType @default(DELIVERY) @map("fulfillment_type")
+
+  // Pricing
+  subtotal Decimal @default(0.00) @db.Decimal(10,2)
+
+  discountAmount Decimal @default(0.00) @db.Decimal(10,2) @map("discount_amount")
+
+  taxAmount Decimal @default(0.00) @db.Decimal(10,2) @map("tax_amount")
+
+  deliveryFee Decimal @default(0.00) @db.Decimal(10,2) @map("delivery_fee")
+
+  totalAmount Decimal @default(0.00) @db.Decimal(10,2) @map("total_amount")
+
+  // Delivery Address Snapshot
+  deliveryReceiverName String @db.VarChar(100) @map("delivery_receiver_name")
+
+  deliveryPhone String @db.VarChar(20) @map("delivery_phone")
+
+  deliveryEmail String? @db.VarChar(255) @map("delivery_email")
+
+  deliveryHouseNo String @db.VarChar(100) @map("delivery_house_no")
+
+  deliveryStreet String @db.VarChar(255) @map("delivery_street")
+
+  deliveryArea String @db.VarChar(255) @map("delivery_area")
+
+  deliveryLandmark String? @db.VarChar(255) @map("delivery_landmark")
+
+  deliveryCity String @db.VarChar(100) @map("delivery_city")
+
+  deliveryState String @db.VarChar(100) @map("delivery_state")
+
+  deliveryCountry String @db.VarChar(100) @map("delivery_country")
+
+  deliveryPincode String @db.VarChar(20) @map("delivery_pincode")
+
+  deliveryLatitude Decimal? @db.Decimal(10,7) @map("delivery_latitude")
+
+  deliveryLongitude Decimal? @db.Decimal(10,7) @map("delivery_longitude")
+
+  // Customer Instructions
+  deliveryInstructions String? @db.Text @map("delivery_instructions")
+
+  // Timeline
+  placedAt DateTime @default(now()) @db.Timestamptz(6) @map("placed_at")
+
+  version Int @default(0)
+
+  confirmedAt DateTime? @db.Timestamptz(6) @map("confirmed_at")
+
+  packedAt DateTime? @db.Timestamptz(6) @map("packed_at")
+
+  outForDeliveryAt DateTime? @db.Timestamptz(6) @map("out_for_delivery_at")
+
+  deliveredAt DateTime? @db.Timestamptz(6) @map("delivered_at")
+
+  cancelledAt DateTime? @db.Timestamptz(6) @map("cancelled_at")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Restrict)
+
+  address Address @relation(fields: [addressId], references: [id], onDelete: Restrict)
+
+  items OrderItem[]
+
+  statusHistory OrderStatusHistory[]
+
+  notes OrderNote[]
+
+  // Payment relation will be added later
+  // payment Payment?
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([userId])
+
+  @@index([storeId])
+
+  @@index([status])
+
+  @@index([paymentStatus])
+
+  @@index([placedAt])
+
+  @@map("orders")
+}
+
+// ======================================================
+// ORDER ITEMS
+// ======================================================
+
+model OrderItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  orderId String @db.Uuid @map("order_id")
+
+  storeProductId String @db.Uuid @map("store_product_id")
+
+  // Quantity
+  quantity Int
+
+  // Product Snapshot
+  productNameSnapshot String @db.VarChar(200) @map("product_name_snapshot")
+
+  unitSnapshot String @db.VarChar(50) @map("unit_snapshot")
+
+  // Pricing Snapshot
+  mrpSnapshot Decimal @db.Decimal(10,2) @map("mrp_snapshot")
+
+  sellingPriceSnapshot Decimal @db.Decimal(10,2) @map("selling_price_snapshot")
+
+  gstRateSnapshot Decimal @db.Decimal(5,2) @map("gst_rate_snapshot")
+
+  subtotal Decimal @db.Decimal(10,2)
+
+  // Fulfillment
+  fulfillmentStatus FulfillmentStatus @default(PENDING) @map("fulfillment_status")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  storeProduct StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Restrict)
+
+  replacements OrderItemReplacement[]
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  @@index([orderId])
+
+  @@index([storeProductId])
+
+  @@index([fulfillmentStatus])
+
+  @@map("order_items")
+}
+
+// ======================================================
+// ORDER ITEM REPLACEMENTS
+// ======================================================
+
+model OrderItemReplacement {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  orderItemId String @db.Uuid @map("order_item_id")
+
+  replacementStoreProductId String @db.Uuid @map("replacement_store_product_id")
+
+  // Status
+  status ReplacementStatus @default(PENDING)
+
+  // Replacement Product Snapshot
+  replacementProductNameSnapshot String @db.VarChar(200) @map("replacement_product_name_snapshot")
+
+  replacementUnitSnapshot String @db.VarChar(50) @map("replacement_unit_snapshot")
+
+  replacementMrpSnapshot Decimal @db.Decimal(10,2) @map("replacement_mrp_snapshot")
+
+  replacementSellingPriceSnapshot Decimal @db.Decimal(10,2) @map("replacement_selling_price_snapshot")
+
+  replacementGstRateSnapshot Decimal @db.Decimal(5,2) @map("replacement_gst_rate_snapshot")
+
+  replacementSubtotal Decimal @db.Decimal(10,2) @map("replacement_subtotal")
+
+  // Merchant & Customer Communication
+  merchantReason String? @db.Text @map("merchant_reason")
+
+  customerResponse String? @db.Text @map("customer_response")
+
+  // Timeline
+  requestedAt DateTime @default(now()) @db.Timestamptz(6) @map("requested_at")
+
+  respondedAt DateTime? @db.Timestamptz(6) @map("responded_at")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  replacementStoreProduct StoreProduct @relation(fields: [replacementStoreProductId], references: [id], onDelete: Restrict)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([orderItemId])
+
+  @@index([replacementStoreProductId])
+
+  @@index([status])
+
+  @@map("order_item_replacements")
+}
+
+// ======================================================
+// ORDER STATUS HISTORY
+// ======================================================
+
+model OrderStatusHistory {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  orderId String @db.Uuid @map("order_id")
+
+  // Status Transition
+  previousStatus OrderStatus? @map("previous_status")
+
+  newStatus OrderStatus @map("new_status")
+
+  // Additional Information
+  remarks String? @db.Text
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([orderId])
+
+  @@index([newStatus])
+
+  @@index([createdAt])
+
+  @@map("order_status_history")
+}
+
+// ======================================================
+// ORDER NOTES
+// ======================================================
+
+model OrderNote {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Relations
+  orderId String @db.Uuid @map("order_id")
+
+  // Note
+  noteType OrderNoteType @map("note_type")
+
+  note String @db.Text
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([orderId])
+
+  @@index([noteType])
+
+  @@index([createdAt])
+
+  @@map("order_notes")
+}
+

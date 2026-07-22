@@ -1,0 +1,439 @@
+// ======================================================
+// MODULE 3 ENUMS (Catalog & Inventory)
+// ======================================================
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+
+  @@map("product_status")
+}
+
+enum ProductImageType {
+  PRIMARY
+  GALLERY
+
+  @@map("product_image_type")
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  HIDDEN
+  DISCONTINUED
+
+  @@map("availability_status")
+}
+
+enum InventoryTransactionType {
+  PURCHASE
+  SALE
+  RETURN
+  RESTOCK
+  ADJUSTMENT
+  DAMAGE
+  EXPIRED
+
+  @@map("inventory_transaction_type")
+}
+
+enum InventoryReferenceType {
+  ORDER
+  PURCHASE
+  RETURN
+  MANUAL
+
+  @@map("inventory_reference_type")
+}
+
+// ======================================================
+// CATEGORIES
+// ======================================================
+
+model Category {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Hierarchy
+  parentCategoryId String? @db.Uuid @map("parent_category_id")
+
+  // Category Information
+  name        String  @db.VarChar(150)
+  slug        String  @unique @db.VarChar(170)
+  description String? @db.Text
+
+  imageKey String? @db.VarChar(500) @map("image_key")
+  iconKey  String? @db.VarChar(500) @map("icon_key")
+
+  sortOrder Int @default(0) @map("sort_order")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  parentCategory Category? @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+
+  subCategories Category[] @relation("CategoryHierarchy")
+
+  products MasterProduct[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([parentCategoryId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("categories")
+}
+
+// ======================================================
+// BRANDS
+// ======================================================
+
+model Brand {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Brand Information
+  name String @db.VarChar(150)
+  slug String @unique @db.VarChar(170)
+
+  logoKey String? @db.VarChar(500) @map("logo_key")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  products MasterProduct[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("brands")
+}
+
+// ======================================================
+// UNITS
+// ======================================================
+
+model Unit {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Unit Information
+  name   String @unique @db.VarChar(100)
+  symbol String @unique @db.VarChar(20)
+
+  description String? @db.Text
+
+  isActive Boolean @default(true) @map("is_active")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  products MasterProduct[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([isActive])
+  @@map("units")
+}
+
+// ======================================================
+// MASTER PRODUCTS
+// ======================================================
+
+model MasterProduct {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Category & Brand
+  categoryId String  @db.Uuid @map("category_id")
+  brandId    String? @db.Uuid @map("brand_id")
+  unitId     String  @db.Uuid @map("unit_id")
+
+  // Product Information
+  name        String  @db.VarChar(200)
+  slug        String  @unique @db.VarChar(220)
+  description String? @db.Text
+
+  sku     String  @unique @db.VarChar(100)
+  barcode String? @unique @db.VarChar(100)
+  hsnCode String? @db.VarChar(20) @map("hsn_code")
+
+  gstRate Decimal @default(0.00) @db.Decimal(5, 2) @map("gst_rate")
+
+  unitValue Decimal @db.Decimal(10, 2) @map("unit_value")
+
+  isVeg Boolean? @map("is_veg")
+
+  isFeatured Boolean @default(false) @map("is_featured")
+
+  status ProductStatus @default(ACTIVE)
+
+  searchVector Unsupported("tsvector")?
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  brand Brand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Restrict)
+
+  images ProductImage[]
+
+  storeProducts StoreProduct[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([unitId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([slug])
+  @@index([sku])
+  @@index([barcode])
+  @@map("master_products")
+}
+
+// ======================================================
+// PRODUCT IMAGES
+// ======================================================
+
+model ProductImage {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Master Product
+  masterProductId String @db.Uuid @map("master_product_id")
+
+  // Image Information
+  objectKey String @db.VarChar(500) @map("object_key")
+
+  imageType ProductImageType @map("image_type")
+
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  displayOrder Int @default(1) @map("display_order")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  masterProduct MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([masterProductId])
+  @@index([imageType])
+  @@index([displayOrder])
+  @@index([isPrimary])
+  @@map("product_images")
+}
+
+// ======================================================
+// STORE PRODUCTS
+// ======================================================
+
+model StoreProduct {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Store & Product
+  storeId         String @db.Uuid @map("store_id")
+  masterProductId String @db.Uuid @map("master_product_id")
+
+  // Pricing
+  mrp Decimal @db.Decimal(10, 2)
+
+  sellingPrice Decimal @db.Decimal(10, 2) @map("selling_price")
+
+  // Availability
+  availabilityStatus AvailabilityStatus @default(AVAILABLE) @map("availability_status")
+
+  trackInventory Boolean @default(true) @map("track_inventory")
+
+  isFeatured Boolean @default(false) @map("is_featured")
+
+  displayOrder Int @default(0) @map("display_order")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  masterProduct MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Restrict)
+
+  inventory Inventory?
+
+  // ======================================================
+  // Constraints
+  // ======================================================
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@unique([storeId, masterProductId])
+  @@index([storeId])
+  @@index([masterProductId])
+  @@index([availabilityStatus])
+  @@index([isFeatured])
+  @@map("store_products")
+}
+
+// ======================================================
+// INVENTORY
+// ======================================================
+
+model Inventory {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Store Product
+  storeProductId String @unique @db.Uuid @map("store_product_id")
+
+  // Stock
+  stockQuantity Int @default(0) @map("stock_quantity")
+
+  reservedQuantity Int @default(0) @map("reserved_quantity")
+
+  lowStockThreshold Int @default(10) @map("low_stock_threshold")
+
+  reorderLevel Int @default(20) @map("reorder_level")
+
+  version Int @default(0)
+
+  lastStockUpdate DateTime? @db.Timestamptz(6) @map("last_stock_update")
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+  updatedBy String? @db.Uuid @map("updated_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  storeProduct StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
+
+  transactions InventoryTransaction[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([stockQuantity])
+  @@map("inventory")
+}
+
+// ======================================================
+// INVENTORY TRANSACTIONS
+// ======================================================
+
+model InventoryTransaction {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Inventory
+  inventoryId String @db.Uuid @map("inventory_id")
+
+  // Transaction
+  transactionType InventoryTransactionType @map("transaction_type")
+
+  quantity Int
+
+  balanceAfterTransaction Int @map("balance_after_transaction")
+
+  referenceType InventoryReferenceType? @map("reference_type")
+
+  referenceId String? @db.Uuid @map("reference_id")
+
+  source String? @db.VarChar(100)
+
+  notes String? @db.Text
+
+  // Audit
+  createdBy String? @db.Uuid @map("created_by")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  // ======================================================
+  // Relations
+  // ======================================================
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  // ======================================================
+  // Indexes
+  // ======================================================
+
+  @@index([inventoryId])
+  @@index([transactionType])
+  @@index([referenceType])
+  @@index([createdAt])
+  @@map("inventory_transactions")
+}
