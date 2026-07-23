@@ -40,49 +40,41 @@ npm install
 
 Create a `.env` file inside the `server/` directory:
 
-```bash
-cp server/.env.example server/.env   # (if .env.example exists)
-# OR create manually:
-```
-
 ```env
-# Database
-DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/aaspass?schema=public"
-
 # App
+NODE_ENV=development
 PORT=3000
 
-# JWT (add when implemented)
-# JWT_ACCESS_SECRET=your_access_secret
-# JWT_REFRESH_SECRET=your_refresh_secret
-# JWT_ACCESS_EXPIRES_IN=15m
-# JWT_REFRESH_EXPIRES_IN=7d
+# Database — PostgreSQL connection string (required)
+DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/aaspass?schema=public"
 
-# Redis (add when implemented)
-# REDIS_HOST=localhost
-# REDIS_PORT=6379
+# Supabase (required — use placeholder values for local dev)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
+> ⚠️ All six variables are **validated at startup** via Zod. Missing or malformed values will print a detailed error and abort the process.
+>
 > ⚠️ **Never commit your `.env` file.** It is already listed in `.gitignore`.
 
 ---
 
 ## 4. Set Up the Database
 
-Make sure PostgreSQL is running, then run Prisma migrations:
+Make sure PostgreSQL is running, then run:
 
 ```bash
 cd server
 
-# Apply existing migrations
-npx prisma migrate dev
-
-# Or push schema directly (no migration file)
-npx prisma db push
-
-# Regenerate Prisma client after schema changes
+# 1. Generate the Prisma client (always run after schema changes)
 npx prisma generate
+
+# 2. Apply existing migrations
+npx prisma migrate dev
 ```
+
+> **Prisma 7 Note:** This project uses the **driver adapter** pattern. The `DATABASE_URL` is **not** in `schema.prisma` — it is injected at runtime by `PrismaService` via `@prisma/adapter-pg`. The `prisma.config.ts` file at the server root provides it to Prisma CLI tools.
 
 ---
 
@@ -144,18 +136,28 @@ Swagger UI will display all available endpoints.
 ```
 server/
 ├── src/
-│   ├── main.ts           ← App entry point (port binding)
-│   ├── app.module.ts     ← Root NestJS module
-│   ├── common/           ← Guards, decorators, pipes, filters
-│   ├── config/           ← ConfigService, env validation
-│   ├── infrastructure/   ← Redis, queues setup
-│   ├── modules/          ← Feature modules (auth, store, etc.)
-│   ├── prisma/           ← PrismaService wrapper
-│   └── shared/           ← Shared DTOs, interfaces
+│   ├── main.ts              ← App entry point — binds port via ConfigService
+│   ├── app.module.ts        ← Root NestJS module (ConfigModule + PrismaModule)
+│   ├── config/              ← Config namespaces + Zod env validation
+│   │   ├── index.ts         ← Aggregates all config loaders
+│   │   ├── app.config.ts    ← app.port, app.nodeEnv
+│   │   ├── database.config.ts ← database.url
+│   │   ├── supabase.config.ts ← supabase.url, keys
+│   │   └── env.validation.ts  ← Zod schema — validates all env vars at boot
+│   ├── prisma/              ← Database access layer
+│   │   ├── prisma.service.ts  ← PrismaClient with pg Pool adapter (Prisma 7)
+│   │   └── prisma.module.ts   ← Global @Module exporting PrismaService
+│   ├── modules/             ← Feature modules (to be built)
+│   ├── common/              ← Guards, pipes, filters, decorators
+│   ├── infrastructure/      ← Redis, BullMQ, Socket.io setup
+│   └── shared/              ← DTOs, interfaces, utilities
 ├── prisma/
-│   ├── schema.prisma     ← Main schema (IAM + datasource)
-│   └── modules/          ← Per-module schema files
-├── .env                  ← Environment variables (not committed)
+│   ├── schema.prisma        ← Merged schema (no url in datasource — Prisma 7)
+│   ├── modules/             ← Per-module split schema files (modules 1–6)
+│   ├── migrations/          ← Migration history
+│   └── ERD.svg              ← Auto-generated ER diagram
+├── prisma.config.ts         ← Prisma 7 config (CLI datasource URL + paths)
+├── .env                     ← Environment variables (not committed)
 ├── nest-cli.json
 ├── package.json
 └── tsconfig.json

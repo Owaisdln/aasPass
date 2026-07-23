@@ -2,7 +2,7 @@
 
 > **Multi-Vendor E-Commerce / Marketplace Platform**  
 > **Status:** 🟡 In Development  
-> **Last Updated:** July 22, 2026
+> **Last Updated:** July 23, 2026
 
 ---
 
@@ -60,4 +60,8 @@ aasPass/
 ├── docs/          ← You are here
 ├── client/        ← Frontend (not started)
 └── server/        ← NestJS backend
+    ├── prisma.config.ts  ← Prisma 7 CLI config
+    └── src/
+        ├── config/       ← Env config + Zod validation
+        └── prisma/       ← PrismaService (adapter-pg)
 ```

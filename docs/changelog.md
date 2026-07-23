@@ -6,6 +6,34 @@ All notable changes to this project are documented here.
 
 ---
 
+## [July 23, 2026]
+
+### Server — Prisma 7 Runtime Fix (Adapter Pattern)
+- Diagnosed root cause of `PrismaClientInitializationError`: `PrismaClient` in Prisma v7 no longer accepts an empty `super()` call — the datasource must be passed explicitly at constructor time
+- Installed `@prisma/adapter-pg`, `pg`, and `@types/pg`
+- Rewrote `PrismaService` (`src/prisma/prisma.service.ts`) to use the Prisma 7 **driver adapter** pattern:
+  - Creates a `pg.Pool` from `DATABASE_URL` at construction time
+  - Wraps pool in `PrismaPg` adapter
+  - Passes `{ adapter }` to `super()` — the correct Prisma 7 constructor signature
+  - Implements `OnModuleDestroy` to properly tear down both `$disconnect()` and `pool.end()` — prevents connection leaks
+- `schema.prisma` datasource block already has no `url` field (correct for Prisma 7); `prisma.config.ts` continues to supply the URL for CLI commands only
+
+### Server — Removed Orphaned Boilerplate
+- Removed `AppController` and `AppService` imports and references from `app.module.ts` — these NestJS CLI-generated stubs were never created as files, causing a `Cannot find module './app.service'` TypeScript error at startup
+- `AppModule` now only registers `ConfigModule` (global) and `PrismaModule`
+
+### Server — README Rewrite
+- Replaced the default NestJS boilerplate `README.md` with a project-specific reference document covering:
+  - Full tech stack table
+  - Step-by-step getting started guide
+  - Annotated project directory structure
+  - Configuration namespace reference
+  - Prisma 7 architecture explanation
+  - Common Prisma CLI commands
+  - Environment variables reference table
+
+---
+
 ## [July 22, 2026]
 
 ### Global Schema — snake_case Column & Enum Mapping
