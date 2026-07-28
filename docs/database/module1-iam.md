@@ -1,8 +1,9 @@
-﻿# Database — Module 1: Identity & Access Management (IAM)
+# Database — Module 1: Identity & Access Management (IAM)
 
 > [← Back to Index](../README.md)  
-> **Schema file:** [`server/prisma/schema.prisma`](../../server/prisma/schema.prisma) & [`server/prisma/modules/module1.auth.prisma`](../../server/prisma/modules/module1.auth.prisma)  
-> **Status:** ✅ Schema Complete
+> **Schema file:** [`server/prisma/modules/module1.auth.prisma`](../../server/prisma/modules/module1.auth.prisma)  
+> **Status:** ✅ Schema Complete  
+> **Last Updated:** 2026-07-28
 
 ---
 
@@ -11,10 +12,11 @@
 The IAM module handles all concerns related to:
 - User account management & profile data
 - Address book management
-- Authentication (local email/phone + Google OAuth)
-- OTP (One-Time Password) generation and verification
-- JWT session and refresh token lifecycle
 - Role-Based Access Control (RBAC)
+- Business-context OTP (delivery, pickup, recovery)
+- Device session tracking
+
+> **Auth is handled by Supabase.** Supabase manages registration, OTP login, JWT issuance, and email/phone verification. The `users` table in this module mirrors the Supabase Auth user via the same UUID primary key — the PK is **not** auto-generated here.
 
 ---
 
@@ -35,15 +37,14 @@ Tracks the lifecycle state of a user account.
 ---
 
 ### `OTPPurpose` → `otp_purpose`
-Describes why an OTP was generated.
+Describes why a business OTP was generated.
 
 | Value | Description |
 |---|---|
-| `REGISTRATION` | First-time account registration |
-| `LOGIN` | OTP-based login (passwordless) |
-| `PASSWORD_RESET` | User requested a password reset |
-| `PHONE_VERIFICATION` | Verifying a phone number |
-| `EMAIL_VERIFICATION` | Verifying an email address |
+| `ORDER_DELIVERY` | OTP to confirm delivery at the customer's doorstep |
+| `ORDER_PICKUP` | OTP to confirm customer pickup from store |
+| `ACCOUNT_RECOVERY` | Secondary account recovery flow (supplements Supabase) |
+| `SENSITIVE_ACTION` | High-security actions (e.g., deletion, withdrawal) |
 
 ---
 
@@ -57,13 +58,15 @@ Delivery method for the OTP.
 
 ---
 
-### `AuthProvider` → `auth_provider`
-Which authentication strategy the user used.
+### `BusinessOTPReferenceType` → `business_otp_reference_type`
+The kind of business entity a BusinessOTP is protecting.
 
 | Value | Description |
 |---|---|
-| `LOCAL` | Email/phone + password (traditional) |
-| `GOOGLE` | OAuth 2.0 via Google |
+| `ORDER` | OTP is linked to an order entity |
+| `ACCOUNT` | OTP is linked to the user account itself |
+
+> `referenceType` is nullable on `BusinessOTP` because `ACCOUNT_RECOVERY` has no business entity — only a user.
 
 ---
 
@@ -80,7 +83,7 @@ Client device classification for session tracking.
 ---
 
 ### `RevocationReason` → `revocation_reason`
-Why a refresh token was invalidated.
+Why a session was invalidated.
 
 | Value | Description |
 |---|---|
@@ -89,7 +92,7 @@ Why a refresh token was invalidated.
 | `TOKEN_ROTATED` | Old token replaced during refresh rotation |
 | `ACCOUNT_LOCKED` | Account was locked by admin |
 | `SECURITY` | Suspicious activity detected |
-| `EXPIRED` | Token naturally expired |
+| `EXPIRED` | Session naturally expired |
 
 ---
 
@@ -163,25 +166,19 @@ Bridge table connecting roles to permissions (many-to-many).
 
 ### `User` → `users` table
 
-Core user account record. The central entity of the IAM module.
+Core user account record. The `id` is **not** auto-generated — it is set from Supabase Auth's user UUID at registration time.
 
 | Field | DB Column | Type | Constraint | Description |
 |---|---|---|---|---|
-| `id` | `id` | UUID | PK, auto | Primary key |
-| `roleId` | `role_id` | UUID | FK → `roles.id`, Restrict | Assigned role |
+| `id` | `id` | UUID | PK (**no auto-generate**) | Supabase Auth user UUID |
+| `roleId` | `role_id` | UUID | FK → `roles.id`, Restrict, Indexed | Assigned role |
 | `firstName` | `first_name` | VarChar(100) | Required | First name |
 | `lastName` | `last_name` | VarChar(100)? | Optional | Last name |
-| `phone` | `phone` | VarChar(15) | Unique, Indexed | Primary identifier (phone-first) |
-| `email` | `email` | VarChar(255)? | Unique, Indexed | Email address (optional) |
-| `passwordHash` | `password_hash` | VarChar(255) | Required | bcrypt hashed password |
-| `status` | `status` | `UserStatus` | Default: `PENDING_VERIFICATION` | Account lifecycle state |
-| `emailVerifiedAt` | `email_verified_at` | DateTime? | Optional | Timestamp of email verification |
-| `phoneVerifiedAt` | `phone_verified_at` | DateTime? | Optional | Timestamp of phone verification |
-| `passwordChangedAt` | `password_changed_at` | DateTime? | Optional | Last password change timestamp |
-| `failedLoginAttempts` | `failed_login_attempts` | Int | Default: `0` | Brute-force protection counter |
-| `lockedUntil` | `locked_until` | DateTime? | Optional | Account lock expiry |
-| `lastLoginAt` | `last_login_at` | DateTime? | Optional | Last successful login timestamp |
-| `lastLoginIp` | `last_login_ip` | VarChar(45)? | Optional | IP of last login (IPv4/IPv6) |
+| `phone` | `phone` | VarChar(15)? | Unique, Indexed | Mobile phone number |
+| `email` | `email` | VarChar(255)? | Unique, Indexed | Email address |
+| `status` | `status` | `UserStatus` | Default: `PENDING_VERIFICATION`, Indexed | Account lifecycle state |
+| `emailVerifiedAt` | `email_verified_at` | DateTime? | Optional | When email was verified (synced from Supabase) |
+| `phoneVerifiedAt` | `phone_verified_at` | DateTime? | Optional | When phone was verified (synced from Supabase) |
 | `lastSeenAt` | `last_seen_at` | DateTime? | Optional | Last activity timestamp |
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
@@ -191,20 +188,20 @@ Core user account record. The central entity of the IAM module.
 
 **Constraints:** `@@unique([phone])`, `@@unique([email])`  
 **Indexes:** `@@index([roleId])`, `@@index([status])`, `@@index([phone])`, `@@index([email])`  
-**Relations:** `role`, `addresses[]`, `otpVerifications[]`, `authProviders[]`, `sessions[]`
+**Relations:** `role`, `addresses[]`, `businessOtps[]`, `sessions[]`, `ownedStore`, `verifiedStores[]`, `carts[]`, `wishlists[]`, `orders[]`
 
-> **Design Note:** Phone is the primary unique identifier. Email is optional, supporting phone-first registration flows.
+> **Design Note:** Authentication (password, OAuth, OTP login) is delegated to Supabase Auth. This table stores only application-layer user data — profile, role, and status. Removed from earlier schema: `passwordHash`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `lastLoginIp`, `passwordChangedAt`.
 
 ---
 
 ### `Address` → `addresses` table
 
-User's saved delivery/billing addresses with geolocation support.
+User's saved delivery addresses with geolocation support.
 
 | Field | DB Column | Type | Constraint | Description |
 |---|---|---|---|---|
 | `id` | `id` | UUID | PK, auto | Primary key |
-| `userId` | `user_id` | UUID | FK → `users.id`, Cascade | Owner of this address |
+| `userId` | `user_id` | UUID | FK → `users.id`, Cascade, Indexed | Owner of this address |
 | `label` | `label` | VarChar(50)? | Optional | e.g. "Home", "Office" |
 | `receiverName` | `receiver_name` | VarChar(100) | Required | Name of person receiving delivery |
 | `receiverPhone` | `receiver_phone` | VarChar(15) | Required | Contact number for delivery |
@@ -225,62 +222,45 @@ User's saved delivery/billing addresses with geolocation support.
 | `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | DateTime? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([userId])`, `@@index([city])`, `@@index([pincode])`
+**Indexes:** `@@index([userId])`, `@@index([userId, isDefault])`, `@@index([city])`, `@@index([pincode])`
 
 ---
 
-### `OTPVerification` → `otp_verifications` table
+### `BusinessOTP` → `business_otps` table
 
-Stores OTP records for all verification flows. Works for both guests (pre-registration) and authenticated users.
+Stores OTP records for **business-context** flows — delivery confirmation, pickup confirmation, account recovery, and sensitive actions. This is **separate** from Supabase Auth's OTP (which handles login/registration).
 
 | Field | DB Column | Type | Constraint | Description |
 |---|---|---|---|---|
 | `id` | `id` | UUID | PK, auto | Primary key |
-| `userId` | `user_id` | UUID? | FK → `users.id`, Optional, Cascade | `null` for pre-registration OTPs |
-| `purpose` | `purpose` | `OTPPurpose` | Required, Indexed | Why this OTP was generated |
+| `userId` | `user_id` | UUID? | FK → `users.id`, Cascade, Indexed | Associated user (`null` allowed for pre-auth flows) |
+| `referenceType` | `reference_type` | `BusinessOTPReferenceType`? | Optional | Polymorphic entity type (`ORDER`, `ACCOUNT`) |
+| `referenceId` | `reference_id` | UUID? | Optional | Polymorphic entity ID |
+| `purpose` | `purpose` | `OTPPurpose` | Required, Indexed | Why OTP was generated |
 | `channel` | `channel` | `OTPChannel` | Required, Indexed | SMS or EMAIL |
 | `destination` | `destination` | VarChar(255) | Required, Indexed | Phone number or email address |
-| `otpHash` | `otp_hash` | VarChar(255) | Required | bcrypt hash of the OTP code |
+| `otpHash` | `otp_hash` | VarChar(255) | Required | Bcrypt hash of the OTP (never stored plaintext) |
 | `attempts` | `attempts` | Int | Default: `0` | How many times user has tried |
 | `maxAttempts` | `max_attempts` | Int | Default: `5` | Max allowed attempts before block |
 | `lastAttemptAt` | `last_attempt_at` | DateTime? | Optional | Timestamp of last verification attempt |
-| `blockedUntil` | `blocked_until` | DateTime? | Optional | Temporary block expiry after max attempts |
-| `expiresAt` | `expires_at` | DateTime | Required, Indexed | When this OTP becomes invalid |
+| `blockedUntil` | `blocked_until` | DateTime? | Optional | Brute-force block expiry |
+| `expiresAt` | `expires_at` | DateTime | Required, Indexed | OTP expiry timestamp |
 | `verifiedAt` | `verified_at` | DateTime? | Optional | Timestamp of successful verification |
+| `consumedAt` | `consumed_at` | DateTime? | Optional | When OTP was consumed (action completed) |
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
 | `createdAt` | `created_at` | DateTime | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([userId])`, `@@index([purpose])`, `@@index([channel])`, `@@index([destination])`, `@@index([expiresAt])`
+**Indexes:** `@@index([userId])`, `@@index([referenceType, referenceId])`, `@@index([purpose])`, `@@index([channel])`, `@@index([destination])`, `@@index([expiresAt])`
 
-> **Design Note:** `userId` is nullable to allow OTP generation before a user record exists (e.g., during the registration flow where the user doesn't exist yet when the OTP is sent).
-
----
-
-### `UserAuthProvider` → `user_auth_providers` table
-
-Links a user to one or more external authentication providers (e.g., Google). Supports multiple OAuth providers per user.
-
-| Field | DB Column | Type | Constraint | Description |
-|---|---|---|---|---|
-| `id` | `id` | UUID | PK, auto | Primary key |
-| `userId` | `user_id` | UUID | FK → `users.id`, Cascade, Indexed | The user this provider is linked to |
-| `provider` | `provider` | `AuthProvider` | Required, Indexed | The OAuth provider (e.g. `GOOGLE`) |
-| `providerUserId` | `provider_user_id` | VarChar(255)? | Optional | The user's ID from the OAuth provider |
-| `createdBy` | `created_by` | UUID? | Optional | Audit trail |
-| `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
-| `createdAt` | `created_at` | DateTime | Auto: `now()` | Timestamp |
-| `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
-
-**Constraints:** `@@unique([provider, providerUserId])` — one user per provider ID  
-**Indexes:** `@@index([userId])`, `@@index([provider])`
+> **Design Note:** `referenceType` and `referenceId` are nullable because `ACCOUNT_RECOVERY` purpose has no associated business entity — only a user. `consumedAt` distinguishes a verified OTP that has been acted upon from one that was merely verified.
 
 ---
 
 ### `UserSession` → `user_sessions` table
 
-Represents an active login session. One session per login event, per device. Refresh tokens are linked to sessions.
+Records each device login session. Provides audit trail and supports session revocation.
 
 | Field | DB Column | Type | Constraint | Description |
 |---|---|---|---|---|
@@ -288,43 +268,32 @@ Represents an active login session. One session per login event, per device. Ref
 | `userId` | `user_id` | UUID | FK → `users.id`, Cascade, Indexed | The user this session belongs to |
 | `deviceType` | `device_type` | `DeviceType` | Required | Type of device used |
 | `deviceName` | `device_name` | VarChar(255)? | Optional | e.g. "iPhone 15 Pro" |
-| `deviceId` | `device_id` | VarChar(255)? | Optional | Unique fingerprint of the device |
+| `deviceId` | `device_id` | VarChar(255)? | Optional | Device fingerprint identifier |
 | `ipAddress` | `ip_address` | VarChar(45)? | Optional | IP at time of login (IPv4/IPv6) |
 | `userAgent` | `user_agent` | Text? | Optional | Full browser/app user-agent string |
-| `lastActivityAt` | `last_activity_at` | DateTime | Required, Indexed | Last request made in this session |
-| `expiresAt` | `expires_at` | DateTime | Required, Indexed | Session expiry time |
-| `revokedAt` | `revoked_at` | DateTime? | Optional | Set when session is manually ended |
+| `lastActivityAt` | `last_activity_at` | DateTime | Default: `now()`, Indexed | Last request in this session |
+| `revokedAt` | `revoked_at` | DateTime? | Optional, Indexed | Set when session is ended |
+| `revocationReason` | `revocation_reason` | `RevocationReason`? | Optional | Why session was revoked |
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
 | `createdAt` | `created_at` | DateTime | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([userId])`, `@@index([expiresAt])`, `@@index([lastActivityAt])`  
-**Relations:** `user`, `refreshTokens → RefreshToken[]`
+**Indexes:** `@@index([userId])`, `@@index([userId, deviceId])`, `@@index([lastActivityAt])`, `@@index([revokedAt])`
+
+> **Design Note:** `expiresAt` has been removed — session lifetime is managed by Supabase JWT expiry. `revocationReason` replaces the old `RevocationReason` from `RefreshToken`. The old `RefreshToken` model has been removed entirely as token management is now delegated to Supabase.
 
 ---
 
-### `RefreshToken` → `refresh_tokens` table
+## Removed Models (vs. Previous Versions)
 
-Stores issued refresh tokens (hashed). Linked to a session. Supports token rotation and revocation.
+The following models existed in earlier schema iterations but have been **removed** after migrating authentication to Supabase:
 
-| Field | DB Column | Type | Constraint | Description |
-|---|---|---|---|---|
-| `id` | `id` | UUID | PK, auto | Primary key |
-| `sessionId` | `session_id` | UUID | FK → `user_sessions.id`, Cascade, Indexed | Parent session |
-| `tokenHash` | `token_hash` | VarChar(255) | Unique | SHA-256/bcrypt hash of the token |
-| `revokedReason` | `revoked_reason` | `RevocationReason`? | Optional | Why this token was invalidated |
-| `revokedAt` | `revoked_at` | DateTime? | Optional, Indexed | When this token was revoked |
-| `expiresAt` | `expires_at` | DateTime | Required, Indexed | Token expiry time |
-| `createdBy` | `created_by` | UUID? | Optional | Audit trail |
-| `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
-| `createdAt` | `created_at` | DateTime | Auto: `now()` | Timestamp |
-| `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
-
-**Constraints:** `@@unique([tokenHash])` — guarantees token uniqueness  
-**Indexes:** `@@index([sessionId])`, `@@index([expiresAt])`, `@@index([revokedAt])`
-
-> **Design Note:** Only the hash is stored, never the raw token. On refresh, the incoming token is hashed and looked up. If not found or already revoked, the request is rejected.
+| Removed Model | Old Table | Reason |
+|---|---|---|
+| `OTPVerification` | `otp_verifications` | Replaced by `BusinessOTP` for business flows; auth OTPs handled by Supabase |
+| `UserAuthProvider` | `user_auth_providers` | OAuth provider links managed by Supabase Auth |
+| `RefreshToken` | `refresh_tokens` | Refresh token lifecycle managed by Supabase |
 
 ---
 
@@ -347,13 +316,11 @@ erDiagram
         string module
         bool isSystem
         bool isActive
-        datetime createdAt
     }
     RolePermission {
         uuid id PK
         uuid roleId FK
         uuid permissionId FK
-        datetime createdAt
     }
     User {
         uuid id PK
@@ -361,11 +328,10 @@ erDiagram
         string firstName
         string phone UK
         string email UK
-        string passwordHash
         UserStatus status
-        int failedLoginAttempts
+        datetime emailVerifiedAt
+        datetime phoneVerifiedAt
         datetime deletedAt
-        datetime createdAt
     }
     Address {
         uuid id PK
@@ -376,7 +342,7 @@ erDiagram
         bool isDefault
         datetime deletedAt
     }
-    OTPVerification {
+    BusinessOTP {
         uuid id PK
         uuid userId FK
         OTPPurpose purpose
@@ -384,15 +350,9 @@ erDiagram
         string destination
         string otpHash
         int attempts
-        int maxAttempts
         datetime expiresAt
         datetime verifiedAt
-    }
-    UserAuthProvider {
-        uuid id PK
-        uuid userId FK
-        AuthProvider provider
-        string providerUserId
+        datetime consumedAt
     }
     UserSession {
         uuid id PK
@@ -400,57 +360,16 @@ erDiagram
         DeviceType deviceType
         string ipAddress
         datetime lastActivityAt
-        datetime expiresAt
         datetime revokedAt
-    }
-    RefreshToken {
-        uuid id PK
-        uuid sessionId FK
-        string tokenHash UK
-        RevocationReason revokedReason
-        datetime revokedAt
-        datetime expiresAt
+        RevocationReason revocationReason
     }
 
     Role ||--o{ RolePermission : "has"
     Permission ||--o{ RolePermission : "assigned via"
     Role ||--o{ User : "assigned to"
     User ||--o{ Address : "has"
-    User ||--o{ OTPVerification : "has"
-    User ||--o{ UserAuthProvider : "linked to"
+    User ||--o{ BusinessOTP : "has"
     User ||--o{ UserSession : "has"
-    UserSession ||--o{ RefreshToken : "holds"
-```
-
----
-
-## Session & Token Flow
-
-```
-Login Request
-    |
-    |-- Validate credentials (User record + bcrypt compare)
-    |
-    |-- Create UserSession record (device, IP, user agent)
-    |
-    |-- Issue Access Token (15 min, stateless JWT)
-    |
-    |-- Issue Refresh Token (raw) -> hash it -> store in RefreshToken table
-    |
-    +-- Return both tokens to client
-
-Refresh Request
-    |
-    |-- Hash incoming refresh token
-    |-- Look up RefreshToken by tokenHash
-    |-- Validate: not expired, not revoked
-    |-- Revoke old RefreshToken (revokedReason = TOKEN_ROTATED)
-    |-- Issue new Access Token + new Refresh Token (rotation)
-    +-- Return new tokens
-
-Logout
-    |-- Revoke current RefreshToken (revokedReason = LOGOUT)
-    +-- Set UserSession.revokedAt
 ```
 
 ---
@@ -461,10 +380,8 @@ Logout
 |---|---|---|
 | `Role` | `roles` | Named permission groups |
 | `Permission` | `permissions` | Granular action codes |
-| `RolePermission` | `role_permissions` | Role <-> Permission mapping |
-| `User` | `users` | User accounts |
-| `Address` | `addresses` | User delivery/billing addresses |
-| `OTPVerification` | `otp_verifications` | OTP codes for all verification flows |
-| `UserAuthProvider` | `user_auth_providers` | OAuth provider links (Google, etc.) |
+| `RolePermission` | `role_permissions` | Role ↔ Permission mapping |
+| `User` | `users` | User accounts (profile + role + status) |
+| `Address` | `addresses` | User delivery addresses |
+| `BusinessOTP` | `business_otps` | Business-context OTPs (delivery, pickup, recovery) |
 | `UserSession` | `user_sessions` | Login sessions per device |
-| `RefreshToken` | `refresh_tokens` | Refresh token lifecycle (with rotation) |

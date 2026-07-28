@@ -2,7 +2,8 @@
 
 > [← Back to Index](../README.md)  
 > **Schema file:** [`server/prisma/modules/module2.store.prisma`](../../server/prisma/modules/module2.store.prisma)  
-> **Status:** ✅ Schema Complete (4 models)
+> **Status:** ✅ Schema Complete (4 models)  
+> **Last Updated:** 2026-07-28
 
 ---
 
@@ -14,6 +15,8 @@ The Store module handles vendor registration and management within the marketpla
 - Store media (logo, banner, gallery images)
 - Business identification (GST, registration number)
 - GPS-based location for delivery radius
+- Operating hours per weekday
+- Delivery configuration (radius, charges, pickup toggle)
 
 ---
 
@@ -22,7 +25,7 @@ The Store module handles vendor registration and management within the marketpla
 > All enums are mapped to snake_case PostgreSQL enum types via `@@map`.
 
 ### `StoreStatus` → `store_status`
-Tracks the operational state of a store.
+Tracks the operational state of a store. Managed by the platform admin.
 
 | Value | Description |
 |---|---|
@@ -66,28 +69,28 @@ Store availability is evaluated using three independent layers of responsibility
 
 | State Field | Scope & Responsibility | Controlled By |
 |---|---|---|
-| `Store.status` | **Platform / Admin Lifecycle** — Controls whether the store is approved and live (`ACTIVE`, `PENDING`, `SUSPENDED`, `CLOSED`). | Platform Admin |
-| `Store.isOpen` | **Manual Merchant Override** — Real-time toggle allowing the merchant to temporarily pause orders (e.g. peak rush, kitchen break). | Merchant |
-| `StoreHour` | **Scheduled Business Hours** — Weekly schedule defining opening and closing times per weekday. | Merchant |
+| `Store.status` | **Platform / Admin Lifecycle** — Controls whether the store is approved and live. | Platform Admin |
+| `Store.isOpen` | **Manual Merchant Override** — Real-time toggle to temporarily pause orders (e.g. rush hours, kitchen break). | Merchant |
+| `StoreHour` | **Scheduled Business Hours** — Weekly schedule defining opening/closing times per weekday. | Merchant |
 
 ### Single Source of Truth — Checkout Evaluation Rule
 
 For a customer to place an order, **all three** conditions must be satisfied simultaneously:
 
-$$\text{CanCheckout} = (\text{Store.status} == \text{ACTIVE}) \land (\text{Store.isOpen} == \text{true}) \land (\text{CurrentTime} \in \text{StoreHour})$$
+```
+CanCheckout = (Store.status == ACTIVE)
+           AND (Store.isOpen == true)
+           AND (CurrentTime is within today's StoreHour window)
+```
 
 ```typescript
 function isStoreAcceptingOrders(store: Store, storeHours: StoreHour[], now: Date = new Date()): boolean {
-  // 1. Platform Admin Lifecycle Check
   if (store.status !== StoreStatus.ACTIVE) return false;
-
-  // 2. Manual Merchant Override Check
   if (!store.isOpen) return false;
 
-  // 3. Weekly Business Hours Check
   const currentDay = getWeekDayEnum(now);
   const todayHours = storeHours.find((h) => h.weekDay === currentDay);
-  
+
   if (!todayHours || todayHours.isClosed) return false;
   if (!todayHours.openingTime || !todayHours.closingTime) return false;
 
@@ -111,14 +114,14 @@ Core store record. Each user can own at most one store (`ownerId` is unique).
 | `id` | `id` | UUID | PK, auto | Primary key |
 | `ownerId` | `owner_id` | UUID | Unique FK → `users.id`, Restrict | Store owner (one store per user) |
 | `name` | `name` | VarChar(150) | Required | Display name of the store |
-| `slug` | `slug` | VarChar(180) | Unique | URL-friendly identifier (e.g. `fresh-bakes-mumbai`) |
+| `slug` | `slug` | VarChar(180) | Unique | URL-friendly identifier |
 | `description` | `description` | Text? | Optional | Store description |
 | `phone` | `phone` | VarChar(15) | Unique | Store contact phone |
 | `email` | `email` | VarChar(255)? | Unique | Store contact email |
 | `gstNumber` | `gst_number` | VarChar(20)? | Unique | GST registration number |
 | `businessRegistrationNumber` | `business_registration_number` | VarChar(50)? | Unique | Business registration number |
 | `logoKey` | `logo_key` | VarChar(500)? | Optional | Object storage key for store logo |
-| `bannerKey` | `banner_key` | VarChar(500)? | Optional | Object storage key for store banner image |
+| `bannerKey` | `banner_key` | VarChar(500)? | Optional | Object storage key for store banner |
 | `addressLine1` | `address_line1` | VarChar(255) | Required | Primary address line |
 | `addressLine2` | `address_line2` | VarChar(255)? | Optional | Secondary address line |
 | `city` | `city` | VarChar(100) | Required, Indexed | City |
@@ -128,18 +131,18 @@ Core store record. Each user can own at most one store (`ownerId` is unique).
 | `latitude` | `latitude` | Decimal(9,6) | Required, Indexed | GPS latitude |
 | `longitude` | `longitude` | Decimal(9,6) | Required, Indexed | GPS longitude |
 | `timezone` | `timezone` | VarChar(100) | Default: `Asia/Kolkata` | Store's local timezone |
-| `status` | `status` | `StoreStatus` | Default: `PENDING`, Indexed | Operational status |
+| `status` | `status` | `StoreStatus` | Default: `PENDING`, Indexed | Platform operational status |
 | `verificationStatus` | `verification_status` | `VerificationStatus` | Default: `PENDING`, Indexed | Document verification status |
-| `verifiedAt` | `verified_at` | Timestamptz? | Optional | When verification was approved |
-| `verifiedById` | `verified_by_id` | UUID? | FK → `users.id`, SetNull | Admin who verified the store |
-| `isOpen` | `is_open` | Boolean | Default: `false` | Real-time open/closed toggle |
+| `verifiedAt` | `verified_at` | Timestamptz(6)? | Optional | When verification was approved |
+| `verifiedById` | `verified_by_id` | UUID? | FK → `users.id`, SetNull, Indexed | Admin who verified the store |
+| `isOpen` | `is_open` | Boolean | Default: `false`, Indexed | Real-time merchant open/closed toggle |
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
-| `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
-| `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
-| `deletedAt` | `deleted_at` | Timestamptz? | Optional | Soft-delete timestamp |
+| `createdAt` | `created_at` | Timestamptz(6) | Auto: `now()` | Timestamp |
+| `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
+| `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([status])`, `@@index([verificationStatus])`, `@@index([city])`, `@@index([state])`, `@@index([pincode])`, `@@index([latitude, longitude])`
+**Indexes:** `@@index([status])`, `@@index([verificationStatus])`, `@@index([city])`, `@@index([state])`, `@@index([pincode])`, `@@index([latitude, longitude])`, `@@index([ownerId])`, `@@index([verifiedById])`, `@@index([isOpen])`
 
 **Relations:**
 - `owner → User` (via `StoreOwner` named relation)
@@ -147,13 +150,15 @@ Core store record. Each user can own at most one store (`ownerId` is unique).
 - `images → StoreImage[]`
 - `hours → StoreHour[]`
 - `deliverySetting → StoreDeliverySetting?`
+- `carts → Cart[]`
+- `orders → Order[]`
+- `storeProducts → StoreProduct[]`
 
 > **Design Notes:**
 > - `ownerId` is `@unique` — enforces one store per user
-> - `latitude/longitude` are indexed together for geo-proximity queries
-> - `verifiedBy` uses `SetNull` so deleting an admin doesn't break store records
-> - `logoKey`, `bannerKey`, and `objectKey` store object-storage keys (CDN base URL is prepended in API layer)
+> - `logoKey`, `bannerKey` store object-storage keys — CDN base URL is prepended in the API layer
 > - `averageRating` and `totalReviews` have been removed pending a dedicated Review module
+> - `verifiedBy` uses `SetNull` so deleting an admin user doesn't break store records
 
 ---
 
@@ -165,14 +170,14 @@ Gallery images for a store (beyond the logo and banner stored on the `Store` mod
 |---|---|---|---|---|
 | `id` | `id` | UUID | PK, auto | Primary key |
 | `storeId` | `store_id` | UUID | FK → `stores.id`, Cascade, Indexed | The store this image belongs to |
-| `objectKey` | `object_key` | VarChar(500) | Required | Object storage key for gallery image asset |
-| `displayOrder` | `display_order` | Int | Default: `1`, Indexed | Controls ordering in the gallery |
+| `objectKey` | `object_key` | VarChar(500) | Required | Object storage key for the gallery image |
+| `displayOrder` | `display_order` | Int | Default: `1` | Controls ordering in the gallery |
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
-| `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
-| `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
+| `createdAt` | `created_at` | Timestamptz(6) | Auto: `now()` | Timestamp |
+| `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([storeId])`, `@@index([displayOrder])`
+**Indexes:** `@@index([storeId])`, `@@index([storeId, displayOrder])`
 
 ---
 
@@ -187,16 +192,16 @@ Defines the operating hours for each day of the week for a store.
 | `weekDay` | `week_day` | `WeekDay` | Required, Indexed | Day of the week |
 | `openingTime` | `opening_time` | Time(6)? | Optional | Opening time (null if closed all day) |
 | `closingTime` | `closing_time` | Time(6)? | Optional | Closing time (null if closed all day) |
-| `isClosed` | `is_closed` | Boolean | Default: `false` | Mark store as closed on this day |
+| `isClosed` | `is_closed` | Boolean | Default: `false` | Mark store as closed this day |
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
-| `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
-| `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
+| `createdAt` | `created_at` | Timestamptz(6) | Auto: `now()` | Timestamp |
+| `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 
 **Constraints:** `@@unique([storeId, weekDay])` — one record per day per store  
 **Indexes:** `@@index([storeId])`, `@@index([weekDay])`
 
-> **Design Note:** `openingTime` and `closingTime` are nullable so that setting `isClosed = true` without needing to clear the times is possible.
+> **Design Note:** `openingTime` and `closingTime` are nullable — setting `isClosed = true` without needing to clear times is valid. Exactly 7 rows should exist per store (one per weekday), created atomically with the store.
 
 ---
 
@@ -207,33 +212,27 @@ Stores all delivery configuration for a store. One-to-one relationship with `Sto
 | Field | DB Column | Type | Constraint | Description |
 |---|---|---|---|---|
 | `id` | `id` | UUID | PK, auto | Primary key |
-| `storeId` | `store_id` | UUID | Unique FK → `stores.id`, Cascade | The store this setting belongs to |
+| `storeId` | `store_id` | UUID | Unique FK → `stores.id`, Cascade | The store (one delivery config per store) |
 | `isDeliveryAvailable` | `is_delivery_available` | Boolean | Default: `true` | Whether home delivery is offered |
 | `isPickupAvailable` | `is_pickup_available` | Boolean | Default: `true` | Whether in-store pickup is offered |
 | `minimumOrderAmount` | `minimum_order_amount` | Decimal(10,2) | Default: `0.00` | Minimum cart value to place an order |
 | `deliveryRadiusKm` | `delivery_radius_km` | Decimal(5,2) | Default: `5.00` | Max delivery radius in kilometres |
-| `deliveryCharge` | `delivery_charge` | Decimal(10,2) | Default: `0.00` | Flat delivery fee |
-| `freeDeliveryAbove` | `free_delivery_above` | Decimal(10,2)? | Optional | Cart value threshold for free delivery |
+| `deliveryCharge` | `delivery_charge` | Decimal(10,2) | Default: `0.00` | Flat delivery fee charged to customer |
+| `freeDeliveryAbove` | `free_delivery_above` | Decimal(10,2)? | Optional | Cart threshold for free delivery (`null` = never free) |
 | `estimatedDeliveryTime` | `estimated_delivery_time` | Int | Default: `30` | Estimated delivery time in minutes |
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `updatedBy` | `updated_by` | UUID? | Optional | Audit trail |
-| `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
-| `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
+| `createdAt` | `created_at` | Timestamptz(6) | Auto: `now()` | Timestamp |
+| `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([storeId])`
+**Indexes:** `@@index` on `store_id` via unique constraint
 
-> **Design Notes & Mandatory Creation Contract:** 
-> - `storeId` is `@unique` enforcing one delivery config per store.
-> - `freeDeliveryAbove` is nullable — when `null`, free delivery is never applied.
-> - **Mandatory Creation Contract (Service Layer):** Although `deliverySetting` is marked optional (`StoreDeliverySetting?`) in Prisma schema due to 1:1 relation constraints, **every store creation event MUST initialize a default `StoreDeliverySetting` record within the same database transaction**:
-> 
+> **Mandatory Creation Contract (Service Layer):** Although `deliverySetting` is optional in Prisma's schema, **every store creation MUST initialize a default `StoreDeliverySetting` within the same database transaction:**
+>
 > ```typescript
-> const store = await prisma.store.create({
+> await prisma.store.create({
 >   data: {
->     ownerId,
->     name,
->     slug,
->     // ...
+>     ...storeData,
 >     deliverySetting: {
 >       create: {
 >         isDeliveryAvailable: true,
@@ -244,9 +243,6 @@ Stores all delivery configuration for a store. One-to-one relationship with `Sto
 >         estimatedDeliveryTime: 30,
 >       },
 >     },
->   },
->   include: {
->     deliverySetting: true,
 >   },
 > });
 > ```
@@ -303,7 +299,7 @@ erDiagram
     User ||--o| Store : "owns"
     User ||--o{ Store : "verifies"
     Store ||--o{ StoreImage : "has"
-    Store ||--o{ StoreHour : "has"
+    Store ||--o{ StoreHour : "has (7 rows)"
     Store ||--|| StoreDeliverySetting : "has"
 ```
 

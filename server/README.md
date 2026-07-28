@@ -11,10 +11,10 @@ Backend API server for the **aasPass** project, built with **NestJS**, **Prisma 
 | Framework | [NestJS](https://nestjs.com/) v11 |
 | Language | TypeScript v5 |
 | ORM | [Prisma](https://www.prisma.io/) v7 |
-| Database | PostgreSQL |
+| Database | PostgreSQL (via Supabase) |
 | DB Adapter | `@prisma/adapter-pg` + `pg` (Prisma 7 driver adapter pattern) |
+| Auth | Supabase Auth (`@supabase/supabase-js`) |
 | Config | `@nestjs/config` with Zod validation |
-| Auth (planned) | `@nestjs/jwt`, `passport`, `passport-jwt` |
 | API Docs (planned) | `@nestjs/swagger` |
 | Queue (planned) | `@nestjs/bullmq` + BullMQ + Redis |
 | WebSockets (planned) | `@nestjs/websockets`, `socket.io` |
@@ -88,7 +88,8 @@ The server will start on `http://localhost:3000` (or the port set in `.env`).
 ```
 server/
 ├── prisma/
-│   ├── schema.prisma          # Database schema (Prisma 7, no `url` in datasource)
+│   ├── schema.prisma          # Root schema (generator + datasource only)
+│   ├── modules/               # Per-module schema files (module1–6)
 │   ├── migrations/            # Migration history
 │   └── ERD.svg                # Auto-generated entity relationship diagram
 ├── prisma.config.ts           # Prisma 7 config — datasource URL & migration path
@@ -104,6 +105,9 @@ server/
 │   ├── prisma/                # Database access layer
 │   │   ├── prisma.service.ts  # PrismaClient wrapper using adapter-pg
 │   │   └── prisma.module.ts   # Global NestJS module exporting PrismaService
+│   ├── supabase/              # Supabase client layer
+│   │   ├── supabase.service.ts # anon + admin client initialization
+│   │   └── supabase.module.ts  # Global NestJS module exporting SupabaseService
 │   ├── modules/               # Feature modules (to be added)
 │   ├── common/                # Shared guards, pipes, filters (to be added)
 │   ├── infrastructure/        # External integrations (to be added)
@@ -145,6 +149,8 @@ Invalid environment variables
 
 This project uses **Prisma 7** with the **driver adapter** pattern — the connection URL is **not** defined in `schema.prisma`. Instead it is injected at runtime via `@prisma/adapter-pg`.
 
+The root `schema.prisma` contains only the generator and datasource block. All models live in `prisma/modules/` as separate files (one per feature module), imported via `prismaSchemaFolder`.
+
 **`prisma.config.ts`** (used by Prisma CLI tools):
 ```ts
 export default defineConfig({
@@ -159,6 +165,26 @@ export default defineConfig({
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 super({ adapter });
+```
+
+---
+
+## Supabase
+
+**`SupabaseService`** initializes two clients at startup:
+
+| Client | Key Used | Purpose |
+|---|---|---|
+| `anon` | `SUPABASE_ANON_KEY` | User-context requests (respects RLS) |
+| `admin` | `SUPABASE_SERVICE_ROLE_KEY` | Privileged operations (bypasses RLS) |
+
+Both are configured with `autoRefreshToken: false` and `persistSession: false` — tokens are managed by the client app, not the server.
+
+```ts
+// Access in any NestJS service:
+constructor(private supabase: SupabaseService) {}
+
+const { data, error } = await this.supabase.admin.auth.admin.getUserById(userId);
 ```
 
 ### Common Prisma Commands

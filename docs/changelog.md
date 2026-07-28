@@ -6,6 +6,116 @@ All notable changes to this project are documented here.
 
 ---
 
+## [July 28, 2026]
+
+### Documentation — LLD Created (v0.1)
+- Created `docs/LLD/lld-v0.1.md` (Low Level Design, v0.1 Draft)
+- Documents the actual implementation of all 6 modules:
+  - Infrastructure layer: env validation (Zod), config namespaces, bootstrap flow
+  - Prisma 7 adapter architecture (`PrismaPg` + `pg.Pool`)
+  - Supabase dual-client setup (`anon` + `admin`)
+  - Per-module design decisions, data models, and cross-module relationships
+  - Order placement flow and inventory adjustment flow diagrams
+
+### Documentation — Data Dictionary Created (v0.1)
+- Created `docs/data-dictionary/data-dictionary-v0.1.md` (v0.1 Draft)
+- Consolidated single document covering all 6 modules:
+  - **26 enums** with PostgreSQL type names and all values
+  - **33 tables** with full column definitions (DB type, constraints, defaults, descriptions)
+  - All **indexes** per table (name, columns, type, purpose)
+  - Summary counts table
+
+### Documentation — Module Database Docs Rewritten
+All 6 module docs under `docs/database/` rewritten to match the current schema:
+
+**`docs/database/module1-iam.md` — Complete rewrite:**
+- Reflects Supabase auth migration: removed `OTPVerification`, `UserAuthProvider`, `RefreshToken` documentation
+- Added `BusinessOTP` model documentation (replaced `OTPVerification`)
+- Updated `User` model: removed `passwordHash`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `lastLoginIp`, `passwordChangedAt`; clarified `id` is not auto-generated (Supabase UUID)
+- Updated `OTPPurpose` enum values: replaced old auth values with `ORDER_DELIVERY`, `ORDER_PICKUP`, `ACCOUNT_RECOVERY`, `SENSITIVE_ACTION`
+- Added `BusinessOTPReferenceType` enum documentation
+- Updated `UserSession`: removed `expiresAt` (managed by Supabase JWT), added `revocationReason` field
+- Added "Removed Models" section documenting the migration rationale
+
+**`docs/database/module2-store.md` — Complete rewrite:**
+- Added missing indexes: `ownerId`, `verifiedById`, `isOpen`
+- Updated `Store` relations to include `carts[]`, `orders[]`, `storeProducts[]`
+
+**`docs/database/module3-catalog.md` — Complete rewrite:**
+- Added `Inventory.version` OCC design notes
+- Updated `StoreProduct` relations to include `orderItems[]`, `replacementItems[]`
+- Corrected all index lists to match current schema
+
+**`docs/database/module4-cart.md` — Complete rewrite:**
+- Removed `couponId` (field was dropped; pending Promotions module)
+- Added correct composite indexes: `[userId, status]`, `[storeId, status]` on Cart; `[cartId, storeProductId]` on CartItem
+- Added snapshot source reference table
+
+**`docs/database/module5-order.md` — Targeted edits:**
+- Fixed model count (was `6 models`, now `5 models`)
+- Added composite indexes: `[userId, status]`, `[storeId, status]`, `[userId, placedAt]` on `Order`
+- Changed `OrderItem` index to composite `[orderId, fulfillmentStatus]`
+- Simplified `OrderStatusHistory` and `OrderNote` indexes to `[orderId, createdAt]`
+
+**`docs/database/module6-payment.md` — Targeted edits:**
+- Added composite index `[gateway, paymentStatus]` to `Payment`
+- Added composite index `[paymentId, transactionStatus]` to `PaymentTransaction`
+- Added composite index `[orderId, documentType]` to `FinancialDocument`
+
+### Documentation — `docs/README.md` Updated
+- Replaced generic README with a full documentation index
+- Links to all doc categories: LLD, Data Dictionary, Architecture, Setup, Guides, Changelog
+- Added version conventions table (`v0.x` = Draft, `v1.x` = Approved)
+- Added document status legend
+
+---
+
+## [July 25, 2026]
+
+### Module 1 — IAM Schema: Supabase Auth Migration
+
+Authentication fully delegated to **Supabase Auth**. The following models have been **removed** from `module1.auth.prisma`:
+
+| Removed Model | Removed Table | Reason |
+|---|---|---|
+| `OTPVerification` | `otp_verifications` | Business OTPs replaced by `BusinessOTP`; auth OTPs handled by Supabase |
+| `UserAuthProvider` | `user_auth_providers` | OAuth provider links managed by Supabase Auth |
+| `RefreshToken` | `refresh_tokens` | Refresh token lifecycle fully managed by Supabase JWT |
+
+**`AuthProvider` enum removed** (`LOCAL`, `GOOGLE`) — no longer needed as Supabase manages OAuth providers.
+
+**`User` model fields removed:**
+- `passwordHash`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `lastLoginIp`, `passwordChangedAt`
+- All auth fields now managed by Supabase
+
+**`User.id` changed:** `id` is now set from Supabase Auth's UUID at registration time — `@default(uuid())` removed.
+
+**`UserSession` updated:**
+- Removed `expiresAt` — session lifetime managed by Supabase JWT
+- Added `revocationReason RevocationReason?` field
+
+**New `OTPPurpose` enum values** (business-context OTPs only):
+- Removed: `REGISTRATION`, `LOGIN`, `PASSWORD_RESET`, `PHONE_VERIFICATION`, `EMAIL_VERIFICATION`
+- Added: `ORDER_DELIVERY`, `ORDER_PICKUP`, `ACCOUNT_RECOVERY`, `SENSITIVE_ACTION`
+
+**New `BusinessOTPReferenceType` enum added:** `ORDER`, `ACCOUNT`
+
+**New `BusinessOTP` → `business_otps` table added:**
+- Replaces `OTPVerification` for business-context flows (delivery/pickup OTP, account recovery, sensitive actions)
+- Added `referenceType`, `referenceId` — polymorphic link to business entities
+- Added `consumedAt` — distinguishes verified OTPs from acted-upon ones
+- `userId` remains nullable for flows where user may not yet exist
+
+### Server — Supabase Client Setup
+- Added `@supabase/supabase-js` and `@supabase/ssr`
+- Created `SupabaseModule` (`src/supabase/supabase.module.ts`) — Global NestJS module
+- Created `SupabaseService` (`src/supabase/supabase.service.ts`):
+  - Initializes two clients at startup: `anon` (user-context requests) and `admin` (service role for privileged operations)
+  - Both configured with `autoRefreshToken: false` and `persistSession: false` (server-side)
+  - `admin` client uses `SUPABASE_SERVICE_ROLE_KEY`; `anon` client uses `SUPABASE_ANON_KEY`
+
+---
+
 ## [July 23, 2026]
 
 ### Server — Prisma 7 Runtime Fix (Adapter Pattern)
@@ -37,7 +147,7 @@ All notable changes to this project are documented here.
 ## [July 22, 2026]
 
 ### Global Schema — snake_case Column & Enum Mapping
-- Mapped all **27 enums** across Modules 1–6 to snake_case PostgreSQL enum types via `@@map` (e.g. `UserStatus` → `user_status`)
+- Mapped all **26 enums** across Modules 1–6 to snake_case PostgreSQL enum types via `@@map` (e.g. `UserStatus` → `user_status`)
 - Mapped all camelCase scalar fields across every model in Modules 1–6 to snake_case column names via `@map` (e.g. `createdBy` → `created_by`, `firstName` → `first_name`)
 
 ### Module 2 — Store Schema Updates
@@ -52,13 +162,13 @@ All notable changes to this project are documented here.
 - Added `version Int @default(0)` field to `Inventory` model in `module3.catalog.prisma` for Optimistic Concurrency Control to prevent overselling and lost updates during simultaneous checkouts
 
 ### Module 4 — Cart Schema Updates
-- Removed unused `couponId` placeholder field from `Cart` model in `module4.cart.prisma` and `schema.prisma` pending dedicated Coupon module implementation
+- Removed unused `couponId` placeholder field from `Cart` model in `module4.cart.prisma` — pending dedicated Coupon module implementation
 
 ### Module 5 — Order Management Schema Updates
-- Added `version Int @default(0)` field to `Order` model in `module5.order.prisma` and `schema.prisma` for Optimistic Concurrency Control during concurrent order status transitions
+- Added `version Int @default(0)` field to `Order` model in `module5.order.prisma` for Optimistic Concurrency Control during concurrent order status transitions
 
 ### Module 6 — Payment & Financial Management Schema Updates
-- Added `@@unique([gateway, gatewayPaymentId])` constraint to `PaymentTransaction` model in `module6.payment.prisma` and `schema.prisma` to prevent duplicate transaction entries per gateway
+- Added `@@unique([gateway, gatewayPaymentId])` constraint to `PaymentTransaction` model in `module6.payment.prisma` to prevent duplicate transaction entries per gateway
 
 ---
 
@@ -124,7 +234,7 @@ All notable changes to this project are documented here.
 
 **Added Models:**
 
-`Cart` → `carts` — One active cart per user per store (`@@unique([userId, storeId])`). Full pricing breakdown. `couponId` placeholder for future promotions. `expiresAt` for TTL/abandonment policies. Soft-delete via `deletedAt`.
+`Cart` → `carts` — One active cart per user per store (`@@unique([userId, storeId])`). Full pricing breakdown. `expiresAt` for TTL/abandonment policies. Soft-delete via `deletedAt`.
 
 `CartItem` → `cart_items` — Line items with product/price snapshots frozen at add-to-cart time (`productNameSnapshot`, `unitSnapshot`, `mrpSnapshot`, `sellingPriceSnapshot`, `gstRateSnapshot`). `@@unique([cartId, storeProductId])`.
 
@@ -199,20 +309,23 @@ All notable changes to this project are documented here.
 
 ## [July 16, 2026]
 
-### Module 1 — IAM Schema Complete
+### Module 1 — IAM Schema (Initial — superseded by July 25 Supabase migration)
+
+> ⚠️ The models listed below were partially replaced by the Supabase auth migration on July 25, 2026. See that entry for details.
+
 **Added Models:**
 
-`User` → `users` — Phone-first account with optional email. bcrypt password hash. `UserStatus` lifecycle. Brute-force protection: `failedLoginAttempts`, `lockedUntil`. Login tracking: `lastLoginAt`, `lastLoginIp`, `lastSeenAt`. Soft-delete via `deletedAt`.
+`User` → `users` — Phone-first account with optional email. Included `passwordHash`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `lastLoginIp` (**removed in July 25 migration**). `UserStatus` lifecycle. `lastSeenAt`. Soft-delete via `deletedAt`.
 
 `Address` → `addresses` — Full delivery/billing address with receiver details. GPS coordinates. `isDefault` flag. Soft-delete via `deletedAt`.
 
-`OTPVerification` → `otp_verifications` — All OTP purposes: `REGISTRATION`, `LOGIN`, `PASSWORD_RESET`, `PHONE_VERIFICATION`, `EMAIL_VERIFICATION`. SMS and EMAIL delivery. Rate-limiting: `attempts`, `maxAttempts`, `blockedUntil`. Nullable `userId` for pre-registration OTPs. Hash-only storage.
+`OTPVerification` → `otp_verifications` (**removed in July 25 migration**) — All OTP purposes: `REGISTRATION`, `LOGIN`, `PASSWORD_RESET`, `PHONE_VERIFICATION`, `EMAIL_VERIFICATION`. SMS and EMAIL delivery. Rate-limiting: `attempts`, `maxAttempts`, `blockedUntil`. Nullable `userId` for pre-registration OTPs. Hash-only storage.
 
-`UserAuthProvider` → `user_auth_providers` — OAuth provider links. `@@unique([provider, providerUserId])`.
+`UserAuthProvider` → `user_auth_providers` (**removed in July 25 migration**) — OAuth provider links. `@@unique([provider, providerUserId])`.
 
-`UserSession` → `user_sessions` — One session per login per device. Tracks `deviceType`, `deviceName`, `deviceId`, `ipAddress`, `userAgent`, `lastActivityAt`, `expiresAt`.
+`UserSession` → `user_sessions` — One session per login per device. Tracks `deviceType`, `deviceName`, `deviceId`, `ipAddress`, `userAgent`, `lastActivityAt`. Originally had `expiresAt` (**removed in July 25 migration**).
 
-`RefreshToken` → `refresh_tokens` — Hashed tokens only (never raw). Supports token rotation with `RevocationReason`. Tracks `revokedAt` and `revokedReason`.
+`RefreshToken` → `refresh_tokens` (**removed in July 25 migration**) — Hashed tokens only (never raw). Supports token rotation with `RevocationReason`. Tracks `revokedAt` and `revokedReason`.
 
 **Updated Existing Models:**
 - `Role` — added `@@index([isActive])`

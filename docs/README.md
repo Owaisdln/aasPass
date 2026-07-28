@@ -1,67 +1,57 @@
-# aasPass — Documentation Index
+# aasPass Documentation
 
-> **Multi-Vendor E-Commerce / Marketplace Platform**  
-> **Status:** 🟡 In Development  
-> **Last Updated:** July 23, 2026
+> **Platform:** aasPass — Hyperlocal commerce platform  
+> **Last Updated:** 2026-07-28
 
 ---
 
-## 📚 Documentation
+## Document Index
 
-### 🏠 General
+### Architecture & Design
+
+| Document | Version | Status | Description |
+|---|---|---|---|
+| [High Level Design (HLD)](./HLD/) | *(planned)* | ⬜ Not Started | Module-level scope, goals, and system overview |
+| [Low Level Design (LLD)](./LLD/lld-v0.1.md) | v0.1 | 🟡 Draft | Detailed implementation — infrastructure, schema design decisions, data flows |
+| [Architecture Overview](./03-architecture.md) | — | ✅ Active | System diagram, request lifecycle, naming conventions |
+
+### Database
+
+| Document | Version | Status | Description |
+|---|---|---|---|
+| [Data Dictionary](./data-dictionary/data-dictionary-v0.1.md) | v0.1 | 🟡 Draft | All tables, columns, types, constraints, and indexes |
+
+### Guides & Setup
+
 | Document | Description |
 |---|---|
-| [01 — Project Overview](./01-overview.md) | Goals, tech stack, key design decisions |
-| [02 — Local Setup](./02-setup.md) | Prerequisites, installation, running locally |
-| [03 — Architecture](./03-architecture.md) | System diagrams, request lifecycle, infrastructure |
+| [Overview](./01-overview.md) | Project overview |
+| [Setup Guide](./02-setup.md) | Environment setup and getting started |
+| [Security Guide](./guides/security.md) | Security practices |
 
-### 🗄️ Database Schemas
-| Module | Status | Document |
+### Release & Change Management
+
+| Document | Description |
+|---|---|
+| [Changelog](./changelog.md) | All notable changes by date |
+| [Release Notes](./release-notes/) | *(planned)* Deployment-ready release documentation |
+
+---
+
+## Version Conventions
+
+| Version Range | Stage | Meaning |
 |---|---|---|
-| Module 1 — Identity & Access Management | ✅ Schema Complete (9 models) | [database/module1-iam.md](./database/module1-iam.md) |
-| Module 2 — Store Management | ✅ Schema Complete (4 models) | [database/module2-store.md](./database/module2-store.md) |
-| Module 3 — Catalog & Inventory | ✅ Schema Complete (8 models) | [database/module3-catalog.md](./database/module3-catalog.md) |
-| Module 4 — Cart & Wishlist | ✅ Schema Complete (4 models) | [database/module4-cart.md](./database/module4-cart.md) |
-| Module 5 — Order Management | ✅ Schema Complete (6 models) | [database/module5-order.md](./database/module5-order.md) |
-| Module 6 — Payment & Financial | ✅ Schema Complete (5 models) | [database/module6-payment.md](./database/module6-payment.md) |
+| `v0.1`, `v0.2`, … | Draft | Work in progress, under review |
+| `v1.0`, `v1.1`, … | Released/Approved | Reviewed and approved version |
 
-### 🔒 Guides
-| Document | Description |
+---
+
+## Document Status Legend
+
+| Icon | Status |
 |---|---|
-| [Security](./guides/security.md) | JWT strategy, RBAC, password hashing, token revocation |
-
-### 📋 Changelog
-| Document | Description |
-|---|---|
-| [Changelog](./changelog.md) | What was built and when |
-
----
-
-> 📝 **New sections (API docs, more database modules, deployment guide, contributing guide) will be added here as each part of the project is built and completed.**
-
----
-
-## 🚀 Quick Start
-
-```bash
-cd server
-npm install
-npm run start:dev
-```
-
-> See [02 — Local Setup](./02-setup.md) for full instructions.
-
----
-
-## 📁 Project Structure (Top Level)
-
-```
-aasPass/
-├── docs/          ← You are here
-├── client/        ← Frontend (not started)
-└── server/        ← NestJS backend
-    ├── prisma.config.ts  ← Prisma 7 CLI config
-    └── src/
-        ├── config/       ← Env config + Zod validation
-        └── prisma/       ← PrismaService (adapter-pg)
-```
+| ⬜ | Not Started |
+| 🟡 | Draft |
+| 🔵 | Under Review |
+| ✅ | Approved / Active |

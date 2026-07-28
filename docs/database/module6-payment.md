@@ -2,7 +2,8 @@
 
 > [← Back to Index](../README.md)  
 > **Schema file:** [`server/prisma/modules/module6.payment.prisma`](../../server/prisma/modules/module6.payment.prisma)  
-> **Status:** ✅ Schema Complete (5 models)
+> **Status:** ✅ Schema Complete (5 models)  
+> **Last Updated:** 2026-07-28
 
 ---
 
@@ -119,7 +120,7 @@ One payment record per order. Tracks the chosen payment method, gateway, and the
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([paymentStatus])`, `@@index([paymentMethod])`, `@@index([gateway])`, `@@index([paidAt])`  
+**Indexes:** `@@index([paymentStatus])`, `@@index([paymentMethod])`, `@@index([gateway])`, `@@index([paidAt])`, `@@index([gateway, paymentStatus])`  
 **Relations:**
 - `order -> Order` (Cascade)
 - `transactions -> PaymentTransaction[]`
@@ -155,7 +156,7 @@ Records each individual attempt to charge the customer via a payment gateway. A 
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 
 **Constraints:** `@@unique([gateway, gatewayPaymentId])` — prevents duplicate gateway transaction records per gateway  
-**Indexes:** `@@index([paymentId])`, `@@index([transactionStatus])`, `@@index([gateway])`, `@@index([gatewayOrderId])`, `@@index([gatewayPaymentId])`, `@@index([processedAt])`  
+**Indexes:** `@@index([paymentId])`, `@@index([paymentId, transactionStatus])`, `@@index([transactionStatus])`, `@@index([gateway])`, `@@index([gatewayOrderId])`, `@@index([gatewayPaymentId])`, `@@index([processedAt])`  
 **Relations:** `payment -> Payment` (Cascade)
 
 > **Design Note:** No `updatedAt` — transaction records are write-once. The `@@unique([gateway, gatewayPaymentId])` constraint prevents processing duplicate gateway transactions. The `gatewayResponse` JSON stores the full raw payload for debugging and compliance.
@@ -231,7 +232,7 @@ Stores references to generated financial documents (invoices, receipts, credit n
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 
-**Indexes:** `@@index([orderId])`, `@@index([documentType])`, `@@index([generatedAt])`  
+**Indexes:** `@@index([orderId])`, `@@index([orderId, documentType])`, `@@index([documentType])`, `@@index([generatedAt])`  
 **Relations:** `order -> Order` (Cascade)
 
 > **Design Notes:**

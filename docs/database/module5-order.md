@@ -2,7 +2,8 @@
 
 > [← Back to Index](../README.md)  
 > **Schema file:** [`server/prisma/modules/module5.order.prisma`](../../server/prisma/modules/module5.order.prisma)  
-> **Status:** ✅ Schema Complete (6 models)
+> **Status:** ✅ Schema Complete (5 models)  
+> **Last Updated:** 2026-07-28
 
 ---
 
@@ -135,7 +136,7 @@ Represents a placed order scoped to a single store. Contains a full delivery add
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([userId])`, `@@index([storeId])`, `@@index([status])`, `@@index([paymentStatus])`, `@@index([placedAt])`  
+**Indexes:** `@@index([userId])`, `@@index([storeId])`, `@@index([status])`, `@@index([paymentStatus])`, `@@index([placedAt])`, `@@index([userId, status])`, `@@index([storeId, status])`, `@@index([userId, placedAt])`  
 **Relations:**
 - `user -> User`
 - `store -> Store`
@@ -174,7 +175,7 @@ A single product line within an order. Pricing and product details are snapshott
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([orderId])`, `@@index([storeProductId])`, `@@index([fulfillmentStatus])`  
+**Indexes:** `@@index([orderId])`, `@@index([storeProductId])`, `@@index([orderId, fulfillmentStatus])`  
 **Relations:**
 - `order -> Order` (Cascade)
 - `storeProduct -> StoreProduct` (Restrict)
@@ -228,7 +229,7 @@ An immutable audit log of every order status transition. Records are written onc
 | `createdBy` | `created_by` | UUID? | Optional | Who triggered the transition |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()`, Indexed | When the transition occurred |
 
-**Indexes:** `@@index([orderId])`, `@@index([newStatus])`, `@@index([createdAt])`  
+**Indexes:** `@@index([orderId])`, `@@index([orderId, createdAt])`  
 **Relations:** `order -> Order` (Cascade)
 
 > **Design Note:** Write-once record. No `updatedAt` or `updatedBy` fields by design.
@@ -248,7 +249,7 @@ Multi-party notes attached to an order. Supports notes from customers, merchants
 | `createdBy` | `created_by` | UUID? | Optional | Author user ID |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()`, Indexed | When note was added |
 
-**Indexes:** `@@index([orderId])`, `@@index([noteType])`, `@@index([createdAt])`  
+**Indexes:** `@@index([orderId])`, `@@index([orderId, createdAt])`  
 **Relations:** `order -> Order` (Cascade)
 
 ---
