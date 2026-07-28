@@ -5,6 +5,7 @@ import configuration from './config';
 import { validate } from './config/env.validation';
 
 import { PrismaModule } from './prisma/prisma.module';
+import { SupabaseModule } from './supabase/supabase.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PrismaModule } from './prisma/prisma.module';
       validate,
     }),
     PrismaModule,
+    SupabaseModule,
   ],
 })
 export class AppModule {}

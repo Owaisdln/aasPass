@@ -16,7 +16,6 @@ enum OrderStatus {
   @@map("order_status")
 }
 
-
 enum FulfillmentType {
   DELIVERY
   PICKUP
@@ -60,12 +59,12 @@ model Order {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  userId String @db.Uuid @map("user_id")
-  storeId String @db.Uuid @map("store_id")
-  addressId String @db.Uuid @map("address_id")
+  userId    String @map("user_id") @db.Uuid
+  storeId   String @map("store_id") @db.Uuid
+  addressId String @map("address_id") @db.Uuid
 
   // Order Information
-  orderNumber String @unique @db.VarChar(50) @map("order_number")
+  orderNumber String @unique @map("order_number") @db.VarChar(50)
 
   status OrderStatus @default(PENDING)
 
@@ -74,71 +73,71 @@ model Order {
   fulfillmentType FulfillmentType @default(DELIVERY) @map("fulfillment_type")
 
   // Pricing
-  subtotal Decimal @default(0.00) @db.Decimal(10,2)
+  subtotal Decimal @default(0.00) @db.Decimal(10, 2)
 
-  discountAmount Decimal @default(0.00) @db.Decimal(10,2) @map("discount_amount")
+  discountAmount Decimal @default(0.00) @map("discount_amount") @db.Decimal(10, 2)
 
-  taxAmount Decimal @default(0.00) @db.Decimal(10,2) @map("tax_amount")
+  taxAmount Decimal @default(0.00) @map("tax_amount") @db.Decimal(10, 2)
 
-  deliveryFee Decimal @default(0.00) @db.Decimal(10,2) @map("delivery_fee")
+  deliveryFee Decimal @default(0.00) @map("delivery_fee") @db.Decimal(10, 2)
 
-  totalAmount Decimal @default(0.00) @db.Decimal(10,2) @map("total_amount")
+  totalAmount Decimal @default(0.00) @map("total_amount") @db.Decimal(10, 2)
 
   // Delivery Address Snapshot
-  deliveryReceiverName String @db.VarChar(100) @map("delivery_receiver_name")
+  deliveryReceiverName String @map("delivery_receiver_name") @db.VarChar(100)
 
-  deliveryPhone String @db.VarChar(20) @map("delivery_phone")
+  deliveryPhone String @map("delivery_phone") @db.VarChar(20)
 
-  deliveryEmail String? @db.VarChar(255) @map("delivery_email")
+  deliveryEmail String? @map("delivery_email") @db.VarChar(255)
 
-  deliveryHouseNo String @db.VarChar(100) @map("delivery_house_no")
+  deliveryHouseNo String @map("delivery_house_no") @db.VarChar(100)
 
-  deliveryStreet String @db.VarChar(255) @map("delivery_street")
+  deliveryStreet String @map("delivery_street") @db.VarChar(255)
 
-  deliveryArea String @db.VarChar(255) @map("delivery_area")
+  deliveryArea String @map("delivery_area") @db.VarChar(255)
 
-  deliveryLandmark String? @db.VarChar(255) @map("delivery_landmark")
+  deliveryLandmark String? @map("delivery_landmark") @db.VarChar(255)
 
-  deliveryCity String @db.VarChar(100) @map("delivery_city")
+  deliveryCity String @map("delivery_city") @db.VarChar(100)
 
-  deliveryState String @db.VarChar(100) @map("delivery_state")
+  deliveryState String @map("delivery_state") @db.VarChar(100)
 
-  deliveryCountry String @db.VarChar(100) @map("delivery_country")
+  deliveryCountry String @map("delivery_country") @db.VarChar(100)
 
-  deliveryPincode String @db.VarChar(20) @map("delivery_pincode")
+  deliveryPincode String @map("delivery_pincode") @db.VarChar(20)
 
-  deliveryLatitude Decimal? @db.Decimal(10,7) @map("delivery_latitude")
+  deliveryLatitude Decimal? @map("delivery_latitude") @db.Decimal(10, 7)
 
-  deliveryLongitude Decimal? @db.Decimal(10,7) @map("delivery_longitude")
+  deliveryLongitude Decimal? @map("delivery_longitude") @db.Decimal(10, 7)
 
   // Customer Instructions
-  deliveryInstructions String? @db.Text @map("delivery_instructions")
+  deliveryInstructions String? @map("delivery_instructions") @db.Text
 
   // Timeline
-  placedAt DateTime @default(now()) @db.Timestamptz(6) @map("placed_at")
+  placedAt DateTime @default(now()) @map("placed_at") @db.Timestamptz(6)
 
   version Int @default(0)
 
-  confirmedAt DateTime? @db.Timestamptz(6) @map("confirmed_at")
+  confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz(6)
 
-  packedAt DateTime? @db.Timestamptz(6) @map("packed_at")
+  packedAt DateTime? @map("packed_at") @db.Timestamptz(6)
 
-  outForDeliveryAt DateTime? @db.Timestamptz(6) @map("out_for_delivery_at")
+  outForDeliveryAt DateTime? @map("out_for_delivery_at") @db.Timestamptz(6)
 
-  deliveredAt DateTime? @db.Timestamptz(6) @map("delivered_at")
+  deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(6)
 
-  cancelledAt DateTime? @db.Timestamptz(6) @map("cancelled_at")
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  updatedBy String? @db.Uuid @map("updated_by")
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -156,23 +155,22 @@ model Order {
 
   notes OrderNote[]
 
-  // Payment relation will be added later
-  // payment Payment?
+  payment Payment?
+
+  financialDocuments FinancialDocument[]
 
   // ======================================================
   // Indexes
   // ======================================================
 
   @@index([userId])
-
   @@index([storeId])
-
   @@index([status])
-
   @@index([paymentStatus])
-
   @@index([placedAt])
-
+  @@index([userId, status])
+  @@index([storeId, status])
+  @@index([userId, placedAt])
   @@map("orders")
 }
 
@@ -184,38 +182,38 @@ model OrderItem {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  orderId String @db.Uuid @map("order_id")
+  orderId String @map("order_id") @db.Uuid
 
-  storeProductId String @db.Uuid @map("store_product_id")
+  storeProductId String @map("store_product_id") @db.Uuid
 
   // Quantity
   quantity Int
 
   // Product Snapshot
-  productNameSnapshot String @db.VarChar(200) @map("product_name_snapshot")
+  productNameSnapshot String @map("product_name_snapshot") @db.VarChar(200)
 
-  unitSnapshot String @db.VarChar(50) @map("unit_snapshot")
+  unitSnapshot String @map("unit_snapshot") @db.VarChar(50)
 
   // Pricing Snapshot
-  mrpSnapshot Decimal @db.Decimal(10,2) @map("mrp_snapshot")
+  mrpSnapshot Decimal @map("mrp_snapshot") @db.Decimal(10, 2)
 
-  sellingPriceSnapshot Decimal @db.Decimal(10,2) @map("selling_price_snapshot")
+  sellingPriceSnapshot Decimal @map("selling_price_snapshot") @db.Decimal(10, 2)
 
-  gstRateSnapshot Decimal @db.Decimal(5,2) @map("gst_rate_snapshot")
+  gstRateSnapshot Decimal @map("gst_rate_snapshot") @db.Decimal(5, 2)
 
-  subtotal Decimal @db.Decimal(10,2)
+  subtotal Decimal @db.Decimal(10, 2)
 
   // Fulfillment
   fulfillmentStatus FulfillmentStatus @default(PENDING) @map("fulfillment_status")
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  updatedBy String? @db.Uuid @map("updated_by")
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -223,7 +221,7 @@ model OrderItem {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  storeProduct StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Restrict)
+  storeProduct StoreProduct @relation("OrderedProduct", fields: [storeProductId], references: [id], onDelete: Restrict)
 
   replacements OrderItemReplacement[]
 
@@ -232,11 +230,7 @@ model OrderItem {
   // ======================================================
 
   @@index([orderId])
-
-  @@index([storeProductId])
-
-  @@index([fulfillmentStatus])
-
+  @@index([orderId, fulfillmentStatus])
   @@map("order_items")
 }
 
@@ -248,44 +242,44 @@ model OrderItemReplacement {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  orderItemId String @db.Uuid @map("order_item_id")
+  orderItemId String @map("order_item_id") @db.Uuid
 
-  replacementStoreProductId String @db.Uuid @map("replacement_store_product_id")
+  replacementStoreProductId String @map("replacement_store_product_id") @db.Uuid
 
   // Status
   status ReplacementStatus @default(PENDING)
 
   // Replacement Product Snapshot
-  replacementProductNameSnapshot String @db.VarChar(200) @map("replacement_product_name_snapshot")
+  replacementProductNameSnapshot String @map("replacement_product_name_snapshot") @db.VarChar(200)
 
-  replacementUnitSnapshot String @db.VarChar(50) @map("replacement_unit_snapshot")
+  replacementUnitSnapshot String @map("replacement_unit_snapshot") @db.VarChar(50)
 
-  replacementMrpSnapshot Decimal @db.Decimal(10,2) @map("replacement_mrp_snapshot")
+  replacementMrpSnapshot Decimal @map("replacement_mrp_snapshot") @db.Decimal(10, 2)
 
-  replacementSellingPriceSnapshot Decimal @db.Decimal(10,2) @map("replacement_selling_price_snapshot")
+  replacementSellingPriceSnapshot Decimal @map("replacement_selling_price_snapshot") @db.Decimal(10, 2)
 
-  replacementGstRateSnapshot Decimal @db.Decimal(5,2) @map("replacement_gst_rate_snapshot")
+  replacementGstRateSnapshot Decimal @map("replacement_gst_rate_snapshot") @db.Decimal(5, 2)
 
-  replacementSubtotal Decimal @db.Decimal(10,2) @map("replacement_subtotal")
+  replacementSubtotal Decimal @map("replacement_subtotal") @db.Decimal(10, 2)
 
   // Merchant & Customer Communication
-  merchantReason String? @db.Text @map("merchant_reason")
+  merchantReason String? @map("merchant_reason") @db.Text
 
-  customerResponse String? @db.Text @map("customer_response")
+  customerResponse String? @map("customer_response") @db.Text
 
   // Timeline
-  requestedAt DateTime @default(now()) @db.Timestamptz(6) @map("requested_at")
+  requestedAt DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
 
-  respondedAt DateTime? @db.Timestamptz(6) @map("responded_at")
+  respondedAt DateTime? @map("responded_at") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  updatedBy String? @db.Uuid @map("updated_by")
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -293,18 +287,14 @@ model OrderItemReplacement {
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
-  replacementStoreProduct StoreProduct @relation(fields: [replacementStoreProductId], references: [id], onDelete: Restrict)
+  replacementStoreProduct StoreProduct @relation("ReplacementProduct", fields: [replacementStoreProductId], references: [id], onDelete: Restrict)
 
   // ======================================================
   // Indexes
   // ======================================================
 
   @@index([orderItemId])
-
-  @@index([replacementStoreProductId])
-
-  @@index([status])
-
+  @@index([orderItemId, status])
   @@map("order_item_replacements")
 }
 
@@ -316,7 +306,7 @@ model OrderStatusHistory {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  orderId String @db.Uuid @map("order_id")
+  orderId String @map("order_id") @db.Uuid
 
   // Status Transition
   previousStatus OrderStatus? @map("previous_status")
@@ -327,9 +317,9 @@ model OrderStatusHistory {
   remarks String? @db.Text
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -342,11 +332,7 @@ model OrderStatusHistory {
   // ======================================================
 
   @@index([orderId])
-
-  @@index([newStatus])
-
-  @@index([createdAt])
-
+  @@index([orderId, createdAt])
   @@map("order_status_history")
 }
 
@@ -358,7 +344,7 @@ model OrderNote {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  orderId String @db.Uuid @map("order_id")
+  orderId String @map("order_id") @db.Uuid
 
   // Note
   noteType OrderNoteType @map("note_type")
@@ -366,9 +352,9 @@ model OrderNote {
   note String @db.Text
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -381,11 +367,6 @@ model OrderNote {
   // ======================================================
 
   @@index([orderId])
-
-  @@index([noteType])
-
-  @@index([createdAt])
-
+  @@index([orderId, createdAt])
   @@map("order_notes")
 }
-

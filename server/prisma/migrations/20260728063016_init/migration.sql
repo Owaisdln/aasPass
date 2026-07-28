@@ -2,13 +2,13 @@
 CREATE TYPE "user_status" AS ENUM ('ACTIVE', 'INACTIVE', 'BLOCKED', 'PENDING_VERIFICATION');
 
 -- CreateEnum
-CREATE TYPE "otp_purpose" AS ENUM ('REGISTRATION', 'LOGIN', 'PASSWORD_RESET', 'PHONE_VERIFICATION', 'EMAIL_VERIFICATION');
+CREATE TYPE "otp_purpose" AS ENUM ('ORDER_DELIVERY', 'ORDER_PICKUP', 'ACCOUNT_RECOVERY', 'SENSITIVE_ACTION');
 
 -- CreateEnum
 CREATE TYPE "otp_channel" AS ENUM ('SMS', 'EMAIL');
 
 -- CreateEnum
-CREATE TYPE "auth_provider" AS ENUM ('LOCAL', 'GOOGLE');
+CREATE TYPE "business_otp_reference_type" AS ENUM ('ORDER', 'ACCOUNT');
 
 -- CreateEnum
 CREATE TYPE "device_type" AS ENUM ('MOBILE', 'TABLET', 'DESKTOP', 'WEB');
@@ -128,17 +128,11 @@ CREATE TABLE "users" (
     "role_id" UUID NOT NULL,
     "first_name" VARCHAR(100) NOT NULL,
     "last_name" VARCHAR(100),
-    "phone" VARCHAR(15) NOT NULL,
+    "phone" VARCHAR(15),
     "email" VARCHAR(255),
-    "password_hash" VARCHAR(255) NOT NULL,
     "status" "user_status" NOT NULL DEFAULT 'PENDING_VERIFICATION',
     "email_verified_at" TIMESTAMP(3),
     "phone_verified_at" TIMESTAMP(3),
-    "password_changed_at" TIMESTAMP(3),
-    "failed_login_attempts" INTEGER NOT NULL DEFAULT 0,
-    "locked_until" TIMESTAMP(3),
-    "last_login_at" TIMESTAMP(3),
-    "last_login_ip" VARCHAR(45),
     "last_seen_at" TIMESTAMP(3),
     "created_by" UUID,
     "updated_by" UUID,
@@ -177,9 +171,11 @@ CREATE TABLE "addresses" (
 );
 
 -- CreateTable
-CREATE TABLE "otp_verifications" (
+CREATE TABLE "business_otps" (
     "id" UUID NOT NULL,
     "user_id" UUID,
+    "reference_type" "business_otp_reference_type",
+    "reference_id" UUID,
     "purpose" "otp_purpose" NOT NULL,
     "channel" "otp_channel" NOT NULL,
     "destination" VARCHAR(255) NOT NULL,
@@ -190,26 +186,13 @@ CREATE TABLE "otp_verifications" (
     "blocked_until" TIMESTAMP(3),
     "expires_at" TIMESTAMP(3) NOT NULL,
     "verified_at" TIMESTAMP(3),
+    "consumed_at" TIMESTAMP(3),
     "created_by" UUID,
     "updated_by" UUID,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "otp_verifications_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "user_auth_providers" (
-    "id" UUID NOT NULL,
-    "user_id" UUID NOT NULL,
-    "provider" "auth_provider" NOT NULL,
-    "provider_user_id" VARCHAR(255),
-    "created_by" UUID,
-    "updated_by" UUID,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "user_auth_providers_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "business_otps_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -221,31 +204,15 @@ CREATE TABLE "user_sessions" (
     "device_id" VARCHAR(255),
     "ip_address" VARCHAR(45),
     "user_agent" TEXT,
-    "last_activity_at" TIMESTAMP(3) NOT NULL,
-    "expires_at" TIMESTAMP(3) NOT NULL,
+    "last_activity_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "revoked_at" TIMESTAMP(3),
+    "revocation_reason" "revocation_reason",
     "created_by" UUID,
     "updated_by" UUID,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "refresh_tokens" (
-    "id" UUID NOT NULL,
-    "session_id" UUID NOT NULL,
-    "token_hash" VARCHAR(255) NOT NULL,
-    "revoked_reason" "revocation_reason",
-    "revoked_at" TIMESTAMP(3),
-    "expires_at" TIMESTAMP(3) NOT NULL,
-    "created_by" UUID,
-    "updated_by" UUID,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "refresh_tokens_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -806,55 +773,43 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE INDEX "addresses_user_id_idx" ON "addresses"("user_id");
 
 -- CreateIndex
+CREATE INDEX "addresses_user_id_is_default_idx" ON "addresses"("user_id", "is_default");
+
+-- CreateIndex
 CREATE INDEX "addresses_city_idx" ON "addresses"("city");
 
 -- CreateIndex
 CREATE INDEX "addresses_pincode_idx" ON "addresses"("pincode");
 
 -- CreateIndex
-CREATE INDEX "otp_verifications_user_id_idx" ON "otp_verifications"("user_id");
+CREATE INDEX "business_otps_user_id_idx" ON "business_otps"("user_id");
 
 -- CreateIndex
-CREATE INDEX "otp_verifications_purpose_idx" ON "otp_verifications"("purpose");
+CREATE INDEX "business_otps_reference_type_reference_id_idx" ON "business_otps"("reference_type", "reference_id");
 
 -- CreateIndex
-CREATE INDEX "otp_verifications_channel_idx" ON "otp_verifications"("channel");
+CREATE INDEX "business_otps_purpose_idx" ON "business_otps"("purpose");
 
 -- CreateIndex
-CREATE INDEX "otp_verifications_destination_idx" ON "otp_verifications"("destination");
+CREATE INDEX "business_otps_channel_idx" ON "business_otps"("channel");
 
 -- CreateIndex
-CREATE INDEX "otp_verifications_expires_at_idx" ON "otp_verifications"("expires_at");
+CREATE INDEX "business_otps_destination_idx" ON "business_otps"("destination");
 
 -- CreateIndex
-CREATE INDEX "user_auth_providers_user_id_idx" ON "user_auth_providers"("user_id");
-
--- CreateIndex
-CREATE INDEX "user_auth_providers_provider_idx" ON "user_auth_providers"("provider");
-
--- CreateIndex
-CREATE UNIQUE INDEX "user_auth_providers_provider_provider_user_id_key" ON "user_auth_providers"("provider", "provider_user_id");
+CREATE INDEX "business_otps_expires_at_idx" ON "business_otps"("expires_at");
 
 -- CreateIndex
 CREATE INDEX "user_sessions_user_id_idx" ON "user_sessions"("user_id");
 
 -- CreateIndex
-CREATE INDEX "user_sessions_expires_at_idx" ON "user_sessions"("expires_at");
+CREATE INDEX "user_sessions_user_id_device_id_idx" ON "user_sessions"("user_id", "device_id");
 
 -- CreateIndex
 CREATE INDEX "user_sessions_last_activity_at_idx" ON "user_sessions"("last_activity_at");
 
 -- CreateIndex
-CREATE INDEX "refresh_tokens_session_id_idx" ON "refresh_tokens"("session_id");
-
--- CreateIndex
-CREATE INDEX "refresh_tokens_expires_at_idx" ON "refresh_tokens"("expires_at");
-
--- CreateIndex
-CREATE INDEX "refresh_tokens_revoked_at_idx" ON "refresh_tokens"("revoked_at");
-
--- CreateIndex
-CREATE UNIQUE INDEX "refresh_tokens_token_hash_key" ON "refresh_tokens"("token_hash");
+CREATE INDEX "user_sessions_revoked_at_idx" ON "user_sessions"("revoked_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "stores_owner_id_key" ON "stores"("owner_id");
@@ -893,10 +848,19 @@ CREATE INDEX "stores_pincode_idx" ON "stores"("pincode");
 CREATE INDEX "stores_latitude_longitude_idx" ON "stores"("latitude", "longitude");
 
 -- CreateIndex
+CREATE INDEX "stores_owner_id_idx" ON "stores"("owner_id");
+
+-- CreateIndex
+CREATE INDEX "stores_verified_by_id_idx" ON "stores"("verified_by_id");
+
+-- CreateIndex
+CREATE INDEX "stores_is_open_idx" ON "stores"("is_open");
+
+-- CreateIndex
 CREATE INDEX "store_images_store_id_idx" ON "store_images"("store_id");
 
 -- CreateIndex
-CREATE INDEX "store_images_display_order_idx" ON "store_images"("display_order");
+CREATE INDEX "store_images_store_id_display_order_idx" ON "store_images"("store_id", "display_order");
 
 -- CreateIndex
 CREATE INDEX "store_hours_store_id_idx" ON "store_hours"("store_id");
@@ -909,9 +873,6 @@ CREATE UNIQUE INDEX "store_hours_store_id_week_day_key" ON "store_hours"("store_
 
 -- CreateIndex
 CREATE UNIQUE INDEX "store_delivery_settings_store_id_key" ON "store_delivery_settings"("store_id");
-
--- CreateIndex
-CREATE INDEX "store_delivery_settings_store_id_idx" ON "store_delivery_settings"("store_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
@@ -983,13 +944,10 @@ CREATE INDEX "master_products_barcode_idx" ON "master_products"("barcode");
 CREATE INDEX "product_images_master_product_id_idx" ON "product_images"("master_product_id");
 
 -- CreateIndex
-CREATE INDEX "product_images_image_type_idx" ON "product_images"("image_type");
+CREATE INDEX "product_images_master_product_id_display_order_idx" ON "product_images"("master_product_id", "display_order");
 
 -- CreateIndex
-CREATE INDEX "product_images_display_order_idx" ON "product_images"("display_order");
-
--- CreateIndex
-CREATE INDEX "product_images_is_primary_idx" ON "product_images"("is_primary");
+CREATE INDEX "product_images_master_product_id_is_primary_idx" ON "product_images"("master_product_id", "is_primary");
 
 -- CreateIndex
 CREATE INDEX "store_products_store_id_idx" ON "store_products"("store_id");
@@ -1004,6 +962,12 @@ CREATE INDEX "store_products_availability_status_idx" ON "store_products"("avail
 CREATE INDEX "store_products_is_featured_idx" ON "store_products"("is_featured");
 
 -- CreateIndex
+CREATE INDEX "store_products_store_id_availability_status_idx" ON "store_products"("store_id", "availability_status");
+
+-- CreateIndex
+CREATE INDEX "store_products_store_id_is_featured_idx" ON "store_products"("store_id", "is_featured");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "store_products_store_id_master_product_id_key" ON "store_products"("store_id", "master_product_id");
 
 -- CreateIndex
@@ -1013,6 +977,9 @@ CREATE UNIQUE INDEX "inventory_store_product_id_key" ON "inventory"("store_produ
 CREATE INDEX "inventory_stock_quantity_idx" ON "inventory"("stock_quantity");
 
 -- CreateIndex
+CREATE INDEX "inventory_last_stock_update_idx" ON "inventory"("last_stock_update");
+
+-- CreateIndex
 CREATE INDEX "inventory_transactions_inventory_id_idx" ON "inventory_transactions"("inventory_id");
 
 -- CreateIndex
@@ -1020,6 +987,9 @@ CREATE INDEX "inventory_transactions_transaction_type_idx" ON "inventory_transac
 
 -- CreateIndex
 CREATE INDEX "inventory_transactions_reference_type_idx" ON "inventory_transactions"("reference_type");
+
+-- CreateIndex
+CREATE INDEX "inventory_transactions_reference_type_reference_id_idx" ON "inventory_transactions"("reference_type", "reference_id");
 
 -- CreateIndex
 CREATE INDEX "inventory_transactions_created_at_idx" ON "inventory_transactions"("created_at");
@@ -1037,13 +1007,19 @@ CREATE INDEX "carts_status_idx" ON "carts"("status");
 CREATE INDEX "carts_expires_at_idx" ON "carts"("expires_at");
 
 -- CreateIndex
+CREATE INDEX "carts_user_id_status_idx" ON "carts"("user_id", "status");
+
+-- CreateIndex
+CREATE INDEX "carts_store_id_status_idx" ON "carts"("store_id", "status");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "carts_user_id_store_id_key" ON "carts"("user_id", "store_id");
 
 -- CreateIndex
 CREATE INDEX "cart_items_cart_id_idx" ON "cart_items"("cart_id");
 
 -- CreateIndex
-CREATE INDEX "cart_items_store_product_id_idx" ON "cart_items"("store_product_id");
+CREATE INDEX "cart_items_cart_id_store_product_id_idx" ON "cart_items"("cart_id", "store_product_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "cart_items_cart_id_store_product_id_key" ON "cart_items"("cart_id", "store_product_id");
@@ -1052,16 +1028,13 @@ CREATE UNIQUE INDEX "cart_items_cart_id_store_product_id_key" ON "cart_items"("c
 CREATE INDEX "wishlists_user_id_idx" ON "wishlists"("user_id");
 
 -- CreateIndex
-CREATE INDEX "wishlists_is_default_idx" ON "wishlists"("is_default");
+CREATE INDEX "wishlists_user_id_is_default_idx" ON "wishlists"("user_id", "is_default");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "wishlists_user_id_name_key" ON "wishlists"("user_id", "name");
 
 -- CreateIndex
 CREATE INDEX "wishlist_items_wishlist_id_idx" ON "wishlist_items"("wishlist_id");
-
--- CreateIndex
-CREATE INDEX "wishlist_items_store_product_id_idx" ON "wishlist_items"("store_product_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "wishlist_items_wishlist_id_store_product_id_key" ON "wishlist_items"("wishlist_id", "store_product_id");
@@ -1085,40 +1058,37 @@ CREATE INDEX "orders_payment_status_idx" ON "orders"("payment_status");
 CREATE INDEX "orders_placed_at_idx" ON "orders"("placed_at");
 
 -- CreateIndex
+CREATE INDEX "orders_user_id_status_idx" ON "orders"("user_id", "status");
+
+-- CreateIndex
+CREATE INDEX "orders_store_id_status_idx" ON "orders"("store_id", "status");
+
+-- CreateIndex
+CREATE INDEX "orders_user_id_placed_at_idx" ON "orders"("user_id", "placed_at");
+
+-- CreateIndex
 CREATE INDEX "order_items_order_id_idx" ON "order_items"("order_id");
 
 -- CreateIndex
-CREATE INDEX "order_items_store_product_id_idx" ON "order_items"("store_product_id");
-
--- CreateIndex
-CREATE INDEX "order_items_fulfillment_status_idx" ON "order_items"("fulfillment_status");
+CREATE INDEX "order_items_order_id_fulfillment_status_idx" ON "order_items"("order_id", "fulfillment_status");
 
 -- CreateIndex
 CREATE INDEX "order_item_replacements_order_item_id_idx" ON "order_item_replacements"("order_item_id");
 
 -- CreateIndex
-CREATE INDEX "order_item_replacements_replacement_store_product_id_idx" ON "order_item_replacements"("replacement_store_product_id");
-
--- CreateIndex
-CREATE INDEX "order_item_replacements_status_idx" ON "order_item_replacements"("status");
+CREATE INDEX "order_item_replacements_order_item_id_status_idx" ON "order_item_replacements"("order_item_id", "status");
 
 -- CreateIndex
 CREATE INDEX "order_status_history_order_id_idx" ON "order_status_history"("order_id");
 
 -- CreateIndex
-CREATE INDEX "order_status_history_new_status_idx" ON "order_status_history"("new_status");
-
--- CreateIndex
-CREATE INDEX "order_status_history_created_at_idx" ON "order_status_history"("created_at");
+CREATE INDEX "order_status_history_order_id_created_at_idx" ON "order_status_history"("order_id", "created_at");
 
 -- CreateIndex
 CREATE INDEX "order_notes_order_id_idx" ON "order_notes"("order_id");
 
 -- CreateIndex
-CREATE INDEX "order_notes_note_type_idx" ON "order_notes"("note_type");
-
--- CreateIndex
-CREATE INDEX "order_notes_created_at_idx" ON "order_notes"("created_at");
+CREATE INDEX "order_notes_order_id_created_at_idx" ON "order_notes"("order_id", "created_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "payments_order_id_key" ON "payments"("order_id");
@@ -1136,7 +1106,13 @@ CREATE INDEX "payments_gateway_idx" ON "payments"("gateway");
 CREATE INDEX "payments_paid_at_idx" ON "payments"("paid_at");
 
 -- CreateIndex
+CREATE INDEX "payments_gateway_payment_status_idx" ON "payments"("gateway", "payment_status");
+
+-- CreateIndex
 CREATE INDEX "payment_transactions_payment_id_idx" ON "payment_transactions"("payment_id");
+
+-- CreateIndex
+CREATE INDEX "payment_transactions_payment_id_transaction_status_idx" ON "payment_transactions"("payment_id", "transaction_status");
 
 -- CreateIndex
 CREATE INDEX "payment_transactions_transaction_status_idx" ON "payment_transactions"("transaction_status");
@@ -1190,6 +1166,9 @@ CREATE UNIQUE INDEX "financial_documents_document_number_key" ON "financial_docu
 CREATE INDEX "financial_documents_order_id_idx" ON "financial_documents"("order_id");
 
 -- CreateIndex
+CREATE INDEX "financial_documents_order_id_document_type_idx" ON "financial_documents"("order_id", "document_type");
+
+-- CreateIndex
 CREATE INDEX "financial_documents_document_type_idx" ON "financial_documents"("document_type");
 
 -- CreateIndex
@@ -1208,16 +1187,10 @@ ALTER TABLE "users" ADD CONSTRAINT "users_role_id_fkey" FOREIGN KEY ("role_id") 
 ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "otp_verifications" ADD CONSTRAINT "otp_verifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "user_auth_providers" ADD CONSTRAINT "user_auth_providers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "business_otps" ADD CONSTRAINT "business_otps_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "user_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "stores" ADD CONSTRAINT "stores_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

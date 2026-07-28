@@ -11,7 +11,6 @@ generator erd {
   output   = "./ERD.svg"
 }
 
-
 // ======================================================
 // MODULE 1 - IDENTITY & ACCESS MANAGEMENT
 // ENUMS
@@ -27,11 +26,10 @@ enum UserStatus {
 }
 
 enum OTPPurpose {
-  REGISTRATION
-  LOGIN
-  PASSWORD_RESET
-  PHONE_VERIFICATION
-  EMAIL_VERIFICATION
+  ORDER_DELIVERY
+  ORDER_PICKUP
+  ACCOUNT_RECOVERY
+  SENSITIVE_ACTION
 
   @@map("otp_purpose")
 }
@@ -43,11 +41,15 @@ enum OTPChannel {
   @@map("otp_channel")
 }
 
-enum AuthProvider {
-  LOCAL
-  GOOGLE
+// Distinguishes what kind of business entity referenceId points to.
+// Not every OTPPurpose needs one (e.g. ACCOUNT_RECOVERY has no business
+// entity — it's about the user themselves, already captured by userId) —
+// referenceType/referenceId stay nullable in BusinessOTP for that reason.
+enum BusinessOTPReferenceType {
+  ORDER
+  ACCOUNT
 
-  @@map("auth_provider")
+  @@map("business_otp_reference_type")
 }
 
 enum DeviceType {
@@ -160,7 +162,7 @@ model RolePermission {
 // ======================================================
 
 model User {
-  id String @id @default(uuid()) @db.Uuid
+  id String @id @db.Uuid
 
   // Role
   roleId String @map("role_id") @db.Uuid
@@ -170,26 +172,18 @@ model User {
   lastName  String? @map("last_name") @db.VarChar(100)
 
   // Authentication
-  phone        String  @db.VarChar(15)
-  email        String? @db.VarChar(255)
-  passwordHash String  @map("password_hash") @db.VarChar(255)
+  phone String? @db.VarChar(15)
+  email String? @db.VarChar(255)
 
   // Account Status
   status UserStatus @default(PENDING_VERIFICATION)
 
-  // Verification
+  // Verification (Synced from Supabase)
   emailVerifiedAt DateTime? @map("email_verified_at")
   phoneVerifiedAt DateTime? @map("phone_verified_at")
 
-  // Security
-  passwordChangedAt   DateTime? @map("password_changed_at")
-  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime? @map("locked_until")
-
-  // Login Activity
-  lastLoginAt DateTime? @map("last_login_at")
-  lastLoginIp String?   @map("last_login_ip") @db.VarChar(45)
-  lastSeenAt  DateTime? @map("last_seen_at")
+  // User Activity
+  lastSeenAt DateTime? @map("last_seen_at")
 
   // Audit
   createdBy String? @map("created_by") @db.Uuid
@@ -205,24 +199,20 @@ model User {
 
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
-  addresses        Address[]
-  otpVerifications OTPVerification[]
-  authProviders    UserAuthProvider[]
-  sessions         UserSession[]
-
-  // ======================================================
-  // MODULE 2 - STORE RELATIONS
-  // ======================================================
+  addresses    Address[]
+  businessOtps BusinessOTP[]
+  sessions     UserSession[]
 
   ownedStore     Store?  @relation("StoreOwner")
   verifiedStores Store[] @relation("StoreVerifier")
 
-  // ======================================================
-  // Indexes
-  // ======================================================
   carts     Cart[]
   wishlists Wishlist[]
   orders    Order[]
+
+  // ======================================================
+  // Indexes
+  // ======================================================
 
   @@unique([phone])
   @@unique([email])
@@ -275,26 +265,35 @@ model Address {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  orders Order[]
+
   // ======================================================
   // Indexes
   // ======================================================
-  orders Order[]
 
   @@index([userId])
+  @@index([userId, isDefault])
   @@index([city])
   @@index([pincode])
   @@map("addresses")
 }
 
 // ======================================================
-// OTP VERIFICATIONS
+// BUSINESS OTPS
 // ======================================================
 
-model OTPVerification {
+model BusinessOTP {
   id String @id @default(uuid()) @db.Uuid
 
+  // User (Optional)
   userId String? @map("user_id") @db.Uuid
 
+  // Business Entity Reference (Order, Delivery, etc.) — nullable since not
+  // every purpose has one (e.g. ACCOUNT_RECOVERY references the user only)
+  referenceType BusinessOTPReferenceType? @map("reference_type")
+  referenceId   String?                   @map("reference_id") @db.Uuid
+
+  // OTP Details
   purpose OTPPurpose
   channel OTPChannel
 
@@ -310,7 +309,9 @@ model OTPVerification {
 
   expiresAt  DateTime  @map("expires_at")
   verifiedAt DateTime? @map("verified_at")
+  consumedAt DateTime? @map("consumed_at")
 
+  // Audit
   createdBy String? @map("created_by") @db.Uuid
   updatedBy String? @map("updated_by") @db.Uuid
 
@@ -328,50 +329,12 @@ model OTPVerification {
   // ======================================================
 
   @@index([userId])
+  @@index([referenceType, referenceId])
   @@index([purpose])
   @@index([channel])
   @@index([destination])
   @@index([expiresAt])
-  @@map("otp_verifications")
-}
-
-// ======================================================
-// USER AUTH PROVIDERS
-// ======================================================
-
-model UserAuthProvider {
-  id String @id @default(uuid()) @db.Uuid
-
-  userId String @map("user_id") @db.Uuid
-
-  provider AuthProvider
-
-  providerUserId String? @map("provider_user_id") @db.VarChar(255)
-
-  createdBy String? @map("created_by") @db.Uuid
-  updatedBy String? @map("updated_by") @db.Uuid
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // ======================================================
-  // Relations
-  // ======================================================
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // ======================================================
-  // Constraints
-  // ======================================================
-
-  // ======================================================
-  // Indexes
-  // ======================================================
-
-  @@unique([provider, providerUserId])
-  @@index([userId])
-  @@index([provider])
-  @@map("user_auth_providers")
+  @@map("business_otps")
 }
 
 // ======================================================
@@ -384,20 +347,16 @@ model UserSession {
   userId String @map("user_id") @db.Uuid
 
   deviceType DeviceType @map("device_type")
-
-  deviceName String? @map("device_name") @db.VarChar(255)
-
-  deviceId String? @map("device_id") @db.VarChar(255)
+  deviceName String?    @map("device_name") @db.VarChar(255)
+  deviceId   String?    @map("device_id") @db.VarChar(255)
 
   ipAddress String? @map("ip_address") @db.VarChar(45)
-
   userAgent String? @map("user_agent") @db.Text
 
-  lastActivityAt DateTime @map("last_activity_at")
+  lastActivityAt DateTime @default(now()) @map("last_activity_at")
 
-  expiresAt DateTime @map("expires_at")
-
-  revokedAt DateTime? @map("revoked_at")
+  revokedAt        DateTime?         @map("revoked_at")
+  revocationReason RevocationReason? @map("revocation_reason")
 
   createdBy String? @map("created_by") @db.Uuid
   updatedBy String? @map("updated_by") @db.Uuid
@@ -411,60 +370,15 @@ model UserSession {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  refreshTokens RefreshToken[]
-
   // ======================================================
   // Indexes
   // ======================================================
 
   @@index([userId])
-  @@index([expiresAt])
+  @@index([userId, deviceId])
   @@index([lastActivityAt])
-  @@map("user_sessions")
-}
-
-// ======================================================
-// REFRESH TOKENS
-// ======================================================
-
-model RefreshToken {
-  id String @id @default(uuid()) @db.Uuid
-
-  sessionId String @map("session_id") @db.Uuid
-
-  tokenHash String @map("token_hash") @db.VarChar(255)
-
-  revokedReason RevocationReason? @map("revoked_reason")
-
-  revokedAt DateTime? @map("revoked_at")
-
-  expiresAt DateTime @map("expires_at")
-
-  createdBy String? @map("created_by") @db.Uuid
-  updatedBy String? @map("updated_by") @db.Uuid
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // ======================================================
-  // Relations
-  // ======================================================
-
-  session UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  // ======================================================
-  // Constraints
-  // ======================================================
-
-  // ======================================================
-  // Indexes
-  // ======================================================
-
-  @@unique([tokenHash])
-  @@index([sessionId])
-  @@index([expiresAt])
   @@index([revokedAt])
-  @@map("refresh_tokens")
+  @@map("user_sessions")
 }
 
 // =========================================
@@ -567,9 +481,9 @@ model Store {
   images          StoreImage[]
   hours           StoreHour[]
   deliverySetting StoreDeliverySetting?
-  storeProducts   StoreProduct[]
   carts           Cart[]
   orders          Order[]
+  storeProducts   StoreProduct[]
 
   @@index([status])
   @@index([verificationStatus])
@@ -577,6 +491,9 @@ model Store {
   @@index([state])
   @@index([pincode])
   @@index([latitude, longitude])
+  @@index([ownerId])
+  @@index([verifiedById])
+  @@index([isOpen])
   @@map("stores")
 }
 
@@ -613,7 +530,7 @@ model StoreImage {
   // ======================================================
 
   @@index([storeId])
-  @@index([displayOrder])
+  @@index([storeId, displayOrder])
   @@map("store_images")
 }
 
@@ -705,7 +622,6 @@ model StoreDeliverySetting {
   // Indexes
   // ======================================================
 
-  @@index([storeId])
   @@map("store_delivery_settings")
 }
 
@@ -991,9 +907,8 @@ model ProductImage {
   // ======================================================
 
   @@index([masterProductId])
-  @@index([imageType])
-  @@index([displayOrder])
-  @@index([isPrimary])
+  @@index([masterProductId, displayOrder])
+  @@index([masterProductId, isPrimary])
   @@map("product_images")
 }
 
@@ -1040,6 +955,12 @@ model StoreProduct {
 
   inventory Inventory?
 
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+
+  orderItems       OrderItem[]            @relation("OrderedProduct")
+  replacementItems OrderItemReplacement[] @relation("ReplacementProduct")
+
   // ======================================================
   // Constraints
   // ======================================================
@@ -1047,16 +968,14 @@ model StoreProduct {
   // ======================================================
   // Indexes
   // ======================================================
-  cartItems             CartItem[]
-  wishlistItems         WishlistItem[]
-  orderItems            OrderItem[]
-  orderItemReplacements OrderItemReplacement[]
 
   @@unique([storeId, masterProductId])
   @@index([storeId])
   @@index([masterProductId])
   @@index([availabilityStatus])
   @@index([isFeatured])
+  @@index([storeId, availabilityStatus])
+  @@index([storeId, isFeatured])
   @@map("store_products")
 }
 
@@ -1103,6 +1022,7 @@ model Inventory {
   // ======================================================
 
   @@index([stockQuantity])
+  @@index([lastStockUpdate])
   @@map("inventory")
 }
 
@@ -1149,13 +1069,13 @@ model InventoryTransaction {
   @@index([inventoryId])
   @@index([transactionType])
   @@index([referenceType])
+  @@index([referenceType, referenceId])
   @@index([createdAt])
   @@map("inventory_transactions")
 }
 
 // ======================================================
-// MODULE 4 - CART AND WISHLIST MANAGEMENT 
-// ENUMS
+// MODULE 4 - ENUMS
 // ======================================================
 
 enum CartStatus {
@@ -1231,6 +1151,8 @@ model Cart {
   @@index([storeId])
   @@index([status])
   @@index([expiresAt])
+  @@index([userId, status])
+  @@index([storeId, status])
   @@map("carts")
 }
 
@@ -1290,7 +1212,7 @@ model CartItem {
 
   @@unique([cartId, storeProductId])
   @@index([cartId])
-  @@index([storeProductId])
+  @@index([cartId, storeProductId])
   @@map("cart_items")
 }
 
@@ -1335,7 +1257,7 @@ model Wishlist {
 
   @@unique([userId, name])
   @@index([userId])
-  @@index([isDefault])
+  @@index([userId, isDefault])
   @@map("wishlists")
 }
 
@@ -1374,7 +1296,6 @@ model WishlistItem {
 
   @@unique([wishlistId, storeProductId])
   @@index([wishlistId])
-  @@index([storeProductId])
   @@map("wishlist_items")
 }
 
@@ -1535,20 +1456,22 @@ model Order {
 
   notes OrderNote[]
 
-  // Payment relation will be added later
-  // payment Payment?
+  payment Payment?
+
+  financialDocuments FinancialDocument[]
 
   // ======================================================
   // Indexes
   // ======================================================
-  payment            Payment?
-  financialDocuments FinancialDocument[]
 
   @@index([userId])
   @@index([storeId])
   @@index([status])
   @@index([paymentStatus])
   @@index([placedAt])
+  @@index([userId, status])
+  @@index([storeId, status])
+  @@index([userId, placedAt])
   @@map("orders")
 }
 
@@ -1599,7 +1522,7 @@ model OrderItem {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  storeProduct StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Restrict)
+  storeProduct StoreProduct @relation("OrderedProduct", fields: [storeProductId], references: [id], onDelete: Restrict)
 
   replacements OrderItemReplacement[]
 
@@ -1608,8 +1531,7 @@ model OrderItem {
   // ======================================================
 
   @@index([orderId])
-  @@index([storeProductId])
-  @@index([fulfillmentStatus])
+  @@index([orderId, fulfillmentStatus])
   @@map("order_items")
 }
 
@@ -1666,15 +1588,14 @@ model OrderItemReplacement {
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
-  replacementStoreProduct StoreProduct @relation(fields: [replacementStoreProductId], references: [id], onDelete: Restrict)
+  replacementStoreProduct StoreProduct @relation("ReplacementProduct", fields: [replacementStoreProductId], references: [id], onDelete: Restrict)
 
   // ======================================================
   // Indexes
   // ======================================================
 
   @@index([orderItemId])
-  @@index([replacementStoreProductId])
-  @@index([status])
+  @@index([orderItemId, status])
   @@map("order_item_replacements")
 }
 
@@ -1712,8 +1633,7 @@ model OrderStatusHistory {
   // ======================================================
 
   @@index([orderId])
-  @@index([newStatus])
-  @@index([createdAt])
+  @@index([orderId, createdAt])
   @@map("order_status_history")
 }
 
@@ -1748,8 +1668,7 @@ model OrderNote {
   // ======================================================
 
   @@index([orderId])
-  @@index([noteType])
-  @@index([createdAt])
+  @@index([orderId, createdAt])
   @@map("order_notes")
 }
 
@@ -1863,6 +1782,7 @@ model Payment {
   @@index([paymentMethod])
   @@index([gateway])
   @@index([paidAt])
+  @@index([gateway, paymentStatus])
   @@map("payments")
 }
 
@@ -1915,6 +1835,7 @@ model PaymentTransaction {
 
   @@unique([gateway, gatewayPaymentId])
   @@index([paymentId])
+  @@index([paymentId, transactionStatus])
   @@index([transactionStatus])
   @@index([gateway])
   @@index([gatewayOrderId])
@@ -2052,6 +1973,7 @@ model FinancialDocument {
   // ======================================================
 
   @@index([orderId])
+  @@index([orderId, documentType])
   @@index([documentType])
   @@index([generatedAt])
   @@map("financial_documents")

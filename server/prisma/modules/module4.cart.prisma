@@ -19,38 +19,38 @@ model Cart {
   id String @id @default(uuid()) @db.Uuid
 
   // Owner
-  userId String @db.Uuid @map("user_id")
+  userId String @map("user_id") @db.Uuid
 
   // One Cart = One Store
-  storeId String @db.Uuid @map("store_id")
+  storeId String @map("store_id") @db.Uuid
 
   // Status
   status CartStatus @default(ACTIVE)
 
   // Pricing
-  subtotal Decimal @default(0.00) @db.Decimal(10,2)
+  subtotal Decimal @default(0.00) @db.Decimal(10, 2)
 
-  discountAmount Decimal @default(0.00) @db.Decimal(10,2) @map("discount_amount")
+  discountAmount Decimal @default(0.00) @map("discount_amount") @db.Decimal(10, 2)
 
-  taxAmount Decimal @default(0.00) @db.Decimal(10,2) @map("tax_amount")
+  taxAmount Decimal @default(0.00) @map("tax_amount") @db.Decimal(10, 2)
 
-  deliveryFee Decimal @default(0.00) @db.Decimal(10,2) @map("delivery_fee")
+  deliveryFee Decimal @default(0.00) @map("delivery_fee") @db.Decimal(10, 2)
 
-  totalAmount Decimal @default(0.00) @db.Decimal(10,2) @map("total_amount")
+  totalAmount Decimal @default(0.00) @map("total_amount") @db.Decimal(10, 2)
 
   // Customer Notes
   notes String? @db.Text
 
   // Expiration
-  expiresAt DateTime? @db.Timestamptz(6) @map("expires_at")
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -66,20 +66,17 @@ model Cart {
   // Constraints
   // ======================================================
 
-  @@unique([userId, storeId])
-
   // ======================================================
   // Indexes
   // ======================================================
 
+  @@unique([userId, storeId])
   @@index([userId])
-
   @@index([storeId])
-
   @@index([status])
-
   @@index([expiresAt])
-
+  @@index([userId, status])
+  @@index([storeId, status])
   @@map("carts")
 }
 
@@ -91,35 +88,35 @@ model CartItem {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  cartId String @db.Uuid @map("cart_id")
+  cartId String @map("cart_id") @db.Uuid
 
-  storeProductId String @db.Uuid @map("store_product_id")
+  storeProductId String @map("store_product_id") @db.Uuid
 
   // Quantity
   quantity Int
 
   // Product Snapshot
-  productNameSnapshot String @db.VarChar(200) @map("product_name_snapshot")
+  productNameSnapshot String @map("product_name_snapshot") @db.VarChar(200)
 
-  unitSnapshot String @db.VarChar(50) @map("unit_snapshot")
+  unitSnapshot String @map("unit_snapshot") @db.VarChar(50)
 
   // Pricing Snapshot
-  mrpSnapshot Decimal @db.Decimal(10,2) @map("mrp_snapshot")
+  mrpSnapshot Decimal @map("mrp_snapshot") @db.Decimal(10, 2)
 
-  sellingPriceSnapshot Decimal @db.Decimal(10,2) @map("selling_price_snapshot")
+  sellingPriceSnapshot Decimal @map("selling_price_snapshot") @db.Decimal(10, 2)
 
-  gstRateSnapshot Decimal @db.Decimal(5,2) @map("gst_rate_snapshot")
+  gstRateSnapshot Decimal @map("gst_rate_snapshot") @db.Decimal(5, 2)
 
-  subtotal Decimal @db.Decimal(10,2)
+  subtotal Decimal @db.Decimal(10, 2)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  updatedBy String? @db.Uuid @map("updated_by")
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -133,16 +130,13 @@ model CartItem {
   // Constraints
   // ======================================================
 
-  @@unique([cartId, storeProductId])
-
   // ======================================================
   // Indexes
   // ======================================================
 
+  @@unique([cartId, storeProductId])
   @@index([cartId])
-
-  @@index([storeProductId])
-
+  @@index([cartId, storeProductId])
   @@map("cart_items")
 }
 
@@ -154,7 +148,7 @@ model Wishlist {
   id String @id @default(uuid()) @db.Uuid
 
   // Owner
-  userId String @db.Uuid @map("user_id")
+  userId String @map("user_id") @db.Uuid
 
   // Wishlist Information
   name String @db.VarChar(100)
@@ -162,12 +156,12 @@ model Wishlist {
   isDefault Boolean @default(false) @map("is_default")
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -181,16 +175,13 @@ model Wishlist {
   // Constraints
   // ======================================================
 
-  @@unique([userId, name])
-
   // ======================================================
   // Indexes
   // ======================================================
 
+  @@unique([userId, name])
   @@index([userId])
-
-  @@index([isDefault])
-
+  @@index([userId, isDefault])
   @@map("wishlists")
 }
 
@@ -202,14 +193,14 @@ model WishlistItem {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  wishlistId String @db.Uuid @map("wishlist_id")
+  wishlistId String @map("wishlist_id") @db.Uuid
 
-  storeProductId String @db.Uuid @map("store_product_id")
+  storeProductId String @map("store_product_id") @db.Uuid
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -223,15 +214,11 @@ model WishlistItem {
   // Constraints
   // ======================================================
 
-  @@unique([wishlistId, storeProductId])
-
   // ======================================================
   // Indexes
   // ======================================================
 
+  @@unique([wishlistId, storeProductId])
   @@index([wishlistId])
-
-  @@index([storeProductId])
-
   @@map("wishlist_items")
 }

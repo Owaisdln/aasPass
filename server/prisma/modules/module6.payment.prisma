@@ -65,28 +65,28 @@ model Payment {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  orderId String @unique @db.Uuid @map("order_id")
+  orderId String @unique @map("order_id") @db.Uuid
 
   // Payment Details
-  paymentMethod PaymentMethod @map("payment_method")
-  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
-  gateway PaymentGateway
+  paymentMethod PaymentMethod  @map("payment_method")
+  paymentStatus PaymentStatus  @default(PENDING) @map("payment_status")
+  gateway       PaymentGateway
 
   // Amounts
-  payableAmount Decimal @db.Decimal(10,2) @map("payable_amount")
-  paidAmount Decimal @default(0) @db.Decimal(10,2) @map("paid_amount")
-  refundedAmount Decimal @default(0) @db.Decimal(10,2) @map("refunded_amount")
+  payableAmount  Decimal @map("payable_amount") @db.Decimal(10, 2)
+  paidAmount     Decimal @default(0) @map("paid_amount") @db.Decimal(10, 2)
+  refundedAmount Decimal @default(0) @map("refunded_amount") @db.Decimal(10, 2)
 
   currency String @default("INR") @db.VarChar(10)
 
-  paidAt DateTime? @db.Timestamptz(6) @map("paid_at")
+  paidAt DateTime? @map("paid_at") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -105,13 +105,10 @@ model Payment {
   // ======================================================
 
   @@index([paymentStatus])
-
   @@index([paymentMethod])
-
   @@index([gateway])
-
   @@index([paidAt])
-
+  @@index([gateway, paymentStatus])
   @@map("payments")
 }
 
@@ -123,34 +120,34 @@ model PaymentTransaction {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  paymentId String @db.Uuid @map("payment_id")
+  paymentId String @map("payment_id") @db.Uuid
 
   // Gateway Details
   gateway PaymentGateway
 
-  gatewayOrderId String? @db.VarChar(255) @map("gateway_order_id")
-  gatewayPaymentId String? @db.VarChar(255) @map("gateway_payment_id")
-  gatewaySignature String? @db.VarChar(500) @map("gateway_signature")
+  gatewayOrderId   String? @map("gateway_order_id") @db.VarChar(255)
+  gatewayPaymentId String? @map("gateway_payment_id") @db.VarChar(255)
+  gatewaySignature String? @map("gateway_signature") @db.VarChar(500)
 
   // Transaction Status
   transactionStatus PaymentTransactionStatus @default(INITIATED) @map("transaction_status")
 
   // Amount
-  amount Decimal @db.Decimal(10,2)
+  amount Decimal @db.Decimal(10, 2)
 
   currency String @default("INR") @db.VarChar(10)
 
   // Gateway Response
   gatewayResponse Json? @map("gateway_response")
 
-  failureReason String? @db.Text @map("failure_reason")
+  failureReason String? @map("failure_reason") @db.Text
 
-  processedAt DateTime? @db.Timestamptz(6) @map("processed_at")
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -164,17 +161,12 @@ model PaymentTransaction {
 
   @@unique([gateway, gatewayPaymentId])
   @@index([paymentId])
-
+  @@index([paymentId, transactionStatus])
   @@index([transactionStatus])
-
   @@index([gateway])
-
   @@index([gatewayOrderId])
-
   @@index([gatewayPaymentId])
-
   @@index([processedAt])
-
   @@map("payment_transactions")
 }
 
@@ -186,27 +178,27 @@ model Refund {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  paymentId String @db.Uuid @map("payment_id")
+  paymentId String @map("payment_id") @db.Uuid
 
   // Refund Details
-  refundAmount Decimal @db.Decimal(10,2) @map("refund_amount")
+  refundAmount Decimal @map("refund_amount") @db.Decimal(10, 2)
 
   refundStatus RefundStatus @default(PENDING) @map("refund_status")
 
-  gatewayRefundId String? @db.VarChar(255) @map("gateway_refund_id")
+  gatewayRefundId String? @map("gateway_refund_id") @db.VarChar(255)
 
-  refundReason String? @db.Text @map("refund_reason")
+  refundReason String? @map("refund_reason") @db.Text
 
   gatewayResponse Json? @map("gateway_response")
 
-  refundedAt DateTime? @db.Timestamptz(6) @map("refunded_at")
+  refundedAt DateTime? @map("refunded_at") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -219,13 +211,9 @@ model Refund {
   // ======================================================
 
   @@index([paymentId])
-
   @@index([refundStatus])
-
   @@index([gatewayRefundId])
-
   @@index([refundedAt])
-
   @@map("refunds")
 }
 
@@ -237,26 +225,26 @@ model PaymentWebhook {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  paymentId String @db.Uuid @map("payment_id")
+  paymentId String @map("payment_id") @db.Uuid
 
   // Gateway Event
-  gatewayEventId String @db.VarChar(255) @map("gateway_event_id")
+  gatewayEventId String @map("gateway_event_id") @db.VarChar(255)
 
-  eventType String @db.VarChar(100) @map("event_type")
+  eventType String @map("event_type") @db.VarChar(100)
 
   payload Json
 
   // Processing
   isProcessed Boolean @default(false) @map("is_processed")
 
-  processedAt DateTime? @db.Timestamptz(6) @map("processed_at")
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
 
-  processingError String? @db.Text @map("processing_error")
+  processingError String? @map("processing_error") @db.Text
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -269,15 +257,10 @@ model PaymentWebhook {
   // ======================================================
 
   @@unique([gatewayEventId])
-
   @@index([paymentId])
-
   @@index([eventType])
-
   @@index([isProcessed])
-
   @@index([processedAt])
-
   @@map("payment_webhooks")
 }
 
@@ -289,21 +272,21 @@ model FinancialDocument {
   id String @id @default(uuid()) @db.Uuid
 
   // Relations
-  orderId String @db.Uuid @map("order_id")
+  orderId String @map("order_id") @db.Uuid
 
   // Document Details
   documentType FinancialDocumentType @map("document_type")
 
-  documentNumber String @unique @db.VarChar(100) @map("document_number")
+  documentNumber String @unique @map("document_number") @db.VarChar(100)
 
-  pdfKey String @db.VarChar(500) @map("pdf_key")
+  pdfKey String @map("pdf_key") @db.VarChar(500)
 
-  generatedAt DateTime @default(now()) @db.Timestamptz(6) @map("generated_at")
+  generatedAt DateTime @default(now()) @map("generated_at") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -316,10 +299,8 @@ model FinancialDocument {
   // ======================================================
 
   @@index([orderId])
-
+  @@index([orderId, documentType])
   @@index([documentType])
-
   @@index([generatedAt])
-
   @@map("financial_documents")
 }

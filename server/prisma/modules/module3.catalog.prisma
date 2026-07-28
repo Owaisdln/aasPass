@@ -55,27 +55,27 @@ model Category {
   id String @id @default(uuid()) @db.Uuid
 
   // Hierarchy
-  parentCategoryId String? @db.Uuid @map("parent_category_id")
+  parentCategoryId String? @map("parent_category_id") @db.Uuid
 
   // Category Information
   name        String  @db.VarChar(150)
   slug        String  @unique @db.VarChar(170)
   description String? @db.Text
 
-  imageKey String? @db.VarChar(500) @map("image_key")
-  iconKey  String? @db.VarChar(500) @map("icon_key")
+  imageKey String? @map("image_key") @db.VarChar(500)
+  iconKey  String? @map("icon_key") @db.VarChar(500)
 
   sortOrder Int @default(0) @map("sort_order")
 
   isActive Boolean @default(true) @map("is_active")
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -109,17 +109,17 @@ model Brand {
   name String @db.VarChar(150)
   slug String @unique @db.VarChar(170)
 
-  logoKey String? @db.VarChar(500) @map("logo_key")
+  logoKey String? @map("logo_key") @db.VarChar(500)
 
   isActive Boolean @default(true) @map("is_active")
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -152,12 +152,12 @@ model Unit {
   isActive Boolean @default(true) @map("is_active")
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -181,9 +181,9 @@ model MasterProduct {
   id String @id @default(uuid()) @db.Uuid
 
   // Category & Brand
-  categoryId String  @db.Uuid @map("category_id")
-  brandId    String? @db.Uuid @map("brand_id")
-  unitId     String  @db.Uuid @map("unit_id")
+  categoryId String  @map("category_id") @db.Uuid
+  brandId    String? @map("brand_id") @db.Uuid
+  unitId     String  @map("unit_id") @db.Uuid
 
   // Product Information
   name        String  @db.VarChar(200)
@@ -192,11 +192,11 @@ model MasterProduct {
 
   sku     String  @unique @db.VarChar(100)
   barcode String? @unique @db.VarChar(100)
-  hsnCode String? @db.VarChar(20) @map("hsn_code")
+  hsnCode String? @map("hsn_code") @db.VarChar(20)
 
-  gstRate Decimal @default(0.00) @db.Decimal(5, 2) @map("gst_rate")
+  gstRate Decimal @default(0.00) @map("gst_rate") @db.Decimal(5, 2)
 
-  unitValue Decimal @db.Decimal(10, 2) @map("unit_value")
+  unitValue Decimal @map("unit_value") @db.Decimal(10, 2)
 
   isVeg Boolean? @map("is_veg")
 
@@ -207,12 +207,12 @@ model MasterProduct {
   searchVector Unsupported("tsvector")?
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -251,10 +251,10 @@ model ProductImage {
   id String @id @default(uuid()) @db.Uuid
 
   // Master Product
-  masterProductId String @db.Uuid @map("master_product_id")
+  masterProductId String @map("master_product_id") @db.Uuid
 
   // Image Information
-  objectKey String @db.VarChar(500) @map("object_key")
+  objectKey String @map("object_key") @db.VarChar(500)
 
   imageType ProductImageType @map("image_type")
 
@@ -263,11 +263,11 @@ model ProductImage {
   displayOrder Int @default(1) @map("display_order")
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -280,9 +280,8 @@ model ProductImage {
   // ======================================================
 
   @@index([masterProductId])
-  @@index([imageType])
-  @@index([displayOrder])
-  @@index([isPrimary])
+  @@index([masterProductId, displayOrder])
+  @@index([masterProductId, isPrimary])
   @@map("product_images")
 }
 
@@ -294,13 +293,13 @@ model StoreProduct {
   id String @id @default(uuid()) @db.Uuid
 
   // Store & Product
-  storeId         String @db.Uuid @map("store_id")
-  masterProductId String @db.Uuid @map("master_product_id")
+  storeId         String @map("store_id") @db.Uuid
+  masterProductId String @map("master_product_id") @db.Uuid
 
   // Pricing
   mrp Decimal @db.Decimal(10, 2)
 
-  sellingPrice Decimal @db.Decimal(10, 2) @map("selling_price")
+  sellingPrice Decimal @map("selling_price") @db.Decimal(10, 2)
 
   // Availability
   availabilityStatus AvailabilityStatus @default(AVAILABLE) @map("availability_status")
@@ -312,12 +311,12 @@ model StoreProduct {
   displayOrder Int @default(0) @map("display_order")
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
-  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -328,6 +327,12 @@ model StoreProduct {
   masterProduct MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Restrict)
 
   inventory Inventory?
+
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+
+  orderItems       OrderItem[]            @relation("OrderedProduct")
+  replacementItems OrderItemReplacement[] @relation("ReplacementProduct")
 
   // ======================================================
   // Constraints
@@ -342,6 +347,8 @@ model StoreProduct {
   @@index([masterProductId])
   @@index([availabilityStatus])
   @@index([isFeatured])
+  @@index([storeId, availabilityStatus])
+  @@index([storeId, isFeatured])
   @@map("store_products")
 }
 
@@ -353,7 +360,7 @@ model Inventory {
   id String @id @default(uuid()) @db.Uuid
 
   // Store Product
-  storeProductId String @unique @db.Uuid @map("store_product_id")
+  storeProductId String @unique @map("store_product_id") @db.Uuid
 
   // Stock
   stockQuantity Int @default(0) @map("stock_quantity")
@@ -366,14 +373,14 @@ model Inventory {
 
   version Int @default(0)
 
-  lastStockUpdate DateTime? @db.Timestamptz(6) @map("last_stock_update")
+  lastStockUpdate DateTime? @map("last_stock_update") @db.Timestamptz(6)
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
-  updatedBy String? @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -388,6 +395,7 @@ model Inventory {
   // ======================================================
 
   @@index([stockQuantity])
+  @@index([lastStockUpdate])
   @@map("inventory")
 }
 
@@ -399,7 +407,7 @@ model InventoryTransaction {
   id String @id @default(uuid()) @db.Uuid
 
   // Inventory
-  inventoryId String @db.Uuid @map("inventory_id")
+  inventoryId String @map("inventory_id") @db.Uuid
 
   // Transaction
   transactionType InventoryTransactionType @map("transaction_type")
@@ -410,16 +418,16 @@ model InventoryTransaction {
 
   referenceType InventoryReferenceType? @map("reference_type")
 
-  referenceId String? @db.Uuid @map("reference_id")
+  referenceId String? @map("reference_id") @db.Uuid
 
   source String? @db.VarChar(100)
 
   notes String? @db.Text
 
   // Audit
-  createdBy String? @db.Uuid @map("created_by")
+  createdBy String? @map("created_by") @db.Uuid
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   // ======================================================
   // Relations
@@ -434,6 +442,7 @@ model InventoryTransaction {
   @@index([inventoryId])
   @@index([transactionType])
   @@index([referenceType])
+  @@index([referenceType, referenceId])
   @@index([createdAt])
   @@map("inventory_transactions")
 }

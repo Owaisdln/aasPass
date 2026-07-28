@@ -13,11 +13,10 @@ enum UserStatus {
 }
 
 enum OTPPurpose {
-  REGISTRATION
-  LOGIN
-  PASSWORD_RESET
-  PHONE_VERIFICATION
-  EMAIL_VERIFICATION
+  ORDER_DELIVERY
+  ORDER_PICKUP
+  ACCOUNT_RECOVERY
+  SENSITIVE_ACTION
 
   @@map("otp_purpose")
 }
@@ -29,11 +28,15 @@ enum OTPChannel {
   @@map("otp_channel")
 }
 
-enum AuthProvider {
-  LOCAL
-  GOOGLE
+// Distinguishes what kind of business entity referenceId points to.
+// Not every OTPPurpose needs one (e.g. ACCOUNT_RECOVERY has no business
+// entity — it's about the user themselves, already captured by userId) —
+// referenceType/referenceId stay nullable in BusinessOTP for that reason.
+enum BusinessOTPReferenceType {
+  ORDER
+  ACCOUNT
 
-  @@map("auth_provider")
+  @@map("business_otp_reference_type")
 }
 
 enum DeviceType {
@@ -61,27 +64,26 @@ enum RevocationReason {
 // ======================================================
 
 model Role {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique @db.VarChar(50)
-  name        String   @unique @db.VarChar(100)
-  description String?  @db.VarChar(255)
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String  @unique @db.VarChar(50)
+  name        String  @unique @db.VarChar(100)
+  description String? @db.VarChar(255)
 
-  isSystem    Boolean  @default(false) @map("is_system")
-  isActive    Boolean  @default(true) @map("is_active")
+  isSystem Boolean @default(false) @map("is_system")
+  isActive Boolean @default(true) @map("is_active")
 
-  createdBy   String?  @db.Uuid @map("created_by")
-  updatedBy   String?  @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  users            User[]
-  rolePermissions  RolePermission[]
+  users           User[]
+  rolePermissions RolePermission[]
 
   // Indexes
   @@index([isActive])
-
   @@map("roles")
 }
 
@@ -90,20 +92,20 @@ model Role {
 // ======================================================
 
 model Permission {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique @db.VarChar(100)
-  name        String   @unique @db.VarChar(100)
-  module      String   @db.VarChar(100)
-  description String?  @db.VarChar(255)
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String  @unique @db.VarChar(100)
+  name        String  @unique @db.VarChar(100)
+  module      String  @db.VarChar(100)
+  description String? @db.VarChar(255)
 
-  isSystem    Boolean  @default(false) @map("is_system")
-  isActive    Boolean  @default(true) @map("is_active")
+  isSystem Boolean @default(false) @map("is_system")
+  isActive Boolean @default(true) @map("is_active")
 
-  createdBy   String?  @db.Uuid @map("created_by")
-  updatedBy   String?  @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   rolePermissions RolePermission[]
@@ -111,7 +113,6 @@ model Permission {
   // Indexes
   @@index([module])
   @@index([isActive])
-
   @@map("permissions")
 }
 
@@ -120,28 +121,26 @@ model Permission {
 // ======================================================
 
 model RolePermission {
-  id           String   @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-  roleId       String   @db.Uuid @map("role_id")
-  permissionId String   @db.Uuid @map("permission_id")
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
 
-  createdBy    String?  @db.Uuid @map("created_by")
-  updatedBy    String?  @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   // Constraints
   @@unique([roleId, permissionId])
-
   // Indexes
   @@index([roleId])
   @@index([permissionId])
-
   @@map("role_permissions")
 }
 
@@ -150,55 +149,53 @@ model RolePermission {
 // ======================================================
 
 model User {
-  id                  String      @id @default(uuid()) @db.Uuid
+  id String @id @db.Uuid
 
   // Role
-  roleId              String      @db.Uuid @map("role_id")
+  roleId String @map("role_id") @db.Uuid
 
   // Basic Information
-  firstName           String      @db.VarChar(100) @map("first_name")
-  lastName            String?     @db.VarChar(100) @map("last_name")
+  firstName String  @map("first_name") @db.VarChar(100)
+  lastName  String? @map("last_name") @db.VarChar(100)
 
   // Authentication
-  phone               String      @db.VarChar(15)
-  email               String?     @db.VarChar(255)
-  passwordHash        String      @db.VarChar(255) @map("password_hash")
+  phone String? @db.VarChar(15)
+  email String? @db.VarChar(255)
 
   // Account Status
-  status              UserStatus  @default(PENDING_VERIFICATION)
+  status UserStatus @default(PENDING_VERIFICATION)
 
-  // Verification
-  emailVerifiedAt     DateTime? @map("email_verified_at")
-  phoneVerifiedAt     DateTime? @map("phone_verified_at")
+  // Verification (Synced from Supabase)
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  phoneVerifiedAt DateTime? @map("phone_verified_at")
 
-  // Security
-  passwordChangedAt   DateTime? @map("password_changed_at")
-  failedLoginAttempts Int         @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime? @map("locked_until")
-
-  // Login Activity
-  lastLoginAt         DateTime? @map("last_login_at")
-  lastLoginIp         String?     @db.VarChar(45) @map("last_login_ip")
-  lastSeenAt          DateTime? @map("last_seen_at")
+  // User Activity
+  lastSeenAt DateTime? @map("last_seen_at")
 
   // Audit
-  createdBy           String?     @db.Uuid @map("created_by")
-  updatedBy           String?     @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt           DateTime    @default(now()) @map("created_at")
-  updatedAt           DateTime    @updatedAt @map("updated_at")
-  deletedAt           DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   // ======================================================
   // Relations
   // ======================================================
 
-  role               Role                  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
-  addresses          Address[]
-  otpVerifications   OTPVerification[]
-  authProviders      UserAuthProvider[]
-  sessions           UserSession[]
+  addresses    Address[]
+  businessOtps BusinessOTP[]
+  sessions     UserSession[]
+
+  ownedStore     Store?  @relation("StoreOwner")
+  verifiedStores Store[] @relation("StoreVerifier")
+
+  carts     Cart[]
+  wishlists Wishlist[]
+  orders    Order[]
 
   // ======================================================
   // Indexes
@@ -206,12 +203,10 @@ model User {
 
   @@unique([phone])
   @@unique([email])
-
   @@index([roleId])
   @@index([status])
   @@index([phone])
   @@index([email])
-
   @@map("users")
 }
 
@@ -220,143 +215,113 @@ model User {
 // ======================================================
 
 model Address {
-  id              String   @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-  userId          String   @db.Uuid @map("user_id")
+  userId String @map("user_id") @db.Uuid
 
-  label           String?  @db.VarChar(50)
+  label String? @db.VarChar(50)
 
-  receiverName    String   @db.VarChar(100) @map("receiver_name")
-  receiverPhone   String   @db.VarChar(15) @map("receiver_phone")
+  receiverName  String @map("receiver_name") @db.VarChar(100)
+  receiverPhone String @map("receiver_phone") @db.VarChar(15)
 
-  houseNo         String   @db.VarChar(100) @map("house_no")
-  street          String?  @db.VarChar(255)
-  area            String   @db.VarChar(255)
-  landmark        String?  @db.VarChar(255)
+  houseNo  String  @map("house_no") @db.VarChar(100)
+  street   String? @db.VarChar(255)
+  area     String  @db.VarChar(255)
+  landmark String? @db.VarChar(255)
 
-  city            String   @db.VarChar(100)
-  state           String   @db.VarChar(100)
-  country         String   @db.VarChar(100)
-  pincode         String   @db.VarChar(10)
+  city    String @db.VarChar(100)
+  state   String @db.VarChar(100)
+  country String @db.VarChar(100)
+  pincode String @db.VarChar(10)
 
-  latitude        Decimal? @db.Decimal(10, 8)
-  longitude       Decimal? @db.Decimal(11, 8)
+  latitude  Decimal? @db.Decimal(10, 8)
+  longitude Decimal? @db.Decimal(11, 8)
 
-  isDefault       Boolean  @default(false) @map("is_default")
+  isDefault Boolean @default(false) @map("is_default")
 
-  createdBy       String?  @db.Uuid @map("created_by")
-  updatedBy       String?  @db.Uuid @map("updated_by")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   // ======================================================
   // Relations
   // ======================================================
 
-  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orders Order[]
 
   // ======================================================
   // Indexes
   // ======================================================
 
   @@index([userId])
+  @@index([userId, isDefault])
   @@index([city])
   @@index([pincode])
-
   @@map("addresses")
 }
 
 // ======================================================
-// OTP VERIFICATIONS
+// BUSINESS OTPS
 // ======================================================
 
-model OTPVerification {
-  id              String      @id @default(uuid()) @db.Uuid
+model BusinessOTP {
+  id String @id @default(uuid()) @db.Uuid
 
-  userId          String?     @db.Uuid @map("user_id")
+  // User (Optional)
+  userId String? @map("user_id") @db.Uuid
 
-  purpose         OTPPurpose
-  channel         OTPChannel
+  // Business Entity Reference (Order, Delivery, etc.) — nullable since not
+  // every purpose has one (e.g. ACCOUNT_RECOVERY references the user only)
+  referenceType BusinessOTPReferenceType? @map("reference_type")
+  referenceId   String?                   @map("reference_id") @db.Uuid
 
-  destination     String      @db.VarChar(255)
+  // OTP Details
+  purpose OTPPurpose
+  channel OTPChannel
 
-  otpHash         String      @db.VarChar(255) @map("otp_hash")
+  destination String @db.VarChar(255)
 
-  attempts        Int         @default(0)
-  maxAttempts     Int         @default(5) @map("max_attempts")
+  otpHash String @map("otp_hash") @db.VarChar(255)
 
-  lastAttemptAt   DateTime? @map("last_attempt_at")
-  blockedUntil    DateTime? @map("blocked_until")
+  attempts    Int @default(0)
+  maxAttempts Int @default(5) @map("max_attempts")
 
-  expiresAt       DateTime @map("expires_at")
-  verifiedAt      DateTime? @map("verified_at")
+  lastAttemptAt DateTime? @map("last_attempt_at")
+  blockedUntil  DateTime? @map("blocked_until")
 
-  createdBy       String?     @db.Uuid @map("created_by")
-  updatedBy       String?     @db.Uuid @map("updated_by")
+  expiresAt  DateTime  @map("expires_at")
+  verifiedAt DateTime? @map("verified_at")
+  consumedAt DateTime? @map("consumed_at")
 
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
+  // Audit
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // ======================================================
   // Relations
   // ======================================================
 
-  user            User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // ======================================================
   // Indexes
   // ======================================================
 
   @@index([userId])
+  @@index([referenceType, referenceId])
   @@index([purpose])
   @@index([channel])
   @@index([destination])
   @@index([expiresAt])
-
-  @@map("otp_verifications")
-}
-
-// ======================================================
-// USER AUTH PROVIDERS
-// ======================================================
-
-model UserAuthProvider {
-  id                  String        @id @default(uuid()) @db.Uuid
-
-  userId              String        @db.Uuid @map("user_id")
-
-  provider            AuthProvider
-
-  providerUserId      String?       @db.VarChar(255) @map("provider_user_id")
-
-  createdBy           String?       @db.Uuid @map("created_by")
-  updatedBy           String?       @db.Uuid @map("updated_by")
-
-  createdAt           DateTime      @default(now()) @map("created_at")
-  updatedAt           DateTime      @updatedAt @map("updated_at")
-
-  // ======================================================
-  // Relations
-  // ======================================================
-
-  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // ======================================================
-  // Constraints
-  // ======================================================
-
-  @@unique([provider, providerUserId])
-
-  // ======================================================
-  // Indexes
-  // ======================================================
-
-  @@index([userId])
-  @@index([provider])
-
-  @@map("user_auth_providers")
+  @@map("business_otps")
 }
 
 // ======================================================
@@ -364,93 +329,41 @@ model UserAuthProvider {
 // ======================================================
 
 model UserSession {
-  id                String      @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-  userId            String      @db.Uuid @map("user_id")
+  userId String @map("user_id") @db.Uuid
 
-  deviceType        DeviceType @map("device_type")
+  deviceType DeviceType @map("device_type")
+  deviceName String?    @map("device_name") @db.VarChar(255)
+  deviceId   String?    @map("device_id") @db.VarChar(255)
 
-  deviceName        String?     @db.VarChar(255) @map("device_name")
+  ipAddress String? @map("ip_address") @db.VarChar(45)
+  userAgent String? @map("user_agent") @db.Text
 
-  deviceId          String?     @db.VarChar(255) @map("device_id")
+  lastActivityAt DateTime @default(now()) @map("last_activity_at")
 
-  ipAddress         String?     @db.VarChar(45) @map("ip_address")
+  revokedAt        DateTime?         @map("revoked_at")
+  revocationReason RevocationReason? @map("revocation_reason")
 
-  userAgent         String?     @db.Text @map("user_agent")
+  createdBy String? @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
 
-  lastActivityAt    DateTime @map("last_activity_at")
-
-  expiresAt         DateTime @map("expires_at")
-
-  revokedAt         DateTime? @map("revoked_at")
-
-  createdBy         String?     @db.Uuid @map("created_by")
-  updatedBy         String?     @db.Uuid @map("updated_by")
-
-  createdAt         DateTime    @default(now()) @map("created_at")
-  updatedAt         DateTime    @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // ======================================================
   // Relations
   // ======================================================
 
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  refreshTokens     RefreshToken[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // ======================================================
   // Indexes
   // ======================================================
 
   @@index([userId])
-  @@index([expiresAt])
+  @@index([userId, deviceId])
   @@index([lastActivityAt])
-
-  @@map("user_sessions")
-}
-
-// ======================================================
-// REFRESH TOKENS
-// ======================================================
-
-model RefreshToken {
-  id                  String            @id @default(uuid()) @db.Uuid
-
-  sessionId           String            @db.Uuid @map("session_id")
-
-  tokenHash           String            @db.VarChar(255) @map("token_hash")
-
-  revokedReason       RevocationReason? @map("revoked_reason")
-
-  revokedAt           DateTime? @map("revoked_at")
-
-  expiresAt           DateTime @map("expires_at")
-
-  createdBy           String?           @db.Uuid @map("created_by")
-  updatedBy           String?           @db.Uuid @map("updated_by")
-
-  createdAt           DateTime          @default(now()) @map("created_at")
-  updatedAt           DateTime          @updatedAt @map("updated_at")
-
-  // ======================================================
-  // Relations
-  // ======================================================
-
-  session             UserSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  // ======================================================
-  // Constraints
-  // ======================================================
-
-  @@unique([tokenHash])
-
-  // ======================================================
-  // Indexes
-  // ======================================================
-
-  @@index([sessionId])
-  @@index([expiresAt])
   @@index([revokedAt])
-
-  @@map("refresh_tokens")
+  @@map("user_sessions")
 }

@@ -98,6 +98,9 @@ model Store {
   images          StoreImage[]
   hours           StoreHour[]
   deliverySetting StoreDeliverySetting?
+  carts           Cart[]
+  orders          Order[]
+  storeProducts   StoreProduct[]
 
   @@index([status])
   @@index([verificationStatus])
@@ -105,6 +108,9 @@ model Store {
   @@index([state])
   @@index([pincode])
   @@index([latitude, longitude])
+  @@index([ownerId])
+  @@index([verifiedById])
+  @@index([isOpen])
   @@map("stores")
 }
 
@@ -141,7 +147,7 @@ model StoreImage {
   // ======================================================
 
   @@index([storeId])
-  @@index([displayOrder])
+  @@index([storeId, displayOrder])
   @@map("store_images")
 }
 
@@ -233,6 +239,5 @@ model StoreDeliverySetting {
   // Indexes
   // ======================================================
 
-  @@index([storeId])
   @@map("store_delivery_settings")
 }
