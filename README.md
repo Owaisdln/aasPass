@@ -10,7 +10,6 @@
 aasPass/
 ├── server/         # NestJS backend API
 ├── client/         # Frontend (not yet scaffolded)
-├── mcp-server/     # MCP tooling server
 └── docs/           # Project documentation
 ```
 

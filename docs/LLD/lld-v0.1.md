@@ -61,22 +61,37 @@ The LLD is organized by the same 6-module decomposition used in the codebase:
 server/
 ├── src/
 │   ├── main.ts                     # Bootstrap: NestFactory.create, port binding
-│   ├── app.module.ts               # Root module: ConfigModule, PrismaModule, SupabaseModule
+│   ├── app.module.ts               # Root module: ConfigModule, PrismaModule, SupabaseModule, AuthModule
+│   ├── app.controller.ts           # Root controller: GET / health check
 │   ├── config/
 │   │   ├── app.config.ts           # app.port, app.nodeEnv
 │   │   ├── database.config.ts      # database.url namespace
 │   │   ├── supabase.config.ts      # supabase.url, anonKey, serviceRoleKey
 │   │   ├── env.validation.ts       # Zod schema for all required env vars
 │   │   └── index.ts                # Aggregates all config factories
-│   ├── prisma/
-│   │   ├── prisma.service.ts       # PrismaClient extension with pg Pool adapter
-│   │   └── prisma.module.ts        # Global PrismaModule
-│   ├── supabase/
-│   │   ├── supabase.service.ts     # anonClient + adminClient factories
-│   │   └── supabase.module.ts      # SupabaseModule
-│   ├── common/                     # (reserved) Guards, Filters, Interceptors, Pipes
+│   ├── infrastructure/
+│   │   ├── prisma/
+│   │   │   ├── prisma.service.ts   # PrismaClient extension with pg Pool adapter
+│   │   │   └── prisma.module.ts    # Global PrismaModule
+│   │   └── supabase/
+│   │       ├── supabase.service.ts # anonClient + adminClient + verifyAccessToken + getUserById
+│   │       ├── supabase.service.spec.ts # Unit tests for SupabaseService
+│   │       └── supabase.module.ts  # Global SupabaseModule
+│   ├── common/
+│   │   └── identity/
+│   │       └── current-user.model.ts # CurrentUser domain identity model (RBAC, status)
 │   ├── shared/                     # (reserved) Shared DTOs, utilities
-│   └── modules/                    # (reserved) Feature modules: auth, store, catalog, etc.
+│   └── modules/
+│       └── auth/                   # Authentication feature module
+│           ├── auth.module.ts      # AuthModule registration
+│           ├── controllers/
+│           │   └── auth.controller.ts # AuthController: GET /auth/me
+│           ├── decorators/
+│           │   └── authenticated-user.decorator.ts # @AuthenticatedUser() param decorator
+│           ├── guards/
+│           │   └── supabase-auth.guard.ts # SupabaseAuthGuard (Bearer token validation)
+│           └── services/
+│               └── auth.service.ts # AuthService: authenticate(), user sync & RBAC loading
 ├── prisma/
 │   ├── schema.prisma               # Aggregated Prisma schema (main entry)
 │   ├── prisma.config.ts            # Prisma CLI config (datasource URL)
@@ -141,7 +156,7 @@ Defined via `registerAs` factories and injected via `ConfigService.get('namespac
 | `supabase` | `supabase.anonKey` | `SUPABASE_ANON_KEY` |
 | `supabase` | `supabase.serviceRoleKey` | `SUPABASE_SERVICE_ROLE_KEY` |
 
-### 4.5 Database Connection (`prisma.service.ts`)
+### 4.5 Database Connection (`src/infrastructure/prisma/prisma.service.ts`)
 
 Prisma v7 requires an explicit driver adapter — the datasource block in `schema.prisma` has **no `url` field**. The URL is provided at runtime only.
 
@@ -154,16 +169,20 @@ PrismaService constructor flow:
   5. OnModuleDestroy → $disconnect() + pool.end()   ← prevents connection leaks
 ```
 
-### 4.6 Supabase Clients (`supabase.service.ts`)
+### 4.6 Supabase Clients & Token Verification (`src/infrastructure/supabase/supabase.service.ts`)
 
 Two separate `SupabaseClient` instances are created at module init:
 
 | Client | Key Used | Purpose |
 |---|---|---|
-| `anonClient` | `SUPABASE_ANON_KEY` | Public-facing auth operations (signUp, signIn, OTP) |
-| `adminClient` | `SUPABASE_SERVICE_ROLE_KEY` | Admin operations (bypass RLS, manage users) |
+| `anonClient` | `SUPABASE_ANON_KEY` | Public-facing auth operations & JWT verification (`getUser`) |
+| `adminClient` | `SUPABASE_SERVICE_ROLE_KEY` | Admin operations (bypasses RLS, manage users by ID) |
 
-Both clients are created with `autoRefreshToken: false` and `persistSession: false` — the server manages tokens, not the Supabase SDK.
+Both clients are created with `autoRefreshToken: false` and `persistSession: false` — the server manages tokens stateless, not the Supabase SDK.
+
+#### Key Service Methods:
+- `verifyAccessToken(accessToken: string): Promise<User>`: Calls `anonClient.auth.getUser(accessToken)`. Throws `UnauthorizedException` if invalid/expired.
+- `getUserById(userId: string): Promise<User>`: Calls `adminClient.auth.admin.getUserById(userId)`. Throws `UnauthorizedException` if user not found.
 
 ---
 
@@ -251,6 +270,32 @@ User ──< UserSession
 | `BusinessOTPReferenceType` | `business_otp_reference_type` | `ORDER`, `ACCOUNT` |
 | `DeviceType` | `device_type` | `MOBILE`, `TABLET`, `DESKTOP`, `WEB` |
 | `RevocationReason` | `revocation_reason` | `LOGOUT`, `PASSWORD_CHANGED`, `TOKEN_ROTATED`, `ACCOUNT_LOCKED`, `SECURITY`, `EXPIRED` |
+
+### 6.5 Runtime Application Components & Authentication Flow
+
+#### 6.5.1 `CurrentUser` Domain Model (`src/common/identity/current-user.model.ts`)
+Encapsulates authenticated user context attached to HTTP requests:
+- **Properties:** `id`, `email`, `phone`, `roleId`, `roleCode`, `permissions` (array of permission code strings), `status` (`UserStatus`).
+- **Methods:** `hasRole(role)`, `hasPermission(permission)`, `isActive()`, `isBlocked()`.
+
+#### 6.5.2 `SupabaseAuthGuard` (`src/modules/auth/guards/supabase-auth.guard.ts`)
+NestJS `CanActivate` guard protecting authenticated endpoints:
+1. Extracts `Bearer <token>` from the HTTP `Authorization` header.
+2. Validates header presence and format (throws `UnauthorizedException` if missing or malformed).
+3. Invokes `AuthService.authenticate(accessToken)`.
+4. Attaches resulting `CurrentUser` object to `request.user`.
+
+#### 6.5.3 `AuthService` (`src/modules/auth/services/auth.service.ts`)
+Core authentication service coordinating Supabase JWT validation and local PostgreSQL user record synchronization:
+1. **Token Verification:** Calls `SupabaseService.verifyAccessToken(accessToken)`.
+2. **User Lookup:** Queries local PostgreSQL via `PrismaService.user.findUnique()` with deep inclusion of `role` and `rolePermissions.permission`.
+3. **Auto-Provisioning (`syncUser`):** If user exists in Supabase Auth but not in application DB, creates a new `User` record with default `CUSTOMER` role (`UserStatus.ACTIVE`).
+4. **Account Status Check:** Throws `UnauthorizedException('Your account has been blocked.')` if `status === BLOCKED`.
+5. **Context Building:** Flattens loaded permission entities into an array of string codes and constructs a `CurrentUser` domain model instance.
+
+#### 6.5.4 Custom Decorator & Controllers
+- **`@AuthenticatedUser()` Decorator (`src/modules/auth/decorators/authenticated-user.decorator.ts`):** Injects `request.user` into route handler parameters.
+- **`AuthController` (`src/modules/auth/controllers/auth.controller.ts`):** Exposes `GET /auth/me` endpoint protected by `SupabaseAuthGuard` to return the current user profile.
 
 ---
 

@@ -6,6 +6,45 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 3, 2026]
+
+### Server — NestJS Clean Architecture & Infrastructure Reorganization
+- Reorganized `server/src` directory structure into clean modular architecture:
+  - `src/infrastructure/prisma/` — `PrismaModule` and `PrismaService`
+  - `src/infrastructure/supabase/` — `SupabaseModule`, `SupabaseService`, and `supabase.service.spec.ts`
+  - `src/common/identity/` — Shared identity models (`CurrentUser`)
+  - `src/modules/auth/` — Authentication feature module
+
+### Server — Root Health Endpoint & App Controller
+- Created `AppController` (`src/app.controller.ts`) exposing `GET /` health endpoint returning `{ success: true, message: 'aasPass Backend is running successfully 🚀' }`
+- Registered `AppController` in `AppModule` (`src/app.module.ts`)
+
+### Server — Supabase Client Extensions
+- Extended `SupabaseService` (`src/infrastructure/supabase/supabase.service.ts`):
+  - Added `verifyAccessToken(accessToken: string)`: Validates Supabase JWT access token via `anonClient.auth.getUser(accessToken)`
+  - Added `getUserById(userId: string)`: Retrieves Supabase auth user by UUID via `adminClient.auth.admin.getUserById(userId)`
+
+### Server — Common Identity Domain Model
+- Created `CurrentUser` model (`src/common/identity/current-user.model.ts`):
+  - Represents logged-in user context across the application: `id`, `email`, `phone`, `roleId`, `roleCode`, `permissions`, `status`
+  - Helper methods: `hasRole(role)`, `hasPermission(permission)`, `isActive()`, `isBlocked()`
+
+### Server — Authentication Guard & Auth Module Implementation
+- Created `AuthModule` (`src/modules/auth/auth.module.ts`) importing `PrismaModule` and `SupabaseModule`
+- Created `AuthService` (`src/modules/auth/services/auth.service.ts`):
+  - Validates Supabase access tokens using `SupabaseService.verifyAccessToken()`
+  - Loads application user from PostgreSQL via `PrismaService` with RBAC relations (`role.rolePermissions.permission`)
+  - Auto-provisions new users on first login (`syncUser()`) assigning default `CUSTOMER` role
+  - Rejects blocked users (`UserStatus.BLOCKED`) with `UnauthorizedException`
+- Created `SupabaseAuthGuard` (`src/modules/auth/guards/supabase-auth.guard.ts`):
+  - Intercepts requests, extracts `Bearer <token>` from HTTP `Authorization` header
+  - Authenticates via `AuthService` and attaches `CurrentUser` instance to `request.user`
+- Created `@AuthenticatedUser()` custom param decorator (`src/modules/auth/decorators/authenticated-user.decorator.ts`)
+- Created `AuthController` (`src/modules/auth/controllers/auth.controller.ts`):
+  - Exposes `GET /auth/me` endpoint protected by `SupabaseAuthGuard` returning authenticated user profile and permissions
+
+---
+
 ## [July 28, 2026]
 
 ### Documentation — LLD Created (v0.1)
@@ -108,8 +147,8 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 
 ### Server — Supabase Client Setup
 - Added `@supabase/supabase-js` and `@supabase/ssr`
-- Created `SupabaseModule` (`src/supabase/supabase.module.ts`) — Global NestJS module
-- Created `SupabaseService` (`src/supabase/supabase.service.ts`):
+- Created `SupabaseModule` (`src/infrastructure/supabase/supabase.module.ts`) — Global NestJS module
+- Created `SupabaseService` (`src/infrastructure/supabase/supabase.service.ts`):
   - Initializes two clients at startup: `anon` (user-context requests) and `admin` (service role for privileged operations)
   - Both configured with `autoRefreshToken: false` and `persistSession: false` (server-side)
   - `admin` client uses `SUPABASE_SERVICE_ROLE_KEY`; `anon` client uses `SUPABASE_ANON_KEY`
@@ -121,7 +160,7 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 ### Server — Prisma 7 Runtime Fix (Adapter Pattern)
 - Diagnosed root cause of `PrismaClientInitializationError`: `PrismaClient` in Prisma v7 no longer accepts an empty `super()` call — the datasource must be passed explicitly at constructor time
 - Installed `@prisma/adapter-pg`, `pg`, and `@types/pg`
-- Rewrote `PrismaService` (`src/prisma/prisma.service.ts`) to use the Prisma 7 **driver adapter** pattern:
+- Rewrote `PrismaService` (`src/infrastructure/prisma/prisma.service.ts`) to use the Prisma 7 **driver adapter** pattern:
   - Creates a `pg.Pool` from `DATABASE_URL` at construction time
   - Wraps pool in `PrismaPg` adapter
   - Passes `{ adapter }` to `super()` — the correct Prisma 7 constructor signature

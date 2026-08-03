@@ -95,6 +95,7 @@ server/
 ├── prisma.config.ts           # Prisma 7 config — datasource URL & migration path
 ├── src/
 │   ├── app.module.ts          # Root NestJS module
+│   ├── app.controller.ts      # Health check controller (GET /)
 │   ├── main.ts                # Application entry point
 │   ├── config/                # Configuration layer
 │   │   ├── index.ts           # Aggregates all config namespaces
@@ -102,15 +103,18 @@ server/
 │   │   ├── database.config.ts # Database namespace: DATABASE_URL
 │   │   ├── supabase.config.ts # Supabase namespace: url, keys
 │   │   └── env.validation.ts  # Zod schema — validates all env vars at boot
-│   ├── prisma/                # Database access layer
-│   │   ├── prisma.service.ts  # PrismaClient wrapper using adapter-pg
-│   │   └── prisma.module.ts   # Global NestJS module exporting PrismaService
-│   ├── supabase/              # Supabase client layer
-│   │   ├── supabase.service.ts # anon + admin client initialization
-│   │   └── supabase.module.ts  # Global NestJS module exporting SupabaseService
-│   ├── modules/               # Feature modules (to be added)
-│   ├── common/                # Shared guards, pipes, filters (to be added)
-│   ├── infrastructure/        # External integrations (to be added)
+│   ├── infrastructure/        # Infrastructure access layers
+│   │   ├── prisma/            # Database access layer
+│   │   │   ├── prisma.service.ts  # PrismaClient wrapper using adapter-pg
+│   │   │   └── prisma.module.ts   # Global NestJS module exporting PrismaService
+│   │   └── supabase/          # Supabase client layer
+│   │       ├── supabase.service.ts # anon + admin clients & token verification
+│   │       ├── supabase.service.spec.ts # SupabaseService unit tests
+│   │       └── supabase.module.ts  # Global NestJS module exporting SupabaseService
+│   ├── common/                # Shared utilities & domain models
+│   │   └── identity/          # CurrentUser domain model
+│   ├── modules/               # Feature modules
+│   │   └── auth/              # Authentication module (Guard, Service, Controller)
 │   └── shared/                # Shared DTOs, utilities (to be added)
 └── .env                       # Local environment variables (git-ignored)
 ```

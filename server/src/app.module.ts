@@ -4,8 +4,10 @@ import { ConfigModule } from '@nestjs/config';
 import configuration from './config';
 import { validate } from './config/env.validation';
 
-import { PrismaModule } from './prisma/prisma.module';
-import { SupabaseModule } from './supabase/supabase.module';
+import { PrismaModule } from './infrastructure/prisma/prisma.module';
+import { SupabaseModule } from './infrastructure/supabase/supabase.module';
+
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -20,5 +22,6 @@ import { SupabaseModule } from './supabase/supabase.module';
     PrismaModule,
     SupabaseModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
