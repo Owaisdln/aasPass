@@ -114,7 +114,8 @@ server/
 │   ├── common/                # Shared utilities & domain models
 │   │   └── identity/          # CurrentUser domain model
 │   ├── modules/               # Feature modules
-│   │   └── auth/              # Authentication module (Guard, Service, Controller)
+│   │   ├── auth/              # Authentication module (Guard, Service, Controller)
+│   │   └── authorization/     # Authorization module (RolesGuard, PermissionsGuard, AnyPermissionGuard)
 │   └── shared/                # Shared DTOs, utilities (to be added)
 └── .env                       # Local environment variables (git-ignored)
 ```

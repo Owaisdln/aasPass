@@ -6,6 +6,29 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 4, 2026]
+
+### Server — Authorization Module (`AuthorizationModule`) Implementation
+- Created `AuthorizationModule` (`src/modules/authorization/authorization.module.ts`) providing comprehensive Role-Based Access Control (RBAC) and permission-based authorization:
+- Added Metadata Constants (`src/modules/authorization/constants/metadata.constants.ts`):
+  - Defined `AUTHORIZATION_METADATA`: `PUBLIC`, `ROLES`, `PERMISSIONS`, `ANY_PERMISSIONS`
+- Added Custom Method & Class Decorators (`src/modules/authorization/decorators/`):
+  - `@Public()`: Marks route or controller as public (bypasses authorization requirement)
+  - `@Roles(...roles)`: Attaches required role codes to handler/class metadata
+  - `@Permissions(...permissions)`: Attaches required permission codes (all required - AND condition)
+  - `@AnyPermission(...permissions)`: Attaches required permission codes (at least one required - OR condition)
+- Added NestJS Guards (`src/modules/authorization/guards/`):
+  - `RolesGuard`: Evaluates `@Roles()` metadata against `CurrentUser.hasRole(role)`
+  - `PermissionsGuard`: Evaluates `@Permissions()` metadata against `CurrentUser.hasPermission(permission)` (must match all)
+  - `AnyPermissionGuard`: Evaluates `@AnyPermission()` metadata against `CurrentUser.hasPermission(permission)` (must match at least one)
+- Added Abstract & Concrete Permissions Providers (`src/modules/authorization/`):
+  - `PermissionsProvider` abstract interface class (`interfaces/permissions-provider.interface.ts`)
+  - `PrismaPermissionsProvider` (`providers/prisma-permissions.provider.ts`) implementing database queries to fetch permission codes for any given role ID via `PrismaService`
+- Updated Root Module (`src/app.module.ts`):
+  - Registered `AuthModule` and `AuthorizationModule` in `imports` array
+
+---
+
 ## [August 3, 2026]
 
 ### Server — NestJS Clean Architecture & Infrastructure Reorganization

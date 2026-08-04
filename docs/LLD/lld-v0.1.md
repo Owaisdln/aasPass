@@ -82,16 +82,33 @@ server/
 │   │       └── current-user.model.ts # CurrentUser domain identity model (RBAC, status)
 │   ├── shared/                     # (reserved) Shared DTOs, utilities
 │   └── modules/
-│       └── auth/                   # Authentication feature module
-│           ├── auth.module.ts      # AuthModule registration
-│           ├── controllers/
-│           │   └── auth.controller.ts # AuthController: GET /auth/me
+│       ├── auth/                   # Authentication feature module
+│       │   ├── auth.module.ts      # AuthModule registration
+│       │   ├── controllers/
+│       │   │   └── auth.controller.ts # AuthController: GET /auth/me
+│       │   ├── decorators/
+│       │   │   └── authenticated-user.decorator.ts # @AuthenticatedUser() param decorator
+│       │   ├── guards/
+│       │   │   └── supabase-auth.guard.ts # SupabaseAuthGuard (Bearer token validation)
+│       │   └── services/
+│       │       └── auth.service.ts # AuthService: authenticate(), user sync & RBAC loading
+│       └── authorization/          # Authorization & RBAC feature module
+│           ├── authorization.module.ts # AuthorizationModule registration
+│           ├── constants/
+│           │   └── metadata.constants.ts # Metadata keys (PUBLIC, ROLES, PERMISSIONS, ANY_PERMISSIONS)
 │           ├── decorators/
-│           │   └── authenticated-user.decorator.ts # @AuthenticatedUser() param decorator
+│           │   ├── public.decorator.ts # @Public() bypass decorator
+│           │   ├── roles.decorator.ts # @Roles(...roles) decorator
+│           │   ├── permissions.decorator.ts # @Permissions(...permissions) decorator (AND)
+│           │   └── any-permission.decorator.ts # @AnyPermission(...permissions) decorator (OR)
 │           ├── guards/
-│           │   └── supabase-auth.guard.ts # SupabaseAuthGuard (Bearer token validation)
-│           └── services/
-│               └── auth.service.ts # AuthService: authenticate(), user sync & RBAC loading
+│           │   ├── roles.guard.ts  # RolesGuard (role matching)
+│           │   ├── permissions.guard.ts # PermissionsGuard (all permissions matching)
+│           │   └── any-permission.guard.ts # AnyPermissionGuard (at least one permission matching)
+│           ├── interfaces/
+│           │   └── permissions-provider.interface.ts # PermissionsProvider abstract interface
+│           └── providers/
+│               └── prisma-permissions.provider.ts # PrismaPermissionsProvider (Prisma DB queries)
 ├── prisma/
 │   ├── schema.prisma               # Aggregated Prisma schema (main entry)
 │   ├── prisma.config.ts            # Prisma CLI config (datasource URL)
@@ -296,6 +313,21 @@ Core authentication service coordinating Supabase JWT validation and local Postg
 #### 6.5.4 Custom Decorator & Controllers
 - **`@AuthenticatedUser()` Decorator (`src/modules/auth/decorators/authenticated-user.decorator.ts`):** Injects `request.user` into route handler parameters.
 - **`AuthController` (`src/modules/auth/controllers/auth.controller.ts`):** Exposes `GET /auth/me` endpoint protected by `SupabaseAuthGuard` to return the current user profile.
+
+#### 6.5.5 `AuthorizationModule` — RBAC & Permissions (`src/modules/authorization/`)
+Provides declarative, metadata-driven authorization via NestJS Reflector:
+- **Decorators:**
+  - `@Public()` (`public.decorator.ts`): Bypasses authorization requirements.
+  - `@Roles(...roles)` (`roles.decorator.ts`): Attaches required role codes.
+  - `@Permissions(...permissions)` (`permissions.decorator.ts`): Attaches required permission codes (AND logic).
+  - `@AnyPermission(...permissions)` (`any-permission.decorator.ts`): Attaches required permission codes (OR logic).
+- **Guards:**
+  - `RolesGuard` (`roles.guard.ts`): Evaluates `@Roles()` metadata against `currentUser.hasRole(role)`.
+  - `PermissionsGuard` (`permissions.guard.ts`): Evaluates `@Permissions()` metadata against `currentUser.hasPermission(permission)` (every permission must match).
+  - `AnyPermissionGuard` (`any-permission.guard.ts`): Evaluates `@AnyPermission()` metadata against `currentUser.hasPermission(permission)` (at least one must match).
+- **Providers:**
+  - `PermissionsProvider` (`interfaces/permissions-provider.interface.ts`): Abstract contract defining `getPermissionsForRole(roleId: string): Promise<string[]>`.
+  - `PrismaPermissionsProvider` (`providers/prisma-permissions.provider.ts`): Concrete database implementation fetching role permission codes via `PrismaService`.
 
 ---
 

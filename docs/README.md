@@ -1,11 +1,20 @@
 # aasPass Documentation
 
 > **Platform:** aasPass — Hyperlocal commerce platform  
-> **Last Updated:** 2026-07-28
+> **Last Updated:** 2026-08-04
 
 ---
 
 ## Document Index
+
+### Server Implementation
+
+| Document | Version | Status | Description |
+|---|---|---|---|
+| [Server Index](./server/README.md) | — | ✅ Active | Root module summary and implemented endpoint table |
+| [Infrastructure Layer](./server/01-infrastructure.md) | — | ✅ Active | Bootstrap, config, Prisma, Supabase, health check |
+| [Module — Auth](./server/02-module-auth.md) | — | ✅ Active | SupabaseAuthGuard, AuthService, CurrentUser, `GET /auth/me` |
+| [Module — Authorization](./server/03-module-authorization.md) | — | ✅ Active | RBAC guards, decorators, permissions provider |
 
 ### Architecture & Design
 
