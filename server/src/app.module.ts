@@ -8,7 +8,9 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { SupabaseModule } from './infrastructure/supabase/supabase.module';
 
 import { AppController } from './app.controller';
+
 import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { AuthModule } from './modules/auth/auth.module';
     PrismaModule,
     SupabaseModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
 })
