@@ -15,6 +15,7 @@
 | [Infrastructure Layer](./server/01-infrastructure.md) | — | ✅ Active | Bootstrap, config, Prisma, Supabase, health check |
 | [Module — Auth](./server/02-module-auth.md) | — | ✅ Active | SupabaseAuthGuard, AuthService, CurrentUser, `GET /auth/me` |
 | [Module — Authorization](./server/03-module-authorization.md) | — | ✅ Active | RBAC guards, decorators, permissions provider |
+| [Module — Users](./server/04-module-users.md) | — | ✅ Active | User self-management: `GET /users/me`, `PATCH /users/me` |
 
 ### Architecture & Design
 

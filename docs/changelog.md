@@ -6,6 +6,39 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 7, 2026]
+
+### Server — Users Module (`UsersModule`) Implementation
+
+- Created `UsersModule` (`src/modules/users/users.module.ts`) importing `PrismaModule` and `AuthModule`:
+  - Registered `UsersController`, `UsersService`, and `UserMapper` as providers
+
+- Added Prisma type utilities (`src/modules/users/types/user.types.ts`):
+  - `USER_WITH_ROLE_INCLUDE`: Typed `Prisma.UserInclude` constant (`satisfies` keyword) for queries requiring the role relation
+  - `UserWithRole`: Derived `Prisma.UserGetPayload` type representing a user with their `Role` relation included
+
+- Added Data Transfer Objects (`src/modules/users/dto/`):
+  - `UserResponseDto`: Response shape — `id`, `firstName`, `lastName`, `email`, `phone`, `role` (code string), `status`, `emailVerifiedAt`, `phoneVerifiedAt`, `lastSeenAt`, `createdAt`, `updatedAt`
+  - `UpdateUserDto`: Request body — optional `firstName` and `lastName` fields with `class-validator` constraints (`@MinLength(2)`, `@MaxLength(100)`)
+
+- Added `UserMapper` (`src/modules/users/mappers/user.mapper.ts`):
+  - `toResponse(user: UserWithRole): UserResponseDto` — maps Prisma entity to response DTO; resolves `user.role.code` for the `role` field
+
+- Added `UsersService` (`src/modules/users/services/users.service.ts`):
+  - `getMe(userId)`: Loads and returns current user profile via `findUserById` + `userMapper.toResponse()`
+  - `updateProfile(userId, dto)`: Validates user exists, then runs `prisma.user.update` with partial name fields; returns updated DTO
+  - `findUserById(userId)` (private): Shared Prisma lookup with `USER_WITH_ROLE_INCLUDE`; throws `NotFoundException` if not found
+
+- Added `UsersController` (`src/modules/users/controllers/users.controller.ts`):
+  - Class-level `@UseGuards(SupabaseAuthGuard)` — all routes require authentication
+  - `GET /users/me` → `UsersService.getMe(currentUser.id)`
+  - `PATCH /users/me` → `UsersService.updateProfile(currentUser.id, dto)` — accepts `UpdateUserDto` body
+
+- Updated Root Module (`src/app.module.ts`):
+  - Added `UsersModule` to the `imports` array
+
+---
+
 ## [August 4, 2026]
 
 ### Server — Authorization Module (`AuthorizationModule`) Implementation

@@ -697,9 +697,9 @@ The following are planned but not yet in any schema or code:
 
 | Area | Description |
 |---|---|
-| Feature modules (NestJS) | Auth, Store, Catalog, Cart, Order, Payment controllers/services |
-| JWT Guard | `passport-jwt` strategy implementation |
-| Role Guard | RBAC permission check guard |
+| Feature modules (NestJS) | `UsersModule` ✅ implemented — `GET /users/me`, `PATCH /users/me`. Store, Catalog, Cart, Order, Payment controllers/services are pending. |
+| Supabase Auth Guard | ✅ Implemented — `SupabaseAuthGuard` in `src/modules/auth/guards/` |
+| RBAC Guards & Decorators | ✅ Implemented — `AuthorizationModule` in `src/modules/authorization/` |
 | Coupon/Promotions | Coupon module — `couponId` removed from Cart pending this |
 | Review Module | Store/product reviews — `averageRating` removed from Store pending this |
 | Notification Module | Push notification system |
