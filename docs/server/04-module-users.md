@@ -10,6 +10,9 @@ The `UsersModule` exposes **user self-management endpoints**. It allows an authe
 
 1. Retrieve their own full profile (`GET /users/me`)
 2. Update their own name fields (`PATCH /users/me`)
+3. List all active sessions (`GET /users/me/sessions`)
+4. Revoke a specific session (`DELETE /users/me/sessions/:sessionId`)
+5. Revoke all sessions (`DELETE /users/me/sessions`)
 
 All routes in this module are protected by `SupabaseAuthGuard` — an unauthenticated request receives `401 Unauthorized` before reaching the service layer.
 
@@ -24,14 +27,18 @@ src/modules/users/
 │   └── users.controller.ts
 ├── dto/
 │   ├── update-user.dto.ts
-│   └── user-response.dto.ts
+│   ├── user-response.dto.ts
+│   └── user-session-response.dto.ts
 ├── mappers/
-│   └── user.mapper.ts
+│   ├── user.mapper.ts
+│   └── user-session.mapper.ts
 ├── services/
 │   └── users.service.ts
 └── types/
     └── user.types.ts
 ```
+
+> **Note:** `BrowserParser` (`src/common/parsers/browser.parser.ts`) is a shared utility used by `UserSessionMapper`.
 
 ---
 
@@ -41,7 +48,7 @@ src/modules/users/
 |---|---|
 | **Imports** | `PrismaModule`, `AuthModule` |
 | **Controllers** | `UsersController` |
-| **Providers** | `UsersService`, `UserMapper` |
+| **Providers** | `UsersService`, `UserMapper`, `UserSessionMapper` |
 | **Exports** | *(none)* |
 
 `AuthModule` is imported to get access to `SupabaseAuthGuard` and the `@AuthenticatedUser()` decorator used in the controller.
@@ -106,13 +113,29 @@ The accepted request body for `PATCH /users/me`. All fields are optional.
 | `firstName` | `string` (optional) | `@IsOptional`, `@IsString`, `@MinLength(2)`, `@MaxLength(100)` |
 | `lastName` | `string` (optional) | `@IsOptional`, `@IsString`, `@MinLength(2)`, `@MaxLength(100)` |
 
+### `UserSessionResponseDto` (`src/modules/users/dto/user-session-response.dto.ts`)
+
+The shape returned for each session in the session list endpoint.
+
+| Field | Type | Source |
+|---|---|---|
+| `id` | `string` | `session.id` (UUID) |
+| `deviceType` | `DeviceType` | `session.deviceType` (Prisma enum: `WEB`, `MOBILE`, etc.) |
+| `browser` | `string \| null` | Parsed from `session.userAgent` via `BrowserParser` |
+| `os` | `string \| null` | Parsed from `session.userAgent` via `BrowserParser` |
+| `lastActivityAt` | `Date` | `session.lastActivityAt` |
+| `createdAt` | `Date` | `session.createdAt` |
+| `revokedAt` | `Date \| null` | `session.revokedAt` — `null` means session is still active |
+
 ---
 
-## 3. `UserMapper` (`src/modules/users/mappers/user.mapper.ts`)
+## 3. Mappers
+
+### `UserMapper` (`src/modules/users/mappers/user.mapper.ts`)
 
 An `@Injectable()` service class responsible for transforming a `UserWithRole` Prisma entity into a `UserResponseDto`.
 
-### `toResponse(user: UserWithRole): UserResponseDto`
+#### `toResponse(user: UserWithRole): UserResponseDto`
 
 Maps each field individually. Key transformations:
 
@@ -125,9 +148,36 @@ No fields are computed, derived, or omitted beyond what the schema provides.
 
 ---
 
+### `UserSessionMapper` (`src/modules/users/mappers/user-session.mapper.ts`)
+
+An `@Injectable()` service class responsible for transforming a `UserSession` Prisma entity into a `UserSessionResponseDto`. Uses `BrowserParser` to resolve the raw `userAgent` string into structured `browser` and `os` fields.
+
+#### `toResponse(session: UserSession): UserSessionResponseDto`
+
+| Step | Action |
+|---|---|
+| 1 | `BrowserParser.parse(session.userAgent)` — parses browser name and OS from the raw user-agent string |
+| 2 | Maps remaining fields directly from the Prisma entity |
+
+#### `toResponseList(sessions: UserSession[]): UserSessionResponseDto[]`
+
+Convenience method that calls `toResponse()` for each session in the array.
+
+---
+
+### `BrowserParser` (`src/common/parsers/browser.parser.ts`)
+
+A shared static utility class (not NestJS injectable) used by `UserSessionMapper` to parse `User-Agent` strings.
+
+- Uses the **`bowser`** npm library under the hood
+- `BrowserParser.parse(userAgent: string | null): ParsedBrowser` — returns `{ browser: string | null, os: string | null }`
+- Returns `{ browser: null, os: null }` when `userAgent` is `null` or empty
+
+---
+
 ## 4. `UsersService` (`src/modules/users/services/users.service.ts`)
 
-The service layer — handles all business logic and Prisma queries.
+The service layer — handles all business logic and Prisma queries. Injected dependencies: `PrismaService`, `UserMapper`, `UserSessionMapper`.
 
 ### `getMe(userId: string): Promise<UserResponseDto>`
 
@@ -144,9 +194,35 @@ The service layer — handles all business logic and Prisma queries.
 | 2 | `prisma.user.update({ where: { id }, data: { firstName, lastName }, include: USER_WITH_ROLE_INCLUDE })` |
 | 3 | `userMapper.toResponse(updatedUser)` — maps updated record to DTO and returns |
 
+### `getMySessions(userId: string): Promise<UserSessionResponseDto[]>`
+
+| Step | Action |
+|---|---|
+| 1 | `prisma.userSession.findMany({ where: { userId }, orderBy: { lastActivityAt: 'desc' } })` — fetches all sessions for the user, newest activity first |
+| 2 | `userSessionMapper.toResponseList(sessions)` — maps to DTO list and returns |
+
+### `revokeSession(userId: string, sessionId: string): Promise<void>`
+
+| Step | Action | Error |
+|---|---|---|
+| 1 | `prisma.userSession.findFirst({ where: { id: sessionId, userId } })` — finds session scoped to the user | — |
+| 2 | If `null` → throw | `NotFoundException('Session not found.')` |
+| 3 | If `session.revokedAt` is already set → return early (idempotent) | — |
+| 4 | `prisma.userSession.update({ data: { revokedAt: new Date(), revocationReason: RevocationReason.LOGOUT } })` | — |
+
+> **Note:** The `userId` scope ensures a user cannot revoke another user's session. The operation is idempotent — revoking an already-revoked session is a no-op.
+
+### `revokeAllSessions(userId: string): Promise<void>`
+
+| Step | Action |
+|---|---|
+| 1 | `prisma.userSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date(), revocationReason: RevocationReason.LOGOUT } })` — bulk-revokes all non-revoked sessions |
+
+> **Note:** Only sessions with `revokedAt: null` are affected. Already-revoked sessions are left unchanged.
+
 ### `findUserById(userId: string): Promise<UserWithRole>` (private)
 
-Shared internal lookup used by both public methods:
+Shared internal lookup used by `getMe` and `updateProfile`:
 
 | Step | Action | Error |
 |---|---|---|
@@ -226,6 +302,98 @@ Content-Type: application/json
 | `400 Bad Request` | Validation failure on `UpdateUserDto` (e.g. `firstName` shorter than 2 chars) |
 | `401 Unauthorized` | Missing, malformed, or expired Bearer token |
 | `404 Not Found` | User ID from token does not exist in the application database |
+
+---
+
+### `GET /users/me/sessions`
+
+| Property | Value |
+|---|---|
+| **Controller** | `UsersController` |
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | ✅ Yes |
+| **Response** | `UserSessionResponseDto[]` |
+
+Returns all sessions (active and revoked) for the currently authenticated user, ordered by `lastActivityAt` descending (most recent first).
+
+**Request:**
+```
+GET /users/me/sessions
+Authorization: Bearer <supabase-access-token>
+```
+
+**Success Response:**
+```json
+[
+  {
+    "id": "session-uuid",
+    "deviceType": "WEB",
+    "browser": "Chrome",
+    "os": "Windows",
+    "lastActivityAt": "2026-08-08T08:00:00.000Z",
+    "createdAt": "2026-08-01T09:00:00.000Z",
+    "revokedAt": null
+  }
+]
+```
+
+**Error Responses:**
+
+| Status | Condition |
+|---|---|
+| `401 Unauthorized` | Missing, malformed, or expired Bearer token |
+
+---
+
+### `DELETE /users/me/sessions/:sessionId`
+
+| Property | Value |
+|---|---|
+| **Controller** | `UsersController` |
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | ✅ Yes |
+| **Path Param** | `sessionId` — UUID of the session to revoke |
+| **Response** | `204 No Content` (void) |
+
+Revokes a specific session belonging to the authenticated user. The `userId` scope ensures users cannot revoke other users' sessions. Revoking an already-revoked session is a no-op (idempotent).
+
+**Request:**
+```
+DELETE /users/me/sessions/session-uuid
+Authorization: Bearer <supabase-access-token>
+```
+
+**Error Responses:**
+
+| Status | Condition |
+|---|---|
+| `401 Unauthorized` | Missing, malformed, or expired Bearer token |
+| `404 Not Found` | Session does not exist or does not belong to the authenticated user |
+
+---
+
+### `DELETE /users/me/sessions`
+
+| Property | Value |
+|---|---|
+| **Controller** | `UsersController` |
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | ✅ Yes |
+| **Response** | `204 No Content` (void) |
+
+Revokes **all** active sessions for the authenticated user in a single bulk update. Sessions that are already revoked are left unchanged.
+
+**Request:**
+```
+DELETE /users/me/sessions
+Authorization: Bearer <supabase-access-token>
+```
+
+**Error Responses:**
+
+| Status | Condition |
+|---|---|
+| `401 Unauthorized` | Missing, malformed, or expired Bearer token |
 
 ---
 

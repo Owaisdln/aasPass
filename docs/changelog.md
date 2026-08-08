@@ -6,6 +6,37 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 8, 2026]
+
+### Server — Session Management Endpoints (`UsersModule`)
+
+- Extended `UsersModule` (`src/modules/users/users.module.ts`):
+  - Added `UserSessionMapper` to the `providers` array
+
+- Added `UserSessionResponseDto` (`src/modules/users/dto/user-session-response.dto.ts`):
+  - Response shape for session list — `id`, `deviceType`, `browser`, `os`, `lastActivityAt`, `createdAt`, `revokedAt`
+  - `browser` and `os` are derived from the raw `userAgent` string via `BrowserParser`
+
+- Added `UserSessionMapper` (`src/modules/users/mappers/user-session.mapper.ts`):
+  - `toResponse(session: UserSession): UserSessionResponseDto` — parses `userAgent` via `BrowserParser`, maps all fields
+  - `toResponseList(sessions: UserSession[]): UserSessionResponseDto[]` — convenience bulk mapper
+
+- Added `BrowserParser` (`src/common/parsers/browser.parser.ts`):
+  - Static utility class using the `bowser` library
+  - `BrowserParser.parse(userAgent: string | null): ParsedBrowser` — returns `{ browser, os }` or `{ browser: null, os: null }` for null/missing agents
+
+- Extended `UsersService` (`src/modules/users/services/users.service.ts`) with session operations:
+  - `getMySessions(userId)`: Fetches all `UserSession` records for the user ordered by `lastActivityAt desc`; maps via `UserSessionMapper.toResponseList()`
+  - `revokeSession(userId, sessionId)`: Scoped lookup (`findFirst({ id, userId })`); throws `NotFoundException` if not found; idempotent — no-op if already revoked; marks `revokedAt` + `revocationReason: LOGOUT`
+  - `revokeAllSessions(userId)`: Bulk `updateMany` on sessions where `revokedAt: null`; sets `revokedAt` + `revocationReason: LOGOUT`
+
+- Extended `UsersController` (`src/modules/users/controllers/users.controller.ts`) with three new routes (all under class-level `SupabaseAuthGuard`):
+  - `GET /users/me/sessions` → `UsersService.getMySessions(currentUser.id)` → `UserSessionResponseDto[]`
+  - `DELETE /users/me/sessions/:sessionId` → `UsersService.revokeSession(currentUser.id, sessionId)` → `void`
+  - `DELETE /users/me/sessions` → `UsersService.revokeAllSessions(currentUser.id)` → `void`
+
+---
+
 ## [August 7, 2026]
 
 ### Server — Users Module (`UsersModule`) Implementation
