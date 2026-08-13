@@ -6,6 +6,70 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 13, 2026]
+
+### Server — Stores Module (`StoresModule`) Implementation
+
+- Created `StoresModule` (`src/modules/stores/stores.module.ts`) importing `PrismaModule` and `AuthModule`:
+  - Registered four controllers: `StoresController`, `StoreHoursController`, `StoreDeliverySettingsController`, `StoreImagesController`
+  - Registered five providers: `StoresService`, `StoreHoursService`, `StoreDeliverySettingsService`, `StoreImagesService`, `StoreMapper`
+
+- Added Prisma type utilities (`src/modules/stores/types/store.types.ts`):
+  - `STORE_WITH_RELATIONS_INCLUDE`: Typed `Prisma.StoreInclude` constant including `images`, `hours`, and `deliverySetting`
+  - `StoreWithRelations`: Derived `Prisma.StoreGetPayload` type with all three relations included
+
+- Added Data Transfer Objects:
+  - `CreateStoreDto` — required: `name`, `phone`, `addressLine1`, `city`, `state`, `country`, `pincode`, `latitude`, `longitude`; optional: `description`, `email`, `gstNumber`, `businessRegistrationNumber`, `addressLine2`, `timezone`
+  - `UpdateStoreDto` — all `CreateStoreDto` fields made optional, plus `logoKey` and `bannerKey`
+  - `StoreResponseDto` — full store shape including `slug`, `status`, `verificationStatus`, `isOpen`, `logoKey`, `bannerKey`
+  - `StoreHourResponseDto` — `id`, `weekDay`, `openingTime`, `closingTime`, `isClosed`, timestamps
+  - `StoreHourInputDto` — per-day input with `weekDay`, optional `openingTime`/`closingTime` (HH:mm regex), `isClosed`
+  - `UpdateStoreHoursDto` — wraps `hours: StoreHourInputDto[]` with `@ArrayMinSize(1)` and nested validation
+  - `StoreDeliverySettingsResponseDto` — delivery flags, numeric thresholds (`Decimal` → `number`)
+  - `UpdateStoreDeliverySettingsDto` — all optional: delivery/pickup flags, `minimumOrderAmount`, `deliveryRadiusKm`, `deliveryCharge`, `freeDeliveryAbove`, `estimatedDeliveryTime`
+  - `CreateStoreImageDto` — required `objectKey`, optional `displayOrder` (auto-assigned if omitted)
+  - `UpdateStoreImageOrderDto` — required `displayOrder` integer
+  - `StoreImageResponseDto` — `id`, `objectKey`, `displayOrder`, timestamps
+
+- Added `StoreMapper` (`src/modules/stores/mappers/store.mapper.ts`):
+  - `toResponse(store: StoreWithRelations): StoreResponseDto` — maps entity to DTO; converts Prisma `Decimal` `latitude`/`longitude` to JS `number`
+
+- Added `StoresService` (`src/modules/stores/services/stores.service.ts`):
+  - `createStore(userId, dto)`: Enforces one-store-per-user (`ConflictException`), generates unique URL slug, creates store with `STORE_WITH_RELATIONS_INCLUDE`
+  - `getMyStore(userId)`: Resolves and returns current user's store via `resolveOwnStore`
+  - `updateStore(userId, dto)`: Partial update using spread-guard pattern (`dto.field !== undefined`) — only provided fields are written
+  - `resolveOwnStore(userId)` (private): Shared lookup by `ownerId`; throws `NotFoundException` if absent
+  - `generateUniqueSlug(name)` (private): Collision-safe slug with `-N` suffix loop
+  - `slugify(value)` (private): Normalises string to URL-safe slug; falls back to `'store'`
+
+- Added `StoreHoursService` (`src/modules/stores/services/hours/store-hours.service.ts`):
+  - `getMyHours(userId)`: Returns all `StoreHour` records ordered by `weekDay asc`
+  - `updateMyHours(userId, dto)`: Validates input, then runs transactional bulk-upsert on composite key `(storeId, weekDay)`; returns refreshed schedule
+  - `validateHours(hours)` (private): Rejects duplicate `weekDay` entries or non-closed days missing times
+  - `timeToDate(time)` (private): Converts `HH:mm` to `Date(1970, 0, 1, HH, mm)` for DB storage
+
+- Added `StoreDeliverySettingsService` (`src/modules/stores/services/delivery-settings/store-delivery-settings.service.ts`):
+  - `getMyDeliverySettings(userId)`: Fetches settings; throws `NotFoundException` if store or settings absent
+  - `updateMyDeliverySettings(userId, dto)`: `upsert` with field-guard — handles first-time creation and subsequent updates in one call
+  - `toResponse(settings)` (private): Converts all `Decimal` fields to `number`; preserves `null` for `freeDeliveryAbove`
+
+- Added `StoreImagesService` (`src/modules/stores/services/images/store-images.service.ts`):
+  - `getMyImages(userId)`: Returns images ordered by `displayOrder asc, createdAt asc`
+  - `addImage(userId, dto)`: Auto-assigns `displayOrder` when omitted via `getNextDisplayOrder`
+  - `updateImageOrder(userId, imageId, dto)`: Ownership-scoped update; rejects `displayOrder` collisions with `BadRequestException`
+  - `deleteImage(userId, imageId)`: Ownership-scoped hard delete
+
+- Added Controllers (all class-level `@UseGuards(SupabaseAuthGuard)`):
+  - `StoresController` (`POST /stores`, `GET /stores/me`, `PATCH /stores/me`)
+  - `StoreHoursController` (`GET /stores/me/hours`, `PUT /stores/me/hours`)
+  - `StoreDeliverySettingsController` (`GET /stores/me/delivery-settings`, `PATCH /stores/me/delivery-settings`)
+  - `StoreImagesController` (`GET /stores/me/images`, `POST /stores/me/images`, `PATCH /stores/me/images/:imageId/order`, `DELETE /stores/me/images/:imageId`)
+
+- Updated Root Module (`src/app.module.ts`):
+  - Added `StoresModule` to the `imports` array
+
+---
+
 ## [August 8, 2026]
 
 ### Server — Session Management Endpoints (`UsersModule`)
