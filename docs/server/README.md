@@ -19,6 +19,7 @@ This section documents the **actual, implemented** NestJS server application —
 | [Module — Authorization](./03-module-authorization.md) | RBAC: role/permission guards and decorators |
 | [Module — Users](./04-module-users.md) | User self-management: `GET /users/me`, `PATCH /users/me`, session management |
 | [Module — Stores](./05-module-stores.md) | Store owner self-management: core profile, hours, delivery settings, images |
+| [Module — Catalog](./06-module-catalog.md) | Product catalog master data: categories (hierarchical) and brands |
 
 ---
 
@@ -31,7 +32,8 @@ AppModule
   ├── SupabaseModule (global Supabase client)
   ├── AuthModule     (authentication — token verification, user sync)
   ├── UsersModule    (user self-management — profile, session management)
-  └── StoresModule   (store owner self-management — profile, hours, delivery, images)
+  ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
+  └── CatalogModule  (catalog master data — categories, brands)
 ```
 
 `AuthorizationModule` is implemented and available as an importable module — feature modules import it as needed when they require RBAC guards.
@@ -60,6 +62,16 @@ AppModule
 | `POST` | `/stores/me/images` | `SupabaseAuthGuard` | Adds a new gallery image |
 | `PATCH` | `/stores/me/images/:imageId/order` | `SupabaseAuthGuard` | Updates the display order of a gallery image |
 | `DELETE` | `/stores/me/images/:imageId` | `SupabaseAuthGuard` | Permanently deletes a gallery image |
+| `POST` | `/catalog/categories` | `SupabaseAuthGuard` | Creates a new category |
+| `GET` | `/catalog/categories` | `SupabaseAuthGuard` | Lists all active categories (ordered by sortOrder, name) |
+| `GET` | `/catalog/categories/:id` | `SupabaseAuthGuard` | Returns a single category by ID |
+| `PATCH` | `/catalog/categories/:id` | `SupabaseAuthGuard` | Partially updates a category |
+| `DELETE` | `/catalog/categories/:id` | `SupabaseAuthGuard` | Soft-deletes a category (guarded by child/product checks) |
+| `POST` | `/catalog/brands` | `SupabaseAuthGuard` | Creates a new brand |
+| `GET` | `/catalog/brands` | `SupabaseAuthGuard` | Lists all active brands (ordered by name) |
+| `GET` | `/catalog/brands/:id` | `SupabaseAuthGuard` | Returns a single brand by ID |
+| `PATCH` | `/catalog/brands/:id` | `SupabaseAuthGuard` | Partially updates a brand |
+| `DELETE` | `/catalog/brands/:id` | `SupabaseAuthGuard` | Soft-deletes a brand (guarded by product check) |
 
 ---
 

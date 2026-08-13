@@ -70,6 +70,50 @@ All notable changes to this project are documented here.
 
 ---
 
+### Server — Catalog Module (`CatalogModule`) Implementation
+
+- Created `CatalogModule` (`src/modules/catalog/catalog.module.ts`) importing `PrismaModule` and `AuthModule`:
+  - Registered two controllers: `CategoriesController`, `BrandsController`
+  - Registered four providers: `CategoriesService`, `CategoryMapper`, `BrandsService`, `BrandMapper`
+
+- **Categories sub-domain** (`src/modules/catalog/categories/`):
+  - Added Prisma type utilities (`types/category.types.ts`):
+    - `CATEGORY_WITH_PARENT_INCLUDE`: includes `parentCategory` relation
+    - `CategoryWithParent`: derived `Prisma.CategoryGetPayload` type
+  - Added DTOs: `CreateCategoryDto`, `UpdateCategoryDto`, `CategoryResponseDto`
+  - Added `CategoryMapper` (`@Injectable()`):
+    - `toResponseDto(category: CategoryWithParent)` — maps with relation
+    - `toResponseDtoWithoutRelation(category)` — maps flat entity without join
+  - Added `CategoriesService`:
+    - `create(userId, dto)`: trims name, generates unique slug, validates parent exists, `prisma.category.create`
+    - `findAll()`: soft-delete filtered, ordered by `sortOrder asc, name asc`
+    - `findById(id)`: soft-delete filtered
+    - `update(userId, id, dto)`: spread-guard partial update; slug regenerated only on name change; parent changes validated for self-reference and circular ancestry
+    - `remove(userId, id)`: soft-delete guarded by active subcategory and active product checks
+    - Private: `findCategoryRecord`, `assertParentCategoryExists`, `validateParentChange` (circular ancestry walk), `generateUniqueSlug` (with `excludeCategoryId`), `slugify` (NFKD normalise), `handlePrismaError`
+  - Added `CategoriesController` at `catalog/categories` (class-level `SupabaseAuthGuard`):
+    - `POST /catalog/categories`, `GET /catalog/categories`, `GET /catalog/categories/:id`, `PATCH /catalog/categories/:id`, `DELETE /catalog/categories/:id`
+
+- **Brands sub-domain** (`src/modules/catalog/brands/`):
+  - Added type alias `BrandEntity = Brand` (`types/brand.types.ts`)
+  - Added DTOs: `CreateBrandDto`, `UpdateBrandDto`, `BrandResponseDto`
+  - Added `BrandMapper` (static class, not `@Injectable()`):
+    - `static toResponse(brand: Brand): BrandResponseDto` — direct field mapping
+  - Added `BrandsService`:
+    - `create(userId, dto)`: case-insensitive duplicate name check, generates unique slug, `prisma.brand.create`; `isActive` starts as `true`
+    - `findAll()`: soft-delete filtered, ordered by `name asc`
+    - `findById(id)`: delegates to `findActiveBrand(id)`
+    - `update(userId, id, dto)`: spread-guard partial update; duplicate name check (case-insensitive, excludes self); slug regenerated on name change
+    - `remove(userId, id)`: soft-delete guarded by active product count
+    - Private: `findActiveBrand`, `generateUniqueSlug` (with `excludeId`), `slugify`, `handlePrismaError`
+  - Added `BrandsController` at `catalog/brands` (class-level `SupabaseAuthGuard`):
+    - `POST /catalog/brands`, `GET /catalog/brands`, `GET /catalog/brands/:id`, `PATCH /catalog/brands/:id`, `DELETE /catalog/brands/:id`
+
+- Updated Root Module (`src/app.module.ts`):
+  - Added `CatalogModule` to the `imports` array
+
+---
+
 ## [August 8, 2026]
 
 ### Server — Session Management Endpoints (`UsersModule`)

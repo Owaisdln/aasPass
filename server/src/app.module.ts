@@ -10,6 +10,7 @@ import { SupabaseModule } from './infrastructure/supabase/supabase.module';
 import { AppController } from './app.controller';
 
 import { AuthModule } from './modules/auth/auth.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { StoresModule } from './modules/stores/stores.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -28,6 +29,7 @@ import { UsersModule } from './modules/users/users.module';
     AuthModule,
     UsersModule,
     StoresModule,
+    CatalogModule,
   ],
   controllers: [AppController],
 })
