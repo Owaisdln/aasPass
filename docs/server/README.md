@@ -19,7 +19,7 @@ This section documents the **actual, implemented** NestJS server application —
 | [Module — Authorization](./03-module-authorization.md) | RBAC: role/permission guards and decorators |
 | [Module — Users](./04-module-users.md) | User self-management: `GET /users/me`, `PATCH /users/me`, session management |
 | [Module — Stores](./05-module-stores.md) | Store owner self-management: core profile, hours, delivery settings, images |
-| [Module — Catalog](./06-module-catalog.md) | Product catalog master data: categories (hierarchical) and brands |
+| [Module — Catalog](./06-module-catalog.md) | Product catalog master data: categories (hierarchical), brands, units, master products, product images |
 
 ---
 
@@ -33,7 +33,7 @@ AppModule
   ├── AuthModule     (authentication — token verification, user sync)
   ├── UsersModule    (user self-management — profile, session management)
   ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
-  └── CatalogModule  (catalog master data — categories, brands)
+  └── CatalogModule  (catalog master data — categories, brands, units, master products, product images)
 ```
 
 `AuthorizationModule` is implemented and available as an importable module — feature modules import it as needed when they require RBAC guards.
@@ -72,6 +72,21 @@ AppModule
 | `GET` | `/catalog/brands/:id` | `SupabaseAuthGuard` | Returns a single brand by ID |
 | `PATCH` | `/catalog/brands/:id` | `SupabaseAuthGuard` | Partially updates a brand |
 | `DELETE` | `/catalog/brands/:id` | `SupabaseAuthGuard` | Soft-deletes a brand (guarded by product check) |
+| `POST` | `/catalog/units` | `SupabaseAuthGuard` | Creates a new unit of measure |
+| `GET` | `/catalog/units` | `SupabaseAuthGuard` | Lists all active units (ordered by name) |
+| `GET` | `/catalog/units/:id` | `SupabaseAuthGuard` | Returns a single unit by ID |
+| `PATCH` | `/catalog/units/:id` | `SupabaseAuthGuard` | Partially updates a unit |
+| `DELETE` | `/catalog/units/:id` | `SupabaseAuthGuard` | Soft-deletes a unit (guarded by product check) |
+| `POST` | `/catalog/master-products` | `SupabaseAuthGuard` | Creates a new master product (validates category, brand, unit FKs) |
+| `GET` | `/catalog/master-products` | `SupabaseAuthGuard` | Lists all active master products (ordered by name) |
+| `GET` | `/catalog/master-products/:id` | `SupabaseAuthGuard` | Returns a single master product by ID |
+| `PATCH` | `/catalog/master-products/:id` | `SupabaseAuthGuard` | Partially updates a master product |
+| `DELETE` | `/catalog/master-products/:id` | `SupabaseAuthGuard` | Soft-deletes a master product (guarded by store listing check) |
+| `POST` | `/catalog/product-images` | `SupabaseAuthGuard` | Adds an image record to a master product (PRIMARY auto-demotes existing primary) |
+| `GET` | `/catalog/product-images/product/:masterProductId` | `SupabaseAuthGuard` | Lists all images for a master product (primary first) |
+| `GET` | `/catalog/product-images/:id` | `SupabaseAuthGuard` | Returns a single product image by ID |
+| `PATCH` | `/catalog/product-images/:id` | `SupabaseAuthGuard` | Partially updates a product image |
+| `DELETE` | `/catalog/product-images/:id` | `SupabaseAuthGuard` | Hard-deletes a product image |
 
 ---
 

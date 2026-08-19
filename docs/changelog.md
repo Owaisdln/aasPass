@@ -6,6 +6,75 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 19, 2026]
+
+### Server — Catalog Module Expansion (Units, Master Products, Product Images)
+
+- Updated `CatalogModule` (`src/modules/catalog/catalog.module.ts`):
+  - Added three controllers: `UnitsController`, `MasterProductsController`, `ProductImagesController`
+  - Added six providers: `UnitsService`, `UnitMapper`, `MasterProductsService`, `MasterProductMapper`, `ProductImagesService`, `ProductImageMapper`
+
+- **Units sub-domain** (`src/modules/catalog/units/`):
+  - Added type alias `UnitEntity = Unit` (`types/unit.types.ts`)
+  - Added DTOs:
+    - `CreateUnitDto` — required: `name` (`@MaxLength(100)`), `symbol` (`@MaxLength(20)`); optional: `description`
+    - `UpdateUnitDto` — all optional; adds `isActive: boolean`; `description` accepts `null` to clear
+    - `UnitResponseDto` — `id`, `name`, `symbol`, `description`, `isActive`, timestamps
+  - Added `UnitMapper` (static class):
+    - `static toResponse(unit: Unit): UnitResponseDto` — direct field mapping
+  - Added `UnitsService`:
+    - `create(userId, dto)`: trims `name`/`symbol`; case-insensitive `OR` duplicate check on both fields in a single query; `isActive` starts as `true`
+    - `findAll()`: soft-delete filtered, ordered by `name asc`
+    - `findById(id)`: delegates to `findActiveUnit(id)`
+    - `update(userId, id, dto)`: trims and validates `name`/`symbol`; conditional `OR` duplicate check (excluding self) only when value actually changes (case-insensitive); spread-guard partial update
+    - `remove(userId, id)`: soft-delete guarded by active `MasterProduct` count on `unitId`
+    - Private: `findActiveUnit`, `handlePrismaError` (P2002 → `ConflictException`, P2025 → `NotFoundException`)
+  - Added `UnitsController` at `catalog/units` (class-level `SupabaseAuthGuard`):
+    - `POST /catalog/units`, `GET /catalog/units`, `GET /catalog/units/:id`, `PATCH /catalog/units/:id`, `DELETE /catalog/units/:id`
+
+- **Master Products sub-domain** (`src/modules/catalog/master-products/`):
+  - Added type alias `MasterProductEntity = MasterProduct` (`types/master-product.types.ts`)
+  - Added DTOs:
+    - `CreateMasterProductDto` — required: `categoryId`, `unitId`, `name`, `sku`, `gstRate` (0–100, 2 dp), `unitValue` (≥0, 2 dp); optional: `brandId`, `description`, `barcode`, `hsnCode`, `isVeg`, `isFeatured`
+    - `UpdateMasterProductDto` — all `CreateMasterProductDto` fields made optional; adds `status: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED'`; `brandId: null` disconnects the brand
+    - `MasterProductResponseDto` — `id`, `categoryId`, `brandId`, `unitId`, `name`, `slug`, `description`, `sku`, `barcode`, `hsnCode`, `gstRate` (string), `unitValue` (string), `isVeg`, `isFeatured`, `status`, timestamps
+    - `gstRate` and `unitValue` are Prisma `Decimal` fields serialised to `string` via `.toString()` to avoid floating-point loss
+  - Added `MasterProductMapper` (static class):
+    - `static toResponse(product: MasterProduct): MasterProductResponseDto` — maps all fields; converts `Decimal` → `string`
+  - Added `MasterProductsService`:
+    - `create(userId, dto)`: trims `name`, `sku`, `barcode`, `hsnCode`; `validateReferences(categoryId, brandId, unitId)` asserts all FK targets are active and non-deleted; `ensureSkuAvailable(sku)` (case-insensitive global uniqueness); `ensureBarcodeAvailable(barcode)` if provided; `generateUniqueSlug(name)`; `status` defaults to `ProductStatus.ACTIVE`; `isFeatured` defaults to `false`
+    - `findAll()`: soft-delete filtered, ordered by `name asc`
+    - `findById(id)`: delegates to `findActiveProduct(id)`
+    - `update(userId, id, dto)`: `validateReferences` only when any FK field is provided (uses existing values as fallback); slug regenerated only on name change; `ensureSkuAvailable`/`ensureBarcodeAvailable` called conditionally; brand uses `{ disconnect: true }` when `dto.brandId === null`; spread-guard partial update
+    - `remove(userId, id)`: soft-delete guarded by active `StoreProduct` count; sets `status = DISCONTINUED` on delete
+    - Private: `findActiveProduct`, `validateReferences` (checks category `isActive: true`, unit `isActive: true`, brand `isActive: true`), `ensureSkuAvailable(sku, excludeId?)`, `ensureBarcodeAvailable(barcode, excludeId?)`, `generateUniqueSlug(name, excludeId?)`, `slugify` (falls back to `'product'`), `handlePrismaError`
+  - Added `MasterProductsController` at `catalog/master-products` (class-level `SupabaseAuthGuard`):
+    - `POST /catalog/master-products`, `GET /catalog/master-products`, `GET /catalog/master-products/:id`, `PATCH /catalog/master-products/:id`, `DELETE /catalog/master-products/:id`
+
+- **Product Images sub-domain** (`src/modules/catalog/product-images/`):
+  - Added type alias `ProductImageEntity = ProductImage` (`types/product-image.types.ts`)
+  - Added DTOs:
+    - `CreateProductImageDto` — required: `masterProductId`, `objectKey` (`@MaxLength(500)`), `imageType` (`ProductImageType` enum: `PRIMARY` | `GALLERY`), `displayOrder` (`@IsInt`, `@Min(1)`)
+    - `UpdateProductImageDto` — all optional: `objectKey`, `imageType`, `displayOrder`; `masterProductId` is immutable
+    - `ProductImageResponseDto` — `id`, `masterProductId`, `objectKey`, `imageType`, `isPrimary`, `displayOrder`, timestamps
+  - Added `ProductImageMapper` (static class):
+    - `static toResponse(image: ProductImage): ProductImageResponseDto` — direct field mapping
+  - Added `ProductImagesService`:
+    - `create(userId, dto)`: trims `objectKey`; `ensureMasterProductExists(masterProductId)`; `isPrimary = imageType === PRIMARY`; runs `$transaction` — if primary, bulk-demotes existing primary images for the product to `GALLERY`/`isPrimary: false`, then creates new record
+    - `findByProduct(masterProductId)`: validates master product exists; returns images ordered by `isPrimary desc, displayOrder asc, createdAt asc`
+    - `findById(id)`: delegates to `findImage(id)`
+    - `update(userId, id, dto)`: resolves effective `imageType` (dto or existing); recalculates `isPrimary`; runs `$transaction` — if result is primary, demotes all other primary images before updating current record
+    - `remove(id)`: **hard-delete** (`prisma.productImage.delete`) — no soft-delete; no `updatedBy` recorded
+    - Private: `findImage` (by unique `id`, no `deletedAt` filter), `ensureMasterProductExists` (checks `deletedAt: null` on master product), `handlePrismaError` (P2025 → `NotFoundException`, P2003 → `ConflictException`)
+  - Added `ProductImagesController` at `catalog/product-images` (class-level `SupabaseAuthGuard`):
+    - `POST /catalog/product-images`
+    - `GET /catalog/product-images/product/:masterProductId`
+    - `GET /catalog/product-images/:id`
+    - `PATCH /catalog/product-images/:id`
+    - `DELETE /catalog/product-images/:id`
+
+---
+
 ## [August 13, 2026]
 
 ### Server — Stores Module (`StoresModule`) Implementation
