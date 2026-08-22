@@ -18,21 +18,21 @@ This module is **not** imported in `AppModule` globally. Instead, individual fea
 src/modules/authorization/
 ├── authorization.module.ts
 ├── constants/
-│   └── metadata.constants.ts
+│ └── metadata.constants.ts
 ├── decorators/
-│   ├── public.decorator.ts
-│   ├── roles.decorator.ts
-│   ├── permissions.decorator.ts
-│   └── any-permission.decorator.ts
+│ ├── public.decorator.ts
+│ ├── roles.decorator.ts
+│ ├── permissions.decorator.ts
+│ └── any-permission.decorator.ts
 ├── guards/
-│   ├── roles.guard.ts
-│   ├── permissions.guard.ts
-│   └── any-permission.guard.ts
+│ ├── roles.guard.ts
+│ ├── permissions.guard.ts
+│ └── any-permission.guard.ts
 ├── interfaces/
-│   └── permissions-provider.interface.ts
+│ └── permissions-provider.interface.ts
 ├── providers/
-│   └── prisma-permissions.provider.ts
-└── services/          (reserved — empty)
+│ └── prisma-permissions.provider.ts
+└── services/ (reserved — empty)
 ```
 
 ---
@@ -173,8 +173,8 @@ To protect a feature module's routes with RBAC:
 ```
 // In the feature module
 @Module({
-  imports: [AuthModule, AuthorizationModule],
-  ...
+ imports: [AuthModule, AuthorizationModule],
+ ...
 })
 export class StoreModule {}
 ```

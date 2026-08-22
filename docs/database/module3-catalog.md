@@ -1,8 +1,8 @@
 # Database — Module 3: Catalog & Inventory
 
-> [← Back to Index](../README.md)  
-> **Schema file:** [`server/prisma/modules/module3.catalog.prisma`](../../server/prisma/modules/module3.catalog.prisma)  
-> **Status:** ✅ Schema Complete (8 models)  
+> [← Back to Index](../README.md)
+> **Schema file:** [`server/prisma/modules/module3.catalog.prisma`](../../server/prisma/modules/module3.catalog.prisma)
+> **Status:** Schema Complete (8 models)
 > **Last Updated:** 2026-07-28
 
 ---
@@ -111,7 +111,7 @@ Hierarchical product category tree. A category may have a parent category, enabl
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([parentCategoryId])`, `@@index([slug])`, `@@index([isActive])`, `@@index([sortOrder])`  
+**Indexes:** `@@index([parentCategoryId])`, `@@index([slug])`, `@@index([isActive])`, `@@index([sortOrder])`
 **Relations:** `parentCategory → Category?` (via `CategoryHierarchy`), `subCategories → Category[]` (via `CategoryHierarchy`), `products → MasterProduct[]`
 
 > **Design Note:** On parent category delete, child categories receive `SetNull` on `parentCategoryId` — they become root categories rather than being deleted. This preserves the product hierarchy.
@@ -135,7 +135,7 @@ Platform-wide brand registry. Brands can be shared across all stores and product
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([slug])`, `@@index([isActive])`  
+**Indexes:** `@@index([slug])`, `@@index([isActive])`
 **Relations:** `products → MasterProduct[]`
 
 ---
@@ -157,7 +157,7 @@ Units of measurement. Unique `name` and `symbol` ensure no duplicate units.
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([isActive])`  
+**Indexes:** `@@index([isActive])`
 **Relations:** `products → MasterProduct[]`
 
 ---
@@ -190,8 +190,8 @@ Canonical, platform-wide product definition. Shared across all stores — stores
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([categoryId])`, `@@index([brandId])`, `@@index([unitId])`, `@@index([status])`, `@@index([isFeatured])`, `@@index([slug])`, `@@index([sku])`, `@@index([barcode])`  
-*(Planned)* `GIN` index on `searchVector` for full-text search  
+**Indexes:** `@@index([categoryId])`, `@@index([brandId])`, `@@index([unitId])`, `@@index([status])`, `@@index([isFeatured])`, `@@index([slug])`, `@@index([sku])`, `@@index([barcode])`
+*(Planned)* `GIN` index on `searchVector` for full-text search
 **Relations:** `category`, `brand?`, `unit`, `images → ProductImage[]`, `storeProducts → StoreProduct[]`
 
 > **Design Notes:**
@@ -244,8 +244,8 @@ Per-store product listing. References a `MasterProduct` and adds store-specific 
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Constraints:** `@@unique([storeId, masterProductId])`  
-**Indexes:** `@@index([storeId])`, `@@index([masterProductId])`, `@@index([availabilityStatus])`, `@@index([isFeatured])`, `@@index([storeId, availabilityStatus])`, `@@index([storeId, isFeatured])`  
+**Constraints:** `@@unique([storeId, masterProductId])`
+**Indexes:** `@@index([storeId])`, `@@index([masterProductId])`, `@@index([availabilityStatus])`, `@@index([isFeatured])`, `@@index([storeId, availabilityStatus])`, `@@index([storeId, isFeatured])`
 **Relations:** `store`, `masterProduct`, `inventory → Inventory?`, `cartItems → CartItem[]`, `wishlistItems → WishlistItem[]`, `orderItems → OrderItem[]` (via `OrderedProduct`), `replacementItems → OrderItemReplacement[]` (via `ReplacementProduct`)
 
 ---
@@ -306,79 +306,79 @@ Immutable, append-only ledger of every stock movement. No `updatedAt` — record
 
 ```mermaid
 erDiagram
-    Category {
-        uuid id PK
-        uuid parentCategoryId FK
-        string slug UK
-        bool isActive
-        int sortOrder
-    }
-    Brand {
-        uuid id PK
-        string slug UK
-        bool isActive
-    }
-    Unit {
-        uuid id PK
-        string name UK
-        string symbol UK
-        bool isActive
-    }
-    MasterProduct {
-        uuid id PK
-        uuid categoryId FK
-        uuid brandId FK
-        uuid unitId FK
-        string slug UK
-        string sku UK
-        string barcode UK
-        ProductStatus status
-        bool isFeatured
-        tsvector searchVector
-    }
-    ProductImage {
-        uuid id PK
-        uuid masterProductId FK
-        string objectKey
-        ProductImageType imageType
-        bool isPrimary
-        int displayOrder
-    }
-    StoreProduct {
-        uuid id PK
-        uuid storeId FK
-        uuid masterProductId FK
-        decimal mrp
-        decimal sellingPrice
-        AvailabilityStatus availabilityStatus
-        bool trackInventory
-    }
-    Inventory {
-        uuid id PK
-        uuid storeProductId FK_UK
-        int stockQuantity
-        int reservedQuantity
-        int lowStockThreshold
-        int reorderLevel
-        int version
-    }
-    InventoryTransaction {
-        uuid id PK
-        uuid inventoryId FK
-        InventoryTransactionType transactionType
-        int quantity
-        int balanceAfterTransaction
-        datetime createdAt
-    }
+ Category {
+ uuid id PK
+ uuid parentCategoryId FK
+ string slug UK
+ bool isActive
+ int sortOrder
+ }
+ Brand {
+ uuid id PK
+ string slug UK
+ bool isActive
+ }
+ Unit {
+ uuid id PK
+ string name UK
+ string symbol UK
+ bool isActive
+ }
+ MasterProduct {
+ uuid id PK
+ uuid categoryId FK
+ uuid brandId FK
+ uuid unitId FK
+ string slug UK
+ string sku UK
+ string barcode UK
+ ProductStatus status
+ bool isFeatured
+ tsvector searchVector
+ }
+ ProductImage {
+ uuid id PK
+ uuid masterProductId FK
+ string objectKey
+ ProductImageType imageType
+ bool isPrimary
+ int displayOrder
+ }
+ StoreProduct {
+ uuid id PK
+ uuid storeId FK
+ uuid masterProductId FK
+ decimal mrp
+ decimal sellingPrice
+ AvailabilityStatus availabilityStatus
+ bool trackInventory
+ }
+ Inventory {
+ uuid id PK
+ uuid storeProductId FK_UK
+ int stockQuantity
+ int reservedQuantity
+ int lowStockThreshold
+ int reorderLevel
+ int version
+ }
+ InventoryTransaction {
+ uuid id PK
+ uuid inventoryId FK
+ InventoryTransactionType transactionType
+ int quantity
+ int balanceAfterTransaction
+ datetime createdAt
+ }
 
-    Category ||--o{ Category : "parent of"
-    Category ||--o{ MasterProduct : "classifies"
-    Brand ||--o{ MasterProduct : "brands"
-    Unit ||--o{ MasterProduct : "measures"
-    MasterProduct ||--o{ ProductImage : "has"
-    MasterProduct ||--o{ StoreProduct : "listed as"
-    StoreProduct ||--o| Inventory : "has"
-    Inventory ||--o{ InventoryTransaction : "ledger"
+ Category ||--o{ Category : "parent of"
+ Category ||--o{ MasterProduct : "classifies"
+ Brand ||--o{ MasterProduct : "brands"
+ Unit ||--o{ MasterProduct : "measures"
+ MasterProduct ||--o{ ProductImage : "has"
+ MasterProduct ||--o{ StoreProduct : "listed as"
+ StoreProduct ||--o| Inventory : "has"
+ Inventory ||--o{ InventoryTransaction : "ledger"
 ```
 
 ---

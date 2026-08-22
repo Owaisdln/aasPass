@@ -13,102 +13,102 @@ All notable changes to this project are documented here.
 #### Catalog Module — Store Products Sub-Domain
 
 - Updated `CatalogModule` (`src/modules/catalog/catalog.module.ts`):
-  - Added `StoreProductsController` to controllers
-  - Added `StoreProductsService`, `StoreProductMapper` to providers
+ - Added `StoreProductsController` to controllers
+ - Added `StoreProductsService`, `StoreProductMapper` to providers
 
 - **Store Products sub-domain** (`src/modules/catalog/store-products/`):
-  - Added type alias `StoreProductEntity = StoreProduct` (`types/store-product.types.ts`)
-  - Added DTOs:
-    - `CreateStoreProductDto` — required: `masterProductId` (UUID), `mrp` (number, ≥0, 2dp), `sellingPrice` (number, ≥0, 2dp); optional: `availabilityStatus` (defaults to `AVAILABLE`), `trackInventory` (defaults to `true`), `isFeatured` (defaults to `false`), `displayOrder` (defaults to `0`)
-    - `UpdateStoreProductDto` — all optional: `mrp`, `sellingPrice`, `availabilityStatus`, `trackInventory`, `isFeatured`, `displayOrder`; pricing merged with existing values before validation
-    - `StoreProductResponseDto` — `id`, `storeId`, `masterProductId`, `mrp` (string), `sellingPrice` (string), `availabilityStatus`, `trackInventory`, `isFeatured`, `displayOrder`, timestamps; `mrp`/`sellingPrice` serialised from Prisma `Decimal` via `.toString()`
-  - Added `StoreProductMapper` (static class):
-    - `static toResponse(storeProduct: StoreProduct): StoreProductResponseDto` — direct mapping; Decimal → string for `mrp`/`sellingPrice`
-  - Added `StoreProductsService`:
-    - `create(userId, dto)`: `resolveOwnStore` → `ensureMasterProductExists` → `ensureStoreProductDoesNotExist` (distinguishes active vs previously-soft-deleted records with distinct error messages) → `validatePricing(mrp, sellingPrice)` (rejects `sellingPrice > mrp`) → `prisma.storeProduct.create`
-    - `findMine(userId)`: all non-deleted listings, ordered `displayOrder asc, createdAt desc`
-    - `findMineById(userId, id)`: store-scoped lookup
-    - `update(userId, id, dto)`: merges effective `mrp`/`sellingPrice` before `validatePricing`; spread-guard update
-    - `remove(userId, id)`: soft-delete with `deletedAt`, `isFeatured = false`, `availabilityStatus = HIDDEN`
-    - Private: `resolveOwnStore`, `ensureMasterProductExists`, `ensureStoreProductDoesNotExist`, `findStoreProduct`, `validatePricing`, `handlePrismaError` (P2002/P2025/P2003)
-  - Added `StoreProductsController` at `catalog/store-products` (class-level `SupabaseAuthGuard`):
-    - `POST /catalog/store-products/me`, `GET /catalog/store-products/me`, `GET /catalog/store-products/me/:id`, `PATCH /catalog/store-products/me/:id`, `DELETE /catalog/store-products/me/:id`
+ - Added type alias `StoreProductEntity = StoreProduct` (`types/store-product.types.ts`)
+ - Added DTOs:
+ - `CreateStoreProductDto` — required: `masterProductId` (UUID), `mrp` (number, ≥0, 2dp), `sellingPrice` (number, ≥0, 2dp); optional: `availabilityStatus` (defaults to `AVAILABLE`), `trackInventory` (defaults to `true`), `isFeatured` (defaults to `false`), `displayOrder` (defaults to `0`)
+ - `UpdateStoreProductDto` — all optional: `mrp`, `sellingPrice`, `availabilityStatus`, `trackInventory`, `isFeatured`, `displayOrder`; pricing merged with existing values before validation
+ - `StoreProductResponseDto` — `id`, `storeId`, `masterProductId`, `mrp` (string), `sellingPrice` (string), `availabilityStatus`, `trackInventory`, `isFeatured`, `displayOrder`, timestamps; `mrp`/`sellingPrice` serialised from Prisma `Decimal` via `.toString()`
+ - Added `StoreProductMapper` (static class):
+ - `static toResponse(storeProduct: StoreProduct): StoreProductResponseDto` — direct mapping; Decimal → string for `mrp`/`sellingPrice`
+ - Added `StoreProductsService`:
+ - `create(userId, dto)`: `resolveOwnStore` → `ensureMasterProductExists` → `ensureStoreProductDoesNotExist` (distinguishes active vs previously-soft-deleted records with distinct error messages) → `validatePricing(mrp, sellingPrice)` (rejects `sellingPrice > mrp`) → `prisma.storeProduct.create`
+ - `findMine(userId)`: all non-deleted listings, ordered `displayOrder asc, createdAt desc`
+ - `findMineById(userId, id)`: store-scoped lookup
+ - `update(userId, id, dto)`: merges effective `mrp`/`sellingPrice` before `validatePricing`; spread-guard update
+ - `remove(userId, id)`: soft-delete with `deletedAt`, `isFeatured = false`, `availabilityStatus = HIDDEN`
+ - Private: `resolveOwnStore`, `ensureMasterProductExists`, `ensureStoreProductDoesNotExist`, `findStoreProduct`, `validatePricing`, `handlePrismaError` (P2002/P2025/P2003)
+ - Added `StoreProductsController` at `catalog/store-products` (class-level `SupabaseAuthGuard`):
+ - `POST /catalog/store-products/me`, `GET /catalog/store-products/me`, `GET /catalog/store-products/me/:id`, `PATCH /catalog/store-products/me/:id`, `DELETE /catalog/store-products/me/:id`
 
 ---
 
 #### Server — Inventory Module (`InventoryModule`) Implementation
 
 - Created `InventoryModule` (`src/modules/inventory/inventory.module.ts`) importing `PrismaModule` and `AuthModule`:
-  - Registered `InventoryController`, `InventoryService`, `InventoryMapper`; exports `InventoryService`
+ - Registered `InventoryController`, `InventoryService`, `InventoryMapper`; exports `InventoryService`
 
 - Added Prisma type utilities (`src/modules/inventory/types/inventory.types.ts`):
-  - `INVENTORY_WITH_TRANSACTIONS_INCLUDE`: includes `transactions` ordered by `createdAt desc`
-  - `InventoryWithTransactions`: derived `Prisma.InventoryGetPayload` type
+ - `INVENTORY_WITH_TRANSACTIONS_INCLUDE`: includes `transactions` ordered by `createdAt desc`
+ - `InventoryWithTransactions`: derived `Prisma.InventoryGetPayload` type
 
 - Added DTOs:
-  - `CreateInventoryDto` — required: `storeProductId` (UUID); optional: `stockQuantity`, `reservedQuantity`, `lowStockThreshold` (default 10), `reorderLevel` (default 20)
-  - `UpdateInventoryDto` — optional: `lowStockThreshold`, `reorderLevel` only (stock levels are write-protected; use `/adjust`)
-  - `AdjustInventoryDto` — required: `transactionType` (`InventoryTransactionType`), `quantity` (int ≥1), `expectedVersion` (OCC token); optional: `referenceType`, `referenceId`, `source`, `notes`
-  - `InventoryResponseDto` — `id`, `storeProductId`, `stockQuantity`, `reservedQuantity`, `lowStockThreshold`, `reorderLevel`, `version`, `lastStockUpdate`, timestamps
-  - `InventoryTransactionResponseDto` — `id`, `inventoryId`, `transactionType`, `quantity`, `balanceAfterTransaction`, `referenceType`, `referenceId`, `source`, `notes`, `createdBy`, `createdAt` (append-only, no `updatedAt`)
+ - `CreateInventoryDto` — required: `storeProductId` (UUID); optional: `stockQuantity`, `reservedQuantity`, `lowStockThreshold` (default 10), `reorderLevel` (default 20)
+ - `UpdateInventoryDto` — optional: `lowStockThreshold`, `reorderLevel` only (stock levels are write-protected; use `/adjust`)
+ - `AdjustInventoryDto` — required: `transactionType` (`InventoryTransactionType`), `quantity` (int ≥1), `expectedVersion` (OCC token); optional: `referenceType`, `referenceId`, `source`, `notes`
+ - `InventoryResponseDto` — `id`, `storeProductId`, `stockQuantity`, `reservedQuantity`, `lowStockThreshold`, `reorderLevel`, `version`, `lastStockUpdate`, timestamps
+ - `InventoryTransactionResponseDto` — `id`, `inventoryId`, `transactionType`, `quantity`, `balanceAfterTransaction`, `referenceType`, `referenceId`, `source`, `notes`, `createdBy`, `createdAt` (append-only, no `updatedAt`)
 
 - Added `InventoryMapper` (static class):
-  - `static toResponse(inventory: Inventory): InventoryResponseDto`
-  - `static toTransactionResponse(transaction: InventoryTransaction): InventoryTransactionResponseDto`
+ - `static toResponse(inventory: Inventory): InventoryResponseDto`
+ - `static toTransactionResponse(transaction: InventoryTransaction): InventoryTransactionResponseDto`
 
 - Added `InventoryService`:
-  - `create(userId, dto)`: validates store ownership via nested `store: { ownerId }` filter; checks `trackInventory = true`; checks no existing inventory; validates `reservedQuantity ≤ stockQuantity` and `reorderLevel ≥ lowStockThreshold`; `$transaction` creates `Inventory` (`version: 0`) + initial `RESTOCK` ledger entry if `stockQuantity > 0`
-  - `findAll(userId)`: all inventory records scoped by store ownership, `createdAt desc`
-  - `findOne(userId, inventoryId)`: single record scoped by ownership
-  - `update(userId, inventoryId, dto)`: updates `lowStockThreshold`/`reorderLevel` with merged validation; increments `version`
-  - `adjustStock(userId, inventoryId, dto)`: double OCC — application-level version check + in-DB `updateMany` with version filter; derives signed delta from `transactionType` (`PURCHASE`/`RESTOCK`/`RETURN` = +qty, `SALE`/`DAMAGE`/`EXPIRED` = -qty); validates `newStockQuantity ≥ 0` and `≥ reservedQuantity`; `$transaction` writes `updateMany` + `InventoryTransaction` + re-fetches
-  - `getTransactions(userId, inventoryId)`: ownership check then full ledger `createdAt desc`
-  - Private: `findOwnedInventory` (nested store scope), `getQuantityDelta` (`ADJUSTMENT` throws)
+ - `create(userId, dto)`: validates store ownership via nested `store: { ownerId }` filter; checks `trackInventory = true`; checks no existing inventory; validates `reservedQuantity ≤ stockQuantity` and `reorderLevel ≥ lowStockThreshold`; `$transaction` creates `Inventory` (`version: 0`) + initial `RESTOCK` ledger entry if `stockQuantity > 0`
+ - `findAll(userId)`: all inventory records scoped by store ownership, `createdAt desc`
+ - `findOne(userId, inventoryId)`: single record scoped by ownership
+ - `update(userId, inventoryId, dto)`: updates `lowStockThreshold`/`reorderLevel` with merged validation; increments `version`
+ - `adjustStock(userId, inventoryId, dto)`: double OCC — application-level version check + in-DB `updateMany` with version filter; derives signed delta from `transactionType` (`PURCHASE`/`RESTOCK`/`RETURN` = +qty, `SALE`/`DAMAGE`/`EXPIRED` = -qty); validates `newStockQuantity ≥ 0` and `≥ reservedQuantity`; `$transaction` writes `updateMany` + `InventoryTransaction` + re-fetches
+ - `getTransactions(userId, inventoryId)`: ownership check then full ledger `createdAt desc`
+ - Private: `findOwnedInventory` (nested store scope), `getQuantityDelta` (`ADJUSTMENT` throws)
 
 - Added `InventoryController` at `inventory/me` (class-level `SupabaseAuthGuard`):
-  - `POST /inventory/me`, `GET /inventory/me`, `GET /inventory/me/:id`, `PATCH /inventory/me/:id`, `POST /inventory/me/:id/adjust`, `GET /inventory/me/:id/transactions`
+ - `POST /inventory/me`, `GET /inventory/me`, `GET /inventory/me/:id`, `PATCH /inventory/me/:id`, `POST /inventory/me/:id/adjust`, `GET /inventory/me/:id/transactions`
 
 - Updated `AppModule` (`src/app.module.ts`):
-  - Added `InventoryModule` to the `imports` array
+ - Added `InventoryModule` to the `imports` array
 
 ---
 
 #### Server — Wishlist Module (`WishlistModule`) Implementation
 
 - Created `WishlistModule` (`src/modules/wishlist/wishlist.module.ts`) importing `PrismaModule` and `AuthModule`:
-  - Registered `WishlistController`, `WishlistService`, `WishlistMapper`; exports `WishlistService`
-  - Module is fully implemented and TypeScript-clean; **not yet added to `AppModule` imports** — routes inactive
+ - Registered `WishlistController`, `WishlistService`, `WishlistMapper`; exports `WishlistService`
+ - Module is fully implemented and TypeScript-clean; **not yet added to `AppModule` imports** — routes inactive
 
 - Added Prisma type utilities (`src/modules/wishlist/types/wishlist.types.ts`):
-  - `WISHLIST_WITH_ITEMS_INCLUDE`: includes `items` ordered by `createdAt desc`
-  - `WishlistWithItems`: derived `Prisma.WishlistGetPayload` type
+ - `WISHLIST_WITH_ITEMS_INCLUDE`: includes `items` ordered by `createdAt desc`
+ - `WishlistWithItems`: derived `Prisma.WishlistGetPayload` type
 
 - Added DTOs:
-  - `CreateWishlistDto` — required: `name` (1–100 chars); optional: `isDefault`
-  - `UpdateWishlistDto` — required: `name` (1–100 chars); name only
-  - `AddWishlistItemDto` — required: `storeProductId` (UUID)
-  - `WishlistItemResponseDto` — `id`, `wishlistId`, `storeProductId`, `createdBy`, `createdAt` (append-only)
-  - `WishlistResponseDto` — `id`, `userId`, `name`, `isDefault`, timestamps, `items: WishlistItemResponseDto[]`
+ - `CreateWishlistDto` — required: `name` (1–100 chars); optional: `isDefault`
+ - `UpdateWishlistDto` — required: `name` (1–100 chars); name only
+ - `AddWishlistItemDto` — required: `storeProductId` (UUID)
+ - `WishlistItemResponseDto` — `id`, `wishlistId`, `storeProductId`, `createdBy`, `createdAt` (append-only)
+ - `WishlistResponseDto` — `id`, `userId`, `name`, `isDefault`, timestamps, `items: WishlistItemResponseDto[]`
 
 - Added `WishlistMapper` (static class):
-  - `static toItemResponse(item: WishlistItem): WishlistItemResponseDto`
-  - `static toResponse(wishlist: WishlistWithItems): WishlistResponseDto` — maps with full items array
-  - `static toBasicResponse(wishlist: Wishlist): WishlistResponseDto` — maps without join (`items: []`)
+ - `static toItemResponse(item: WishlistItem): WishlistItemResponseDto`
+ - `static toResponse(wishlist: WishlistWithItems): WishlistResponseDto` — maps with full items array
+ - `static toBasicResponse(wishlist: Wishlist): WishlistResponseDto` — maps without join (`items: []`)
 
 - Added `WishlistService`:
-  - `create(userId, dto)`: trims name; `$transaction` — if `isDefault: true`, demotes all existing defaults; creates wishlist; P2002 → conflict
-  - `findAll(userId)`: non-deleted, ordered `isDefault desc, createdAt asc`
-  - `findOne(userId, wishlistId)`: delegates to `findOwnedWishlist`
-  - `update(userId, wishlistId, dto)`: name-only update; P2002 guard
-  - `setDefault(userId, wishlistId)`: `$transaction` — demotes all existing defaults, sets target as default
-  - `remove(userId, wishlistId)`: guards default (`ConflictException('The default wishlist cannot be deleted')`); soft-delete
-  - `addItem(userId, wishlistId, dto)`: validates `storeProduct` (not deleted, not DISCONTINUED, store ACTIVE, masterProduct ACTIVE); `prisma.wishlistItem.create`; P2002 guard
-  - `removeItem(userId, wishlistId, itemId)`: ownership check → hard-delete single item
-  - `clear(userId, wishlistId)`: ownership check → `wishlistItem.deleteMany` (hard-delete all items)
-  - Private: `findOwnedWishlist` (userId + `deletedAt: null` + `WISHLIST_WITH_ITEMS_INCLUDE`)
+ - `create(userId, dto)`: trims name; `$transaction` — if `isDefault: true`, demotes all existing defaults; creates wishlist; P2002 → conflict
+ - `findAll(userId)`: non-deleted, ordered `isDefault desc, createdAt asc`
+ - `findOne(userId, wishlistId)`: delegates to `findOwnedWishlist`
+ - `update(userId, wishlistId, dto)`: name-only update; P2002 guard
+ - `setDefault(userId, wishlistId)`: `$transaction` — demotes all existing defaults, sets target as default
+ - `remove(userId, wishlistId)`: guards default (`ConflictException('The default wishlist cannot be deleted')`); soft-delete
+ - `addItem(userId, wishlistId, dto)`: validates `storeProduct` (not deleted, not DISCONTINUED, store ACTIVE, masterProduct ACTIVE); `prisma.wishlistItem.create`; P2002 guard
+ - `removeItem(userId, wishlistId, itemId)`: ownership check → hard-delete single item
+ - `clear(userId, wishlistId)`: ownership check → `wishlistItem.deleteMany` (hard-delete all items)
+ - Private: `findOwnedWishlist` (userId + `deletedAt: null` + `WISHLIST_WITH_ITEMS_INCLUDE`)
 
 - Added `WishlistController` at `wishlists` (class-level `SupabaseAuthGuard`):
-  - `POST /wishlists`, `GET /wishlists`, `GET /wishlists/:id`, `PATCH /wishlists/:id`, `PATCH /wishlists/:id/default`, `DELETE /wishlists/:id`, `POST /wishlists/:id/items`, `DELETE /wishlists/:id/items/:itemId`, `DELETE /wishlists/:id/items`
+ - `POST /wishlists`, `GET /wishlists`, `GET /wishlists/:id`, `PATCH /wishlists/:id`, `PATCH /wishlists/:id/default`, `DELETE /wishlists/:id`, `POST /wishlists/:id/items`, `DELETE /wishlists/:id/items/:itemId`, `DELETE /wishlists/:id/items`
 
 ---
 
@@ -117,67 +117,67 @@ All notable changes to this project are documented here.
 ### Server — Catalog Module Expansion (Units, Master Products, Product Images)
 
 - Updated `CatalogModule` (`src/modules/catalog/catalog.module.ts`):
-  - Added three controllers: `UnitsController`, `MasterProductsController`, `ProductImagesController`
-  - Added six providers: `UnitsService`, `UnitMapper`, `MasterProductsService`, `MasterProductMapper`, `ProductImagesService`, `ProductImageMapper`
+ - Added three controllers: `UnitsController`, `MasterProductsController`, `ProductImagesController`
+ - Added six providers: `UnitsService`, `UnitMapper`, `MasterProductsService`, `MasterProductMapper`, `ProductImagesService`, `ProductImageMapper`
 
 - **Units sub-domain** (`src/modules/catalog/units/`):
-  - Added type alias `UnitEntity = Unit` (`types/unit.types.ts`)
-  - Added DTOs:
-    - `CreateUnitDto` — required: `name` (`@MaxLength(100)`), `symbol` (`@MaxLength(20)`); optional: `description`
-    - `UpdateUnitDto` — all optional; adds `isActive: boolean`; `description` accepts `null` to clear
-    - `UnitResponseDto` — `id`, `name`, `symbol`, `description`, `isActive`, timestamps
-  - Added `UnitMapper` (static class):
-    - `static toResponse(unit: Unit): UnitResponseDto` — direct field mapping
-  - Added `UnitsService`:
-    - `create(userId, dto)`: trims `name`/`symbol`; case-insensitive `OR` duplicate check on both fields in a single query; `isActive` starts as `true`
-    - `findAll()`: soft-delete filtered, ordered by `name asc`
-    - `findById(id)`: delegates to `findActiveUnit(id)`
-    - `update(userId, id, dto)`: trims and validates `name`/`symbol`; conditional `OR` duplicate check (excluding self) only when value actually changes (case-insensitive); spread-guard partial update
-    - `remove(userId, id)`: soft-delete guarded by active `MasterProduct` count on `unitId`
-    - Private: `findActiveUnit`, `handlePrismaError` (P2002 → `ConflictException`, P2025 → `NotFoundException`)
-  - Added `UnitsController` at `catalog/units` (class-level `SupabaseAuthGuard`):
-    - `POST /catalog/units`, `GET /catalog/units`, `GET /catalog/units/:id`, `PATCH /catalog/units/:id`, `DELETE /catalog/units/:id`
+ - Added type alias `UnitEntity = Unit` (`types/unit.types.ts`)
+ - Added DTOs:
+ - `CreateUnitDto` — required: `name` (`@MaxLength(100)`), `symbol` (`@MaxLength(20)`); optional: `description`
+ - `UpdateUnitDto` — all optional; adds `isActive: boolean`; `description` accepts `null` to clear
+ - `UnitResponseDto` — `id`, `name`, `symbol`, `description`, `isActive`, timestamps
+ - Added `UnitMapper` (static class):
+ - `static toResponse(unit: Unit): UnitResponseDto` — direct field mapping
+ - Added `UnitsService`:
+ - `create(userId, dto)`: trims `name`/`symbol`; case-insensitive `OR` duplicate check on both fields in a single query; `isActive` starts as `true`
+ - `findAll()`: soft-delete filtered, ordered by `name asc`
+ - `findById(id)`: delegates to `findActiveUnit(id)`
+ - `update(userId, id, dto)`: trims and validates `name`/`symbol`; conditional `OR` duplicate check (excluding self) only when value actually changes (case-insensitive); spread-guard partial update
+ - `remove(userId, id)`: soft-delete guarded by active `MasterProduct` count on `unitId`
+ - Private: `findActiveUnit`, `handlePrismaError` (P2002 → `ConflictException`, P2025 → `NotFoundException`)
+ - Added `UnitsController` at `catalog/units` (class-level `SupabaseAuthGuard`):
+ - `POST /catalog/units`, `GET /catalog/units`, `GET /catalog/units/:id`, `PATCH /catalog/units/:id`, `DELETE /catalog/units/:id`
 
 - **Master Products sub-domain** (`src/modules/catalog/master-products/`):
-  - Added type alias `MasterProductEntity = MasterProduct` (`types/master-product.types.ts`)
-  - Added DTOs:
-    - `CreateMasterProductDto` — required: `categoryId`, `unitId`, `name`, `sku`, `gstRate` (0–100, 2 dp), `unitValue` (≥0, 2 dp); optional: `brandId`, `description`, `barcode`, `hsnCode`, `isVeg`, `isFeatured`
-    - `UpdateMasterProductDto` — all `CreateMasterProductDto` fields made optional; adds `status: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED'`; `brandId: null` disconnects the brand
-    - `MasterProductResponseDto` — `id`, `categoryId`, `brandId`, `unitId`, `name`, `slug`, `description`, `sku`, `barcode`, `hsnCode`, `gstRate` (string), `unitValue` (string), `isVeg`, `isFeatured`, `status`, timestamps
-    - `gstRate` and `unitValue` are Prisma `Decimal` fields serialised to `string` via `.toString()` to avoid floating-point loss
-  - Added `MasterProductMapper` (static class):
-    - `static toResponse(product: MasterProduct): MasterProductResponseDto` — maps all fields; converts `Decimal` → `string`
-  - Added `MasterProductsService`:
-    - `create(userId, dto)`: trims `name`, `sku`, `barcode`, `hsnCode`; `validateReferences(categoryId, brandId, unitId)` asserts all FK targets are active and non-deleted; `ensureSkuAvailable(sku)` (case-insensitive global uniqueness); `ensureBarcodeAvailable(barcode)` if provided; `generateUniqueSlug(name)`; `status` defaults to `ProductStatus.ACTIVE`; `isFeatured` defaults to `false`
-    - `findAll()`: soft-delete filtered, ordered by `name asc`
-    - `findById(id)`: delegates to `findActiveProduct(id)`
-    - `update(userId, id, dto)`: `validateReferences` only when any FK field is provided (uses existing values as fallback); slug regenerated only on name change; `ensureSkuAvailable`/`ensureBarcodeAvailable` called conditionally; brand uses `{ disconnect: true }` when `dto.brandId === null`; spread-guard partial update
-    - `remove(userId, id)`: soft-delete guarded by active `StoreProduct` count; sets `status = DISCONTINUED` on delete
-    - Private: `findActiveProduct`, `validateReferences` (checks category `isActive: true`, unit `isActive: true`, brand `isActive: true`), `ensureSkuAvailable(sku, excludeId?)`, `ensureBarcodeAvailable(barcode, excludeId?)`, `generateUniqueSlug(name, excludeId?)`, `slugify` (falls back to `'product'`), `handlePrismaError`
-  - Added `MasterProductsController` at `catalog/master-products` (class-level `SupabaseAuthGuard`):
-    - `POST /catalog/master-products`, `GET /catalog/master-products`, `GET /catalog/master-products/:id`, `PATCH /catalog/master-products/:id`, `DELETE /catalog/master-products/:id`
+ - Added type alias `MasterProductEntity = MasterProduct` (`types/master-product.types.ts`)
+ - Added DTOs:
+ - `CreateMasterProductDto` — required: `categoryId`, `unitId`, `name`, `sku`, `gstRate` (0–100, 2 dp), `unitValue` (≥0, 2 dp); optional: `brandId`, `description`, `barcode`, `hsnCode`, `isVeg`, `isFeatured`
+ - `UpdateMasterProductDto` — all `CreateMasterProductDto` fields made optional; adds `status: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED'`; `brandId: null` disconnects the brand
+ - `MasterProductResponseDto` — `id`, `categoryId`, `brandId`, `unitId`, `name`, `slug`, `description`, `sku`, `barcode`, `hsnCode`, `gstRate` (string), `unitValue` (string), `isVeg`, `isFeatured`, `status`, timestamps
+ - `gstRate` and `unitValue` are Prisma `Decimal` fields serialised to `string` via `.toString()` to avoid floating-point loss
+ - Added `MasterProductMapper` (static class):
+ - `static toResponse(product: MasterProduct): MasterProductResponseDto` — maps all fields; converts `Decimal` → `string`
+ - Added `MasterProductsService`:
+ - `create(userId, dto)`: trims `name`, `sku`, `barcode`, `hsnCode`; `validateReferences(categoryId, brandId, unitId)` asserts all FK targets are active and non-deleted; `ensureSkuAvailable(sku)` (case-insensitive global uniqueness); `ensureBarcodeAvailable(barcode)` if provided; `generateUniqueSlug(name)`; `status` defaults to `ProductStatus.ACTIVE`; `isFeatured` defaults to `false`
+ - `findAll()`: soft-delete filtered, ordered by `name asc`
+ - `findById(id)`: delegates to `findActiveProduct(id)`
+ - `update(userId, id, dto)`: `validateReferences` only when any FK field is provided (uses existing values as fallback); slug regenerated only on name change; `ensureSkuAvailable`/`ensureBarcodeAvailable` called conditionally; brand uses `{ disconnect: true }` when `dto.brandId === null`; spread-guard partial update
+ - `remove(userId, id)`: soft-delete guarded by active `StoreProduct` count; sets `status = DISCONTINUED` on delete
+ - Private: `findActiveProduct`, `validateReferences` (checks category `isActive: true`, unit `isActive: true`, brand `isActive: true`), `ensureSkuAvailable(sku, excludeId?)`, `ensureBarcodeAvailable(barcode, excludeId?)`, `generateUniqueSlug(name, excludeId?)`, `slugify` (falls back to `'product'`), `handlePrismaError`
+ - Added `MasterProductsController` at `catalog/master-products` (class-level `SupabaseAuthGuard`):
+ - `POST /catalog/master-products`, `GET /catalog/master-products`, `GET /catalog/master-products/:id`, `PATCH /catalog/master-products/:id`, `DELETE /catalog/master-products/:id`
 
 - **Product Images sub-domain** (`src/modules/catalog/product-images/`):
-  - Added type alias `ProductImageEntity = ProductImage` (`types/product-image.types.ts`)
-  - Added DTOs:
-    - `CreateProductImageDto` — required: `masterProductId`, `objectKey` (`@MaxLength(500)`), `imageType` (`ProductImageType` enum: `PRIMARY` | `GALLERY`), `displayOrder` (`@IsInt`, `@Min(1)`)
-    - `UpdateProductImageDto` — all optional: `objectKey`, `imageType`, `displayOrder`; `masterProductId` is immutable
-    - `ProductImageResponseDto` — `id`, `masterProductId`, `objectKey`, `imageType`, `isPrimary`, `displayOrder`, timestamps
-  - Added `ProductImageMapper` (static class):
-    - `static toResponse(image: ProductImage): ProductImageResponseDto` — direct field mapping
-  - Added `ProductImagesService`:
-    - `create(userId, dto)`: trims `objectKey`; `ensureMasterProductExists(masterProductId)`; `isPrimary = imageType === PRIMARY`; runs `$transaction` — if primary, bulk-demotes existing primary images for the product to `GALLERY`/`isPrimary: false`, then creates new record
-    - `findByProduct(masterProductId)`: validates master product exists; returns images ordered by `isPrimary desc, displayOrder asc, createdAt asc`
-    - `findById(id)`: delegates to `findImage(id)`
-    - `update(userId, id, dto)`: resolves effective `imageType` (dto or existing); recalculates `isPrimary`; runs `$transaction` — if result is primary, demotes all other primary images before updating current record
-    - `remove(id)`: **hard-delete** (`prisma.productImage.delete`) — no soft-delete; no `updatedBy` recorded
-    - Private: `findImage` (by unique `id`, no `deletedAt` filter), `ensureMasterProductExists` (checks `deletedAt: null` on master product), `handlePrismaError` (P2025 → `NotFoundException`, P2003 → `ConflictException`)
-  - Added `ProductImagesController` at `catalog/product-images` (class-level `SupabaseAuthGuard`):
-    - `POST /catalog/product-images`
-    - `GET /catalog/product-images/product/:masterProductId`
-    - `GET /catalog/product-images/:id`
-    - `PATCH /catalog/product-images/:id`
-    - `DELETE /catalog/product-images/:id`
+ - Added type alias `ProductImageEntity = ProductImage` (`types/product-image.types.ts`)
+ - Added DTOs:
+ - `CreateProductImageDto` — required: `masterProductId`, `objectKey` (`@MaxLength(500)`), `imageType` (`ProductImageType` enum: `PRIMARY` | `GALLERY`), `displayOrder` (`@IsInt`, `@Min(1)`)
+ - `UpdateProductImageDto` — all optional: `objectKey`, `imageType`, `displayOrder`; `masterProductId` is immutable
+ - `ProductImageResponseDto` — `id`, `masterProductId`, `objectKey`, `imageType`, `isPrimary`, `displayOrder`, timestamps
+ - Added `ProductImageMapper` (static class):
+ - `static toResponse(image: ProductImage): ProductImageResponseDto` — direct field mapping
+ - Added `ProductImagesService`:
+ - `create(userId, dto)`: trims `objectKey`; `ensureMasterProductExists(masterProductId)`; `isPrimary = imageType === PRIMARY`; runs `$transaction` — if primary, bulk-demotes existing primary images for the product to `GALLERY`/`isPrimary: false`, then creates new record
+ - `findByProduct(masterProductId)`: validates master product exists; returns images ordered by `isPrimary desc, displayOrder asc, createdAt asc`
+ - `findById(id)`: delegates to `findImage(id)`
+ - `update(userId, id, dto)`: resolves effective `imageType` (dto or existing); recalculates `isPrimary`; runs `$transaction` — if result is primary, demotes all other primary images before updating current record
+ - `remove(id)`: **hard-delete** (`prisma.productImage.delete`) — no soft-delete; no `updatedBy` recorded
+ - Private: `findImage` (by unique `id`, no `deletedAt` filter), `ensureMasterProductExists` (checks `deletedAt: null` on master product), `handlePrismaError` (P2025 → `NotFoundException`, P2003 → `ConflictException`)
+ - Added `ProductImagesController` at `catalog/product-images` (class-level `SupabaseAuthGuard`):
+ - `POST /catalog/product-images`
+ - `GET /catalog/product-images/product/:masterProductId`
+ - `GET /catalog/product-images/:id`
+ - `PATCH /catalog/product-images/:id`
+ - `DELETE /catalog/product-images/:id`
 
 ---
 
@@ -186,106 +186,106 @@ All notable changes to this project are documented here.
 ### Server — Stores Module (`StoresModule`) Implementation
 
 - Created `StoresModule` (`src/modules/stores/stores.module.ts`) importing `PrismaModule` and `AuthModule`:
-  - Registered four controllers: `StoresController`, `StoreHoursController`, `StoreDeliverySettingsController`, `StoreImagesController`
-  - Registered five providers: `StoresService`, `StoreHoursService`, `StoreDeliverySettingsService`, `StoreImagesService`, `StoreMapper`
+ - Registered four controllers: `StoresController`, `StoreHoursController`, `StoreDeliverySettingsController`, `StoreImagesController`
+ - Registered five providers: `StoresService`, `StoreHoursService`, `StoreDeliverySettingsService`, `StoreImagesService`, `StoreMapper`
 
 - Added Prisma type utilities (`src/modules/stores/types/store.types.ts`):
-  - `STORE_WITH_RELATIONS_INCLUDE`: Typed `Prisma.StoreInclude` constant including `images`, `hours`, and `deliverySetting`
-  - `StoreWithRelations`: Derived `Prisma.StoreGetPayload` type with all three relations included
+ - `STORE_WITH_RELATIONS_INCLUDE`: Typed `Prisma.StoreInclude` constant including `images`, `hours`, and `deliverySetting`
+ - `StoreWithRelations`: Derived `Prisma.StoreGetPayload` type with all three relations included
 
 - Added Data Transfer Objects:
-  - `CreateStoreDto` — required: `name`, `phone`, `addressLine1`, `city`, `state`, `country`, `pincode`, `latitude`, `longitude`; optional: `description`, `email`, `gstNumber`, `businessRegistrationNumber`, `addressLine2`, `timezone`
-  - `UpdateStoreDto` — all `CreateStoreDto` fields made optional, plus `logoKey` and `bannerKey`
-  - `StoreResponseDto` — full store shape including `slug`, `status`, `verificationStatus`, `isOpen`, `logoKey`, `bannerKey`
-  - `StoreHourResponseDto` — `id`, `weekDay`, `openingTime`, `closingTime`, `isClosed`, timestamps
-  - `StoreHourInputDto` — per-day input with `weekDay`, optional `openingTime`/`closingTime` (HH:mm regex), `isClosed`
-  - `UpdateStoreHoursDto` — wraps `hours: StoreHourInputDto[]` with `@ArrayMinSize(1)` and nested validation
-  - `StoreDeliverySettingsResponseDto` — delivery flags, numeric thresholds (`Decimal` → `number`)
-  - `UpdateStoreDeliverySettingsDto` — all optional: delivery/pickup flags, `minimumOrderAmount`, `deliveryRadiusKm`, `deliveryCharge`, `freeDeliveryAbove`, `estimatedDeliveryTime`
-  - `CreateStoreImageDto` — required `objectKey`, optional `displayOrder` (auto-assigned if omitted)
-  - `UpdateStoreImageOrderDto` — required `displayOrder` integer
-  - `StoreImageResponseDto` — `id`, `objectKey`, `displayOrder`, timestamps
+ - `CreateStoreDto` — required: `name`, `phone`, `addressLine1`, `city`, `state`, `country`, `pincode`, `latitude`, `longitude`; optional: `description`, `email`, `gstNumber`, `businessRegistrationNumber`, `addressLine2`, `timezone`
+ - `UpdateStoreDto` — all `CreateStoreDto` fields made optional, plus `logoKey` and `bannerKey`
+ - `StoreResponseDto` — full store shape including `slug`, `status`, `verificationStatus`, `isOpen`, `logoKey`, `bannerKey`
+ - `StoreHourResponseDto` — `id`, `weekDay`, `openingTime`, `closingTime`, `isClosed`, timestamps
+ - `StoreHourInputDto` — per-day input with `weekDay`, optional `openingTime`/`closingTime` (HH:mm regex), `isClosed`
+ - `UpdateStoreHoursDto` — wraps `hours: StoreHourInputDto[]` with `@ArrayMinSize(1)` and nested validation
+ - `StoreDeliverySettingsResponseDto` — delivery flags, numeric thresholds (`Decimal` → `number`)
+ - `UpdateStoreDeliverySettingsDto` — all optional: delivery/pickup flags, `minimumOrderAmount`, `deliveryRadiusKm`, `deliveryCharge`, `freeDeliveryAbove`, `estimatedDeliveryTime`
+ - `CreateStoreImageDto` — required `objectKey`, optional `displayOrder` (auto-assigned if omitted)
+ - `UpdateStoreImageOrderDto` — required `displayOrder` integer
+ - `StoreImageResponseDto` — `id`, `objectKey`, `displayOrder`, timestamps
 
 - Added `StoreMapper` (`src/modules/stores/mappers/store.mapper.ts`):
-  - `toResponse(store: StoreWithRelations): StoreResponseDto` — maps entity to DTO; converts Prisma `Decimal` `latitude`/`longitude` to JS `number`
+ - `toResponse(store: StoreWithRelations): StoreResponseDto` — maps entity to DTO; converts Prisma `Decimal` `latitude`/`longitude` to JS `number`
 
 - Added `StoresService` (`src/modules/stores/services/stores.service.ts`):
-  - `createStore(userId, dto)`: Enforces one-store-per-user (`ConflictException`), generates unique URL slug, creates store with `STORE_WITH_RELATIONS_INCLUDE`
-  - `getMyStore(userId)`: Resolves and returns current user's store via `resolveOwnStore`
-  - `updateStore(userId, dto)`: Partial update using spread-guard pattern (`dto.field !== undefined`) — only provided fields are written
-  - `resolveOwnStore(userId)` (private): Shared lookup by `ownerId`; throws `NotFoundException` if absent
-  - `generateUniqueSlug(name)` (private): Collision-safe slug with `-N` suffix loop
-  - `slugify(value)` (private): Normalises string to URL-safe slug; falls back to `'store'`
+ - `createStore(userId, dto)`: Enforces one-store-per-user (`ConflictException`), generates unique URL slug, creates store with `STORE_WITH_RELATIONS_INCLUDE`
+ - `getMyStore(userId)`: Resolves and returns current user's store via `resolveOwnStore`
+ - `updateStore(userId, dto)`: Partial update using spread-guard pattern (`dto.field !== undefined`) — only provided fields are written
+ - `resolveOwnStore(userId)` (private): Shared lookup by `ownerId`; throws `NotFoundException` if absent
+ - `generateUniqueSlug(name)` (private): Collision-safe slug with `-N` suffix loop
+ - `slugify(value)` (private): Normalises string to URL-safe slug; falls back to `'store'`
 
 - Added `StoreHoursService` (`src/modules/stores/services/hours/store-hours.service.ts`):
-  - `getMyHours(userId)`: Returns all `StoreHour` records ordered by `weekDay asc`
-  - `updateMyHours(userId, dto)`: Validates input, then runs transactional bulk-upsert on composite key `(storeId, weekDay)`; returns refreshed schedule
-  - `validateHours(hours)` (private): Rejects duplicate `weekDay` entries or non-closed days missing times
-  - `timeToDate(time)` (private): Converts `HH:mm` to `Date(1970, 0, 1, HH, mm)` for DB storage
+ - `getMyHours(userId)`: Returns all `StoreHour` records ordered by `weekDay asc`
+ - `updateMyHours(userId, dto)`: Validates input, then runs transactional bulk-upsert on composite key `(storeId, weekDay)`; returns refreshed schedule
+ - `validateHours(hours)` (private): Rejects duplicate `weekDay` entries or non-closed days missing times
+ - `timeToDate(time)` (private): Converts `HH:mm` to `Date(1970, 0, 1, HH, mm)` for DB storage
 
 - Added `StoreDeliverySettingsService` (`src/modules/stores/services/delivery-settings/store-delivery-settings.service.ts`):
-  - `getMyDeliverySettings(userId)`: Fetches settings; throws `NotFoundException` if store or settings absent
-  - `updateMyDeliverySettings(userId, dto)`: `upsert` with field-guard — handles first-time creation and subsequent updates in one call
-  - `toResponse(settings)` (private): Converts all `Decimal` fields to `number`; preserves `null` for `freeDeliveryAbove`
+ - `getMyDeliverySettings(userId)`: Fetches settings; throws `NotFoundException` if store or settings absent
+ - `updateMyDeliverySettings(userId, dto)`: `upsert` with field-guard — handles first-time creation and subsequent updates in one call
+ - `toResponse(settings)` (private): Converts all `Decimal` fields to `number`; preserves `null` for `freeDeliveryAbove`
 
 - Added `StoreImagesService` (`src/modules/stores/services/images/store-images.service.ts`):
-  - `getMyImages(userId)`: Returns images ordered by `displayOrder asc, createdAt asc`
-  - `addImage(userId, dto)`: Auto-assigns `displayOrder` when omitted via `getNextDisplayOrder`
-  - `updateImageOrder(userId, imageId, dto)`: Ownership-scoped update; rejects `displayOrder` collisions with `BadRequestException`
-  - `deleteImage(userId, imageId)`: Ownership-scoped hard delete
+ - `getMyImages(userId)`: Returns images ordered by `displayOrder asc, createdAt asc`
+ - `addImage(userId, dto)`: Auto-assigns `displayOrder` when omitted via `getNextDisplayOrder`
+ - `updateImageOrder(userId, imageId, dto)`: Ownership-scoped update; rejects `displayOrder` collisions with `BadRequestException`
+ - `deleteImage(userId, imageId)`: Ownership-scoped hard delete
 
 - Added Controllers (all class-level `@UseGuards(SupabaseAuthGuard)`):
-  - `StoresController` (`POST /stores`, `GET /stores/me`, `PATCH /stores/me`)
-  - `StoreHoursController` (`GET /stores/me/hours`, `PUT /stores/me/hours`)
-  - `StoreDeliverySettingsController` (`GET /stores/me/delivery-settings`, `PATCH /stores/me/delivery-settings`)
-  - `StoreImagesController` (`GET /stores/me/images`, `POST /stores/me/images`, `PATCH /stores/me/images/:imageId/order`, `DELETE /stores/me/images/:imageId`)
+ - `StoresController` (`POST /stores`, `GET /stores/me`, `PATCH /stores/me`)
+ - `StoreHoursController` (`GET /stores/me/hours`, `PUT /stores/me/hours`)
+ - `StoreDeliverySettingsController` (`GET /stores/me/delivery-settings`, `PATCH /stores/me/delivery-settings`)
+ - `StoreImagesController` (`GET /stores/me/images`, `POST /stores/me/images`, `PATCH /stores/me/images/:imageId/order`, `DELETE /stores/me/images/:imageId`)
 
 - Updated Root Module (`src/app.module.ts`):
-  - Added `StoresModule` to the `imports` array
+ - Added `StoresModule` to the `imports` array
 
 ---
 
 ### Server — Catalog Module (`CatalogModule`) Implementation
 
 - Created `CatalogModule` (`src/modules/catalog/catalog.module.ts`) importing `PrismaModule` and `AuthModule`:
-  - Registered two controllers: `CategoriesController`, `BrandsController`
-  - Registered four providers: `CategoriesService`, `CategoryMapper`, `BrandsService`, `BrandMapper`
+ - Registered two controllers: `CategoriesController`, `BrandsController`
+ - Registered four providers: `CategoriesService`, `CategoryMapper`, `BrandsService`, `BrandMapper`
 
 - **Categories sub-domain** (`src/modules/catalog/categories/`):
-  - Added Prisma type utilities (`types/category.types.ts`):
-    - `CATEGORY_WITH_PARENT_INCLUDE`: includes `parentCategory` relation
-    - `CategoryWithParent`: derived `Prisma.CategoryGetPayload` type
-  - Added DTOs: `CreateCategoryDto`, `UpdateCategoryDto`, `CategoryResponseDto`
-  - Added `CategoryMapper` (`@Injectable()`):
-    - `toResponseDto(category: CategoryWithParent)` — maps with relation
-    - `toResponseDtoWithoutRelation(category)` — maps flat entity without join
-  - Added `CategoriesService`:
-    - `create(userId, dto)`: trims name, generates unique slug, validates parent exists, `prisma.category.create`
-    - `findAll()`: soft-delete filtered, ordered by `sortOrder asc, name asc`
-    - `findById(id)`: soft-delete filtered
-    - `update(userId, id, dto)`: spread-guard partial update; slug regenerated only on name change; parent changes validated for self-reference and circular ancestry
-    - `remove(userId, id)`: soft-delete guarded by active subcategory and active product checks
-    - Private: `findCategoryRecord`, `assertParentCategoryExists`, `validateParentChange` (circular ancestry walk), `generateUniqueSlug` (with `excludeCategoryId`), `slugify` (NFKD normalise), `handlePrismaError`
-  - Added `CategoriesController` at `catalog/categories` (class-level `SupabaseAuthGuard`):
-    - `POST /catalog/categories`, `GET /catalog/categories`, `GET /catalog/categories/:id`, `PATCH /catalog/categories/:id`, `DELETE /catalog/categories/:id`
+ - Added Prisma type utilities (`types/category.types.ts`):
+ - `CATEGORY_WITH_PARENT_INCLUDE`: includes `parentCategory` relation
+ - `CategoryWithParent`: derived `Prisma.CategoryGetPayload` type
+ - Added DTOs: `CreateCategoryDto`, `UpdateCategoryDto`, `CategoryResponseDto`
+ - Added `CategoryMapper` (`@Injectable()`):
+ - `toResponseDto(category: CategoryWithParent)` — maps with relation
+ - `toResponseDtoWithoutRelation(category)` — maps flat entity without join
+ - Added `CategoriesService`:
+ - `create(userId, dto)`: trims name, generates unique slug, validates parent exists, `prisma.category.create`
+ - `findAll()`: soft-delete filtered, ordered by `sortOrder asc, name asc`
+ - `findById(id)`: soft-delete filtered
+ - `update(userId, id, dto)`: spread-guard partial update; slug regenerated only on name change; parent changes validated for self-reference and circular ancestry
+ - `remove(userId, id)`: soft-delete guarded by active subcategory and active product checks
+ - Private: `findCategoryRecord`, `assertParentCategoryExists`, `validateParentChange` (circular ancestry walk), `generateUniqueSlug` (with `excludeCategoryId`), `slugify` (NFKD normalise), `handlePrismaError`
+ - Added `CategoriesController` at `catalog/categories` (class-level `SupabaseAuthGuard`):
+ - `POST /catalog/categories`, `GET /catalog/categories`, `GET /catalog/categories/:id`, `PATCH /catalog/categories/:id`, `DELETE /catalog/categories/:id`
 
 - **Brands sub-domain** (`src/modules/catalog/brands/`):
-  - Added type alias `BrandEntity = Brand` (`types/brand.types.ts`)
-  - Added DTOs: `CreateBrandDto`, `UpdateBrandDto`, `BrandResponseDto`
-  - Added `BrandMapper` (static class, not `@Injectable()`):
-    - `static toResponse(brand: Brand): BrandResponseDto` — direct field mapping
-  - Added `BrandsService`:
-    - `create(userId, dto)`: case-insensitive duplicate name check, generates unique slug, `prisma.brand.create`; `isActive` starts as `true`
-    - `findAll()`: soft-delete filtered, ordered by `name asc`
-    - `findById(id)`: delegates to `findActiveBrand(id)`
-    - `update(userId, id, dto)`: spread-guard partial update; duplicate name check (case-insensitive, excludes self); slug regenerated on name change
-    - `remove(userId, id)`: soft-delete guarded by active product count
-    - Private: `findActiveBrand`, `generateUniqueSlug` (with `excludeId`), `slugify`, `handlePrismaError`
-  - Added `BrandsController` at `catalog/brands` (class-level `SupabaseAuthGuard`):
-    - `POST /catalog/brands`, `GET /catalog/brands`, `GET /catalog/brands/:id`, `PATCH /catalog/brands/:id`, `DELETE /catalog/brands/:id`
+ - Added type alias `BrandEntity = Brand` (`types/brand.types.ts`)
+ - Added DTOs: `CreateBrandDto`, `UpdateBrandDto`, `BrandResponseDto`
+ - Added `BrandMapper` (static class, not `@Injectable()`):
+ - `static toResponse(brand: Brand): BrandResponseDto` — direct field mapping
+ - Added `BrandsService`:
+ - `create(userId, dto)`: case-insensitive duplicate name check, generates unique slug, `prisma.brand.create`; `isActive` starts as `true`
+ - `findAll()`: soft-delete filtered, ordered by `name asc`
+ - `findById(id)`: delegates to `findActiveBrand(id)`
+ - `update(userId, id, dto)`: spread-guard partial update; duplicate name check (case-insensitive, excludes self); slug regenerated on name change
+ - `remove(userId, id)`: soft-delete guarded by active product count
+ - Private: `findActiveBrand`, `generateUniqueSlug` (with `excludeId`), `slugify`, `handlePrismaError`
+ - Added `BrandsController` at `catalog/brands` (class-level `SupabaseAuthGuard`):
+ - `POST /catalog/brands`, `GET /catalog/brands`, `GET /catalog/brands/:id`, `PATCH /catalog/brands/:id`, `DELETE /catalog/brands/:id`
 
 - Updated Root Module (`src/app.module.ts`):
-  - Added `CatalogModule` to the `imports` array
+ - Added `CatalogModule` to the `imports` array
 
 ---
 
@@ -294,29 +294,29 @@ All notable changes to this project are documented here.
 ### Server — Session Management Endpoints (`UsersModule`)
 
 - Extended `UsersModule` (`src/modules/users/users.module.ts`):
-  - Added `UserSessionMapper` to the `providers` array
+ - Added `UserSessionMapper` to the `providers` array
 
 - Added `UserSessionResponseDto` (`src/modules/users/dto/user-session-response.dto.ts`):
-  - Response shape for session list — `id`, `deviceType`, `browser`, `os`, `lastActivityAt`, `createdAt`, `revokedAt`
-  - `browser` and `os` are derived from the raw `userAgent` string via `BrowserParser`
+ - Response shape for session list — `id`, `deviceType`, `browser`, `os`, `lastActivityAt`, `createdAt`, `revokedAt`
+ - `browser` and `os` are derived from the raw `userAgent` string via `BrowserParser`
 
 - Added `UserSessionMapper` (`src/modules/users/mappers/user-session.mapper.ts`):
-  - `toResponse(session: UserSession): UserSessionResponseDto` — parses `userAgent` via `BrowserParser`, maps all fields
-  - `toResponseList(sessions: UserSession[]): UserSessionResponseDto[]` — convenience bulk mapper
+ - `toResponse(session: UserSession): UserSessionResponseDto` — parses `userAgent` via `BrowserParser`, maps all fields
+ - `toResponseList(sessions: UserSession[]): UserSessionResponseDto[]` — convenience bulk mapper
 
 - Added `BrowserParser` (`src/common/parsers/browser.parser.ts`):
-  - Static utility class using the `bowser` library
-  - `BrowserParser.parse(userAgent: string | null): ParsedBrowser` — returns `{ browser, os }` or `{ browser: null, os: null }` for null/missing agents
+ - Static utility class using the `bowser` library
+ - `BrowserParser.parse(userAgent: string | null): ParsedBrowser` — returns `{ browser, os }` or `{ browser: null, os: null }` for null/missing agents
 
 - Extended `UsersService` (`src/modules/users/services/users.service.ts`) with session operations:
-  - `getMySessions(userId)`: Fetches all `UserSession` records for the user ordered by `lastActivityAt desc`; maps via `UserSessionMapper.toResponseList()`
-  - `revokeSession(userId, sessionId)`: Scoped lookup (`findFirst({ id, userId })`); throws `NotFoundException` if not found; idempotent — no-op if already revoked; marks `revokedAt` + `revocationReason: LOGOUT`
-  - `revokeAllSessions(userId)`: Bulk `updateMany` on sessions where `revokedAt: null`; sets `revokedAt` + `revocationReason: LOGOUT`
+ - `getMySessions(userId)`: Fetches all `UserSession` records for the user ordered by `lastActivityAt desc`; maps via `UserSessionMapper.toResponseList()`
+ - `revokeSession(userId, sessionId)`: Scoped lookup (`findFirst({ id, userId })`); throws `NotFoundException` if not found; idempotent — no-op if already revoked; marks `revokedAt` + `revocationReason: LOGOUT`
+ - `revokeAllSessions(userId)`: Bulk `updateMany` on sessions where `revokedAt: null`; sets `revokedAt` + `revocationReason: LOGOUT`
 
 - Extended `UsersController` (`src/modules/users/controllers/users.controller.ts`) with three new routes (all under class-level `SupabaseAuthGuard`):
-  - `GET /users/me/sessions` → `UsersService.getMySessions(currentUser.id)` → `UserSessionResponseDto[]`
-  - `DELETE /users/me/sessions/:sessionId` → `UsersService.revokeSession(currentUser.id, sessionId)` → `void`
-  - `DELETE /users/me/sessions` → `UsersService.revokeAllSessions(currentUser.id)` → `void`
+ - `GET /users/me/sessions` → `UsersService.getMySessions(currentUser.id)` → `UserSessionResponseDto[]`
+ - `DELETE /users/me/sessions/:sessionId` → `UsersService.revokeSession(currentUser.id, sessionId)` → `void`
+ - `DELETE /users/me/sessions` → `UsersService.revokeAllSessions(currentUser.id)` → `void`
 
 ---
 
@@ -325,31 +325,31 @@ All notable changes to this project are documented here.
 ### Server — Users Module (`UsersModule`) Implementation
 
 - Created `UsersModule` (`src/modules/users/users.module.ts`) importing `PrismaModule` and `AuthModule`:
-  - Registered `UsersController`, `UsersService`, and `UserMapper` as providers
+ - Registered `UsersController`, `UsersService`, and `UserMapper` as providers
 
 - Added Prisma type utilities (`src/modules/users/types/user.types.ts`):
-  - `USER_WITH_ROLE_INCLUDE`: Typed `Prisma.UserInclude` constant (`satisfies` keyword) for queries requiring the role relation
-  - `UserWithRole`: Derived `Prisma.UserGetPayload` type representing a user with their `Role` relation included
+ - `USER_WITH_ROLE_INCLUDE`: Typed `Prisma.UserInclude` constant (`satisfies` keyword) for queries requiring the role relation
+ - `UserWithRole`: Derived `Prisma.UserGetPayload` type representing a user with their `Role` relation included
 
 - Added Data Transfer Objects (`src/modules/users/dto/`):
-  - `UserResponseDto`: Response shape — `id`, `firstName`, `lastName`, `email`, `phone`, `role` (code string), `status`, `emailVerifiedAt`, `phoneVerifiedAt`, `lastSeenAt`, `createdAt`, `updatedAt`
-  - `UpdateUserDto`: Request body — optional `firstName` and `lastName` fields with `class-validator` constraints (`@MinLength(2)`, `@MaxLength(100)`)
+ - `UserResponseDto`: Response shape — `id`, `firstName`, `lastName`, `email`, `phone`, `role` (code string), `status`, `emailVerifiedAt`, `phoneVerifiedAt`, `lastSeenAt`, `createdAt`, `updatedAt`
+ - `UpdateUserDto`: Request body — optional `firstName` and `lastName` fields with `class-validator` constraints (`@MinLength(2)`, `@MaxLength(100)`)
 
 - Added `UserMapper` (`src/modules/users/mappers/user.mapper.ts`):
-  - `toResponse(user: UserWithRole): UserResponseDto` — maps Prisma entity to response DTO; resolves `user.role.code` for the `role` field
+ - `toResponse(user: UserWithRole): UserResponseDto` — maps Prisma entity to response DTO; resolves `user.role.code` for the `role` field
 
 - Added `UsersService` (`src/modules/users/services/users.service.ts`):
-  - `getMe(userId)`: Loads and returns current user profile via `findUserById` + `userMapper.toResponse()`
-  - `updateProfile(userId, dto)`: Validates user exists, then runs `prisma.user.update` with partial name fields; returns updated DTO
-  - `findUserById(userId)` (private): Shared Prisma lookup with `USER_WITH_ROLE_INCLUDE`; throws `NotFoundException` if not found
+ - `getMe(userId)`: Loads and returns current user profile via `findUserById` + `userMapper.toResponse()`
+ - `updateProfile(userId, dto)`: Validates user exists, then runs `prisma.user.update` with partial name fields; returns updated DTO
+ - `findUserById(userId)` (private): Shared Prisma lookup with `USER_WITH_ROLE_INCLUDE`; throws `NotFoundException` if not found
 
 - Added `UsersController` (`src/modules/users/controllers/users.controller.ts`):
-  - Class-level `@UseGuards(SupabaseAuthGuard)` — all routes require authentication
-  - `GET /users/me` → `UsersService.getMe(currentUser.id)`
-  - `PATCH /users/me` → `UsersService.updateProfile(currentUser.id, dto)` — accepts `UpdateUserDto` body
+ - Class-level `@UseGuards(SupabaseAuthGuard)` — all routes require authentication
+ - `GET /users/me` → `UsersService.getMe(currentUser.id)`
+ - `PATCH /users/me` → `UsersService.updateProfile(currentUser.id, dto)` — accepts `UpdateUserDto` body
 
 - Updated Root Module (`src/app.module.ts`):
-  - Added `UsersModule` to the `imports` array
+ - Added `UsersModule` to the `imports` array
 
 ---
 
@@ -358,21 +358,21 @@ All notable changes to this project are documented here.
 ### Server — Authorization Module (`AuthorizationModule`) Implementation
 - Created `AuthorizationModule` (`src/modules/authorization/authorization.module.ts`) providing comprehensive Role-Based Access Control (RBAC) and permission-based authorization:
 - Added Metadata Constants (`src/modules/authorization/constants/metadata.constants.ts`):
-  - Defined `AUTHORIZATION_METADATA`: `PUBLIC`, `ROLES`, `PERMISSIONS`, `ANY_PERMISSIONS`
+ - Defined `AUTHORIZATION_METADATA`: `PUBLIC`, `ROLES`, `PERMISSIONS`, `ANY_PERMISSIONS`
 - Added Custom Method & Class Decorators (`src/modules/authorization/decorators/`):
-  - `@Public()`: Marks route or controller as public (bypasses authorization requirement)
-  - `@Roles(...roles)`: Attaches required role codes to handler/class metadata
-  - `@Permissions(...permissions)`: Attaches required permission codes (all required - AND condition)
-  - `@AnyPermission(...permissions)`: Attaches required permission codes (at least one required - OR condition)
+ - `@Public()`: Marks route or controller as public (bypasses authorization requirement)
+ - `@Roles(...roles)`: Attaches required role codes to handler/class metadata
+ - `@Permissions(...permissions)`: Attaches required permission codes (all required - AND condition)
+ - `@AnyPermission(...permissions)`: Attaches required permission codes (at least one required - OR condition)
 - Added NestJS Guards (`src/modules/authorization/guards/`):
-  - `RolesGuard`: Evaluates `@Roles()` metadata against `CurrentUser.hasRole(role)`
-  - `PermissionsGuard`: Evaluates `@Permissions()` metadata against `CurrentUser.hasPermission(permission)` (must match all)
-  - `AnyPermissionGuard`: Evaluates `@AnyPermission()` metadata against `CurrentUser.hasPermission(permission)` (must match at least one)
+ - `RolesGuard`: Evaluates `@Roles()` metadata against `CurrentUser.hasRole(role)`
+ - `PermissionsGuard`: Evaluates `@Permissions()` metadata against `CurrentUser.hasPermission(permission)` (must match all)
+ - `AnyPermissionGuard`: Evaluates `@AnyPermission()` metadata against `CurrentUser.hasPermission(permission)` (must match at least one)
 - Added Abstract & Concrete Permissions Providers (`src/modules/authorization/`):
-  - `PermissionsProvider` abstract interface class (`interfaces/permissions-provider.interface.ts`)
-  - `PrismaPermissionsProvider` (`providers/prisma-permissions.provider.ts`) implementing database queries to fetch permission codes for any given role ID via `PrismaService`
+ - `PermissionsProvider` abstract interface class (`interfaces/permissions-provider.interface.ts`)
+ - `PrismaPermissionsProvider` (`providers/prisma-permissions.provider.ts`) implementing database queries to fetch permission codes for any given role ID via `PrismaService`
 - Updated Root Module (`src/app.module.ts`):
-  - Registered `AuthModule` and `AuthorizationModule` in `imports` array
+ - Registered `AuthModule` and `AuthorizationModule` in `imports` array
 
 ---
 
@@ -380,38 +380,38 @@ All notable changes to this project are documented here.
 
 ### Server — NestJS Clean Architecture & Infrastructure Reorganization
 - Reorganized `server/src` directory structure into clean modular architecture:
-  - `src/infrastructure/prisma/` — `PrismaModule` and `PrismaService`
-  - `src/infrastructure/supabase/` — `SupabaseModule`, `SupabaseService`, and `supabase.service.spec.ts`
-  - `src/common/identity/` — Shared identity models (`CurrentUser`)
-  - `src/modules/auth/` — Authentication feature module
+ - `src/infrastructure/prisma/` — `PrismaModule` and `PrismaService`
+ - `src/infrastructure/supabase/` — `SupabaseModule`, `SupabaseService`, and `supabase.service.spec.ts`
+ - `src/common/identity/` — Shared identity models (`CurrentUser`)
+ - `src/modules/auth/` — Authentication feature module
 
 ### Server — Root Health Endpoint & App Controller
-- Created `AppController` (`src/app.controller.ts`) exposing `GET /` health endpoint returning `{ success: true, message: 'aasPass Backend is running successfully 🚀' }`
+- Created `AppController` (`src/app.controller.ts`) exposing `GET /` health endpoint returning `{ success: true, message: 'aasPass Backend is running successfully ' }`
 - Registered `AppController` in `AppModule` (`src/app.module.ts`)
 
 ### Server — Supabase Client Extensions
 - Extended `SupabaseService` (`src/infrastructure/supabase/supabase.service.ts`):
-  - Added `verifyAccessToken(accessToken: string)`: Validates Supabase JWT access token via `anonClient.auth.getUser(accessToken)`
-  - Added `getUserById(userId: string)`: Retrieves Supabase auth user by UUID via `adminClient.auth.admin.getUserById(userId)`
+ - Added `verifyAccessToken(accessToken: string)`: Validates Supabase JWT access token via `anonClient.auth.getUser(accessToken)`
+ - Added `getUserById(userId: string)`: Retrieves Supabase auth user by UUID via `adminClient.auth.admin.getUserById(userId)`
 
 ### Server — Common Identity Domain Model
 - Created `CurrentUser` model (`src/common/identity/current-user.model.ts`):
-  - Represents logged-in user context across the application: `id`, `email`, `phone`, `roleId`, `roleCode`, `permissions`, `status`
-  - Helper methods: `hasRole(role)`, `hasPermission(permission)`, `isActive()`, `isBlocked()`
+ - Represents logged-in user context across the application: `id`, `email`, `phone`, `roleId`, `roleCode`, `permissions`, `status`
+ - Helper methods: `hasRole(role)`, `hasPermission(permission)`, `isActive()`, `isBlocked()`
 
 ### Server — Authentication Guard & Auth Module Implementation
 - Created `AuthModule` (`src/modules/auth/auth.module.ts`) importing `PrismaModule` and `SupabaseModule`
 - Created `AuthService` (`src/modules/auth/services/auth.service.ts`):
-  - Validates Supabase access tokens using `SupabaseService.verifyAccessToken()`
-  - Loads application user from PostgreSQL via `PrismaService` with RBAC relations (`role.rolePermissions.permission`)
-  - Auto-provisions new users on first login (`syncUser()`) assigning default `CUSTOMER` role
-  - Rejects blocked users (`UserStatus.BLOCKED`) with `UnauthorizedException`
+ - Validates Supabase access tokens using `SupabaseService.verifyAccessToken()`
+ - Loads application user from PostgreSQL via `PrismaService` with RBAC relations (`role.rolePermissions.permission`)
+ - Auto-provisions new users on first login (`syncUser()`) assigning default `CUSTOMER` role
+ - Rejects blocked users (`UserStatus.BLOCKED`) with `UnauthorizedException`
 - Created `SupabaseAuthGuard` (`src/modules/auth/guards/supabase-auth.guard.ts`):
-  - Intercepts requests, extracts `Bearer <token>` from HTTP `Authorization` header
-  - Authenticates via `AuthService` and attaches `CurrentUser` instance to `request.user`
+ - Intercepts requests, extracts `Bearer <token>` from HTTP `Authorization` header
+ - Authenticates via `AuthService` and attaches `CurrentUser` instance to `request.user`
 - Created `@AuthenticatedUser()` custom param decorator (`src/modules/auth/decorators/authenticated-user.decorator.ts`)
 - Created `AuthController` (`src/modules/auth/controllers/auth.controller.ts`):
-  - Exposes `GET /auth/me` endpoint protected by `SupabaseAuthGuard` returning authenticated user profile and permissions
+ - Exposes `GET /auth/me` endpoint protected by `SupabaseAuthGuard` returning authenticated user profile and permissions
 
 ---
 
@@ -420,19 +420,19 @@ All notable changes to this project are documented here.
 ### Documentation — LLD Created (v0.1)
 - Created `docs/LLD/lld-v0.1.md` (Low Level Design, v0.1 Draft)
 - Documents the actual implementation of all 6 modules:
-  - Infrastructure layer: env validation (Zod), config namespaces, bootstrap flow
-  - Prisma 7 adapter architecture (`PrismaPg` + `pg.Pool`)
-  - Supabase dual-client setup (`anon` + `admin`)
-  - Per-module design decisions, data models, and cross-module relationships
-  - Order placement flow and inventory adjustment flow diagrams
+ - Infrastructure layer: env validation (Zod), config namespaces, bootstrap flow
+ - Prisma 7 adapter architecture (`PrismaPg` + `pg.Pool`)
+ - Supabase dual-client setup (`anon` + `admin`)
+ - Per-module design decisions, data models, and cross-module relationships
+ - Order placement flow and inventory adjustment flow diagrams
 
 ### Documentation — Data Dictionary Created (v0.1)
 - Created `docs/data-dictionary/data-dictionary-v0.1.md` (v0.1 Draft)
 - Consolidated single document covering all 6 modules:
-  - **26 enums** with PostgreSQL type names and all values
-  - **33 tables** with full column definitions (DB type, constraints, defaults, descriptions)
-  - All **indexes** per table (name, columns, type, purpose)
-  - Summary counts table
+ - **26 enums** with PostgreSQL type names and all values
+ - **33 tables** with full column definitions (DB type, constraints, defaults, descriptions)
+ - All **indexes** per table (name, columns, type, purpose)
+ - Summary counts table
 
 ### Documentation — Module Database Docs Rewritten
 All 6 module docs under `docs/database/` rewritten to match the current schema:
@@ -519,9 +519,9 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 - Added `@supabase/supabase-js` and `@supabase/ssr`
 - Created `SupabaseModule` (`src/infrastructure/supabase/supabase.module.ts`) — Global NestJS module
 - Created `SupabaseService` (`src/infrastructure/supabase/supabase.service.ts`):
-  - Initializes two clients at startup: `anon` (user-context requests) and `admin` (service role for privileged operations)
-  - Both configured with `autoRefreshToken: false` and `persistSession: false` (server-side)
-  - `admin` client uses `SUPABASE_SERVICE_ROLE_KEY`; `anon` client uses `SUPABASE_ANON_KEY`
+ - Initializes two clients at startup: `anon` (user-context requests) and `admin` (service role for privileged operations)
+ - Both configured with `autoRefreshToken: false` and `persistSession: false` (server-side)
+ - `admin` client uses `SUPABASE_SERVICE_ROLE_KEY`; `anon` client uses `SUPABASE_ANON_KEY`
 
 ---
 
@@ -531,10 +531,10 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 - Diagnosed root cause of `PrismaClientInitializationError`: `PrismaClient` in Prisma v7 no longer accepts an empty `super()` call — the datasource must be passed explicitly at constructor time
 - Installed `@prisma/adapter-pg`, `pg`, and `@types/pg`
 - Rewrote `PrismaService` (`src/infrastructure/prisma/prisma.service.ts`) to use the Prisma 7 **driver adapter** pattern:
-  - Creates a `pg.Pool` from `DATABASE_URL` at construction time
-  - Wraps pool in `PrismaPg` adapter
-  - Passes `{ adapter }` to `super()` — the correct Prisma 7 constructor signature
-  - Implements `OnModuleDestroy` to properly tear down both `$disconnect()` and `pool.end()` — prevents connection leaks
+ - Creates a `pg.Pool` from `DATABASE_URL` at construction time
+ - Wraps pool in `PrismaPg` adapter
+ - Passes `{ adapter }` to `super()` — the correct Prisma 7 constructor signature
+ - Implements `OnModuleDestroy` to properly tear down both `$disconnect()` and `pool.end()` — prevents connection leaks
 - `schema.prisma` datasource block already has no `url` field (correct for Prisma 7); `prisma.config.ts` continues to supply the URL for CLI commands only
 
 ### Server — Removed Orphaned Boilerplate
@@ -543,13 +543,13 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 
 ### Server — README Rewrite
 - Replaced the default NestJS boilerplate `README.md` with a project-specific reference document covering:
-  - Full tech stack table
-  - Step-by-step getting started guide
-  - Annotated project directory structure
-  - Configuration namespace reference
-  - Prisma 7 architecture explanation
-  - Common Prisma CLI commands
-  - Environment variables reference table
+ - Full tech stack table
+ - Step-by-step getting started guide
+ - Annotated project directory structure
+ - Configuration namespace reference
+ - Prisma 7 architecture explanation
+ - Common Prisma CLI commands
+ - Environment variables reference table
 
 ---
 
@@ -561,7 +561,7 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 
 ### Module 2 — Store Schema Updates
 - Defined single source of truth for Store Availability & Checkout evaluation rule:
-  `CanCheckout = (Store.status == ACTIVE) AND (Store.isOpen == true) AND (CurrentTime in StoreHour)`
+ `CanCheckout = (Store.status == ACTIVE) AND (Store.isOpen == true) AND (CurrentTime in StoreHour)`
 - Removed unused `StoreImageType` enum
 - Established mandatory service-layer creation contract for `StoreDeliverySetting` — must be created atomically within the same transaction as `Store`
 - Replaced `logoUrl`, `bannerUrl`, `imageUrl` with `logoKey`, `bannerKey`, `objectKey` (`VarChar(500)`) across `Store` and `StoreImage` — aligns with `Category`, `Brand`, and `ProductImage` object-storage key pattern
@@ -720,7 +720,7 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 
 ### Module 1 — IAM Schema (Initial — superseded by July 25 Supabase migration)
 
-> ⚠️ The models listed below were partially replaced by the Supabase auth migration on July 25, 2026. See that entry for details.
+> The models listed below were partially replaced by the Supabase auth migration on July 25, 2026. See that entry for details.
 
 **Added Models:**
 
@@ -752,8 +752,8 @@ Authentication fully delegated to **Supabase Auth**. The following models have b
 - PostgreSQL + Prisma ORM configured (`schema.prisma`, `prisma.config.ts`)
 - Split schema architecture — 6 module-specific files under `prisma/modules/`
 - **Initial IAM schema (RBAC layer):**
-  - `Role` → `roles` table
-  - `Permission` → `permissions` table
-  - `RolePermission` → `role_permissions` table
-  - 6 enums: `UserStatus`, `OTPPurpose`, `OTPChannel`, `AuthProvider`, `DeviceType`, `RevocationReason`
+ - `Role` → `roles` table
+ - `Permission` → `permissions` table
+ - `RolePermission` → `role_permissions` table
+ - 6 enums: `UserStatus`, `OTPPurpose`, `OTPChannel`, `AuthProvider`, `DeviceType`, `RevocationReason`
 - Full dependency stack installed (JWT, BullMQ, Redis, Socket.io, Swagger, Helmet, etc.)

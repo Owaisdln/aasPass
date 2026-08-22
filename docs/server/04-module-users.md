@@ -24,18 +24,18 @@ All routes in this module are protected by `SupabaseAuthGuard` — an unauthenti
 src/modules/users/
 ├── users.module.ts
 ├── controllers/
-│   └── users.controller.ts
+│ └── users.controller.ts
 ├── dto/
-│   ├── update-user.dto.ts
-│   ├── user-response.dto.ts
-│   └── user-session-response.dto.ts
+│ ├── update-user.dto.ts
+│ ├── user-response.dto.ts
+│ └── user-session-response.dto.ts
 ├── mappers/
-│   ├── user.mapper.ts
-│   └── user-session.mapper.ts
+│ ├── user.mapper.ts
+│ └── user-session.mapper.ts
 ├── services/
-│   └── users.service.ts
+│ └── users.service.ts
 └── types/
-    └── user.types.ts
+ └── user.types.ts
 ```
 
 > **Note:** `BrowserParser` (`src/common/parsers/browser.parser.ts`) is a shared utility used by `UserSessionMapper`.
@@ -63,7 +63,7 @@ A shared type definition file that centralises the Prisma query shape for a user
 
 ```typescript
 export const USER_WITH_ROLE_INCLUDE = {
-  role: true,
+ role: true,
 } satisfies Prisma.UserInclude;
 ```
 
@@ -73,7 +73,7 @@ A constant Prisma `include` object. Using `satisfies Prisma.UserInclude` ensures
 
 ```typescript
 export type UserWithRole = Prisma.UserGetPayload<{
-  include: typeof USER_WITH_ROLE_INCLUDE;
+ include: typeof USER_WITH_ROLE_INCLUDE;
 }>;
 ```
 
@@ -240,7 +240,7 @@ Shared internal lookup used by `getMe` and `updateProfile`:
 |---|---|
 | **Controller** | `UsersController` |
 | **Guard** | `SupabaseAuthGuard` (class-level) |
-| **Auth Required** | ✅ Yes |
+| **Auth Required** | Yes |
 | **Response** | `UserResponseDto` |
 
 Retrieves the full profile of the currently authenticated user.
@@ -254,18 +254,18 @@ Authorization: Bearer <supabase-access-token>
 **Success Response:**
 ```json
 {
-  "id": "uuid",
-  "firstName": "Owais",
-  "lastName": "Khan",
-  "email": "owais@example.com",
-  "phone": "+923001234567",
-  "role": "CUSTOMER",
-  "status": "ACTIVE",
-  "emailVerifiedAt": "2026-08-07T10:00:00.000Z",
-  "phoneVerifiedAt": null,
-  "lastSeenAt": "2026-08-07T17:45:00.000Z",
-  "createdAt": "2026-08-01T09:00:00.000Z",
-  "updatedAt": "2026-08-07T17:45:00.000Z"
+ "id": "uuid",
+ "firstName": "Owais",
+ "lastName": "Khan",
+ "email": "owais@example.com",
+ "phone": "+923001234567",
+ "role": "CUSTOMER",
+ "status": "ACTIVE",
+ "emailVerifiedAt": "2026-08-07T10:00:00.000Z",
+ "phoneVerifiedAt": null,
+ "lastSeenAt": "2026-08-07T17:45:00.000Z",
+ "createdAt": "2026-08-01T09:00:00.000Z",
+ "updatedAt": "2026-08-07T17:45:00.000Z"
 }
 ```
 
@@ -277,7 +277,7 @@ Authorization: Bearer <supabase-access-token>
 |---|---|
 | **Controller** | `UsersController` |
 | **Guard** | `SupabaseAuthGuard` (class-level) |
-| **Auth Required** | ✅ Yes |
+| **Auth Required** | Yes |
 | **Request Body** | `UpdateUserDto` |
 | **Response** | `UserResponseDto` (updated) |
 
@@ -290,8 +290,8 @@ Authorization: Bearer <supabase-access-token>
 Content-Type: application/json
 
 {
-  "firstName": "Owais",
-  "lastName": "Khan"
+ "firstName": "Owais",
+ "lastName": "Khan"
 }
 ```
 
@@ -311,7 +311,7 @@ Content-Type: application/json
 |---|---|
 | **Controller** | `UsersController` |
 | **Guard** | `SupabaseAuthGuard` (class-level) |
-| **Auth Required** | ✅ Yes |
+| **Auth Required** | Yes |
 | **Response** | `UserSessionResponseDto[]` |
 
 Returns all sessions (active and revoked) for the currently authenticated user, ordered by `lastActivityAt` descending (most recent first).
@@ -325,15 +325,15 @@ Authorization: Bearer <supabase-access-token>
 **Success Response:**
 ```json
 [
-  {
-    "id": "session-uuid",
-    "deviceType": "WEB",
-    "browser": "Chrome",
-    "os": "Windows",
-    "lastActivityAt": "2026-08-08T08:00:00.000Z",
-    "createdAt": "2026-08-01T09:00:00.000Z",
-    "revokedAt": null
-  }
+ {
+ "id": "session-uuid",
+ "deviceType": "WEB",
+ "browser": "Chrome",
+ "os": "Windows",
+ "lastActivityAt": "2026-08-08T08:00:00.000Z",
+ "createdAt": "2026-08-01T09:00:00.000Z",
+ "revokedAt": null
+ }
 ]
 ```
 
@@ -351,7 +351,7 @@ Authorization: Bearer <supabase-access-token>
 |---|---|
 | **Controller** | `UsersController` |
 | **Guard** | `SupabaseAuthGuard` (class-level) |
-| **Auth Required** | ✅ Yes |
+| **Auth Required** | Yes |
 | **Path Param** | `sessionId` — UUID of the session to revoke |
 | **Response** | `204 No Content` (void) |
 
@@ -378,7 +378,7 @@ Authorization: Bearer <supabase-access-token>
 |---|---|
 | **Controller** | `UsersController` |
 | **Guard** | `SupabaseAuthGuard` (class-level) |
-| **Auth Required** | ✅ Yes |
+| **Auth Required** | Yes |
 | **Response** | `204 No Content` (void) |
 
 Revokes **all** active sessions for the authenticated user in a single bulk update. Sessions that are already revoked are left unchanged.

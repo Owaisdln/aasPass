@@ -1,8 +1,8 @@
 # Database — Module 5: Order Management
 
-> [← Back to Index](../README.md)  
-> **Schema file:** [`server/prisma/modules/module5.order.prisma`](../../server/prisma/modules/module5.order.prisma)  
-> **Status:** ✅ Schema Complete (5 models)  
+> [← Back to Index](../README.md)
+> **Schema file:** [`server/prisma/modules/module5.order.prisma`](../../server/prisma/modules/module5.order.prisma)
+> **Status:** Schema Complete (5 models)
 > **Last Updated:** 2026-07-28
 
 ---
@@ -136,7 +136,7 @@ Represents a placed order scoped to a single store. Contains a full delivery add
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz? | Optional | Soft-delete timestamp |
 
-**Indexes:** `@@index([userId])`, `@@index([storeId])`, `@@index([status])`, `@@index([paymentStatus])`, `@@index([placedAt])`, `@@index([userId, status])`, `@@index([storeId, status])`, `@@index([userId, placedAt])`  
+**Indexes:** `@@index([userId])`, `@@index([storeId])`, `@@index([status])`, `@@index([paymentStatus])`, `@@index([placedAt])`, `@@index([userId, status])`, `@@index([storeId, status])`, `@@index([userId, placedAt])`
 **Relations:**
 - `user -> User`
 - `store -> Store`
@@ -175,7 +175,7 @@ A single product line within an order. Pricing and product details are snapshott
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([orderId])`, `@@index([storeProductId])`, `@@index([orderId, fulfillmentStatus])`  
+**Indexes:** `@@index([orderId])`, `@@index([storeProductId])`, `@@index([orderId, fulfillmentStatus])`
 **Relations:**
 - `order -> Order` (Cascade)
 - `storeProduct -> StoreProduct` (Restrict)
@@ -208,7 +208,7 @@ Represents a merchant-proposed product substitution for a single order item. The
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([orderItemId])`, `@@index([replacementStoreProductId])`, `@@index([status])`  
+**Indexes:** `@@index([orderItemId])`, `@@index([replacementStoreProductId])`, `@@index([status])`
 **Relations:**
 - `orderItem -> OrderItem` (Cascade)
 - `replacementStoreProduct -> StoreProduct` (Restrict)
@@ -229,7 +229,7 @@ An immutable audit log of every order status transition. Records are written onc
 | `createdBy` | `created_by` | UUID? | Optional | Who triggered the transition |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()`, Indexed | When the transition occurred |
 
-**Indexes:** `@@index([orderId])`, `@@index([orderId, createdAt])`  
+**Indexes:** `@@index([orderId])`, `@@index([orderId, createdAt])`
 **Relations:** `order -> Order` (Cascade)
 
 > **Design Note:** Write-once record. No `updatedAt` or `updatedBy` fields by design.
@@ -249,7 +249,7 @@ Multi-party notes attached to an order. Supports notes from customers, merchants
 | `createdBy` | `created_by` | UUID? | Optional | Author user ID |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()`, Indexed | When note was added |
 
-**Indexes:** `@@index([orderId])`, `@@index([orderId, createdAt])`  
+**Indexes:** `@@index([orderId])`, `@@index([orderId, createdAt])`
 **Relations:** `order -> Order` (Cascade)
 
 ---
@@ -258,59 +258,59 @@ Multi-party notes attached to an order. Supports notes from customers, merchants
 
 ```mermaid
 erDiagram
-    Order {
-        uuid id PK
-        uuid userId FK
-        uuid storeId FK
-        uuid addressId FK
-        string orderNumber UK
-        OrderStatus status
-        PaymentStatus paymentStatus
-        FulfillmentType fulfillmentType
-        decimal totalAmount
-        int version
-        datetime placedAt
-        datetime deletedAt
-    }
-    OrderItem {
-        uuid id PK
-        uuid orderId FK
-        uuid storeProductId FK
-        int quantity
-        string productNameSnapshot
-        decimal sellingPriceSnapshot
-        decimal subtotal
-        FulfillmentStatus fulfillmentStatus
-    }
-    OrderItemReplacement {
-        uuid id PK
-        uuid orderItemId FK
-        uuid replacementStoreProductId FK
-        ReplacementStatus status
-        decimal replacementSubtotal
-        datetime requestedAt
-        datetime respondedAt
-    }
-    OrderStatusHistory {
-        uuid id PK
-        uuid orderId FK
-        OrderStatus previousStatus
-        OrderStatus newStatus
-        string remarks
-        datetime createdAt
-    }
-    OrderNote {
-        uuid id PK
-        uuid orderId FK
-        OrderNoteType noteType
-        string note
-        datetime createdAt
-    }
+ Order {
+ uuid id PK
+ uuid userId FK
+ uuid storeId FK
+ uuid addressId FK
+ string orderNumber UK
+ OrderStatus status
+ PaymentStatus paymentStatus
+ FulfillmentType fulfillmentType
+ decimal totalAmount
+ int version
+ datetime placedAt
+ datetime deletedAt
+ }
+ OrderItem {
+ uuid id PK
+ uuid orderId FK
+ uuid storeProductId FK
+ int quantity
+ string productNameSnapshot
+ decimal sellingPriceSnapshot
+ decimal subtotal
+ FulfillmentStatus fulfillmentStatus
+ }
+ OrderItemReplacement {
+ uuid id PK
+ uuid orderItemId FK
+ uuid replacementStoreProductId FK
+ ReplacementStatus status
+ decimal replacementSubtotal
+ datetime requestedAt
+ datetime respondedAt
+ }
+ OrderStatusHistory {
+ uuid id PK
+ uuid orderId FK
+ OrderStatus previousStatus
+ OrderStatus newStatus
+ string remarks
+ datetime createdAt
+ }
+ OrderNote {
+ uuid id PK
+ uuid orderId FK
+ OrderNoteType noteType
+ string note
+ datetime createdAt
+ }
 
-    Order ||--o{ OrderItem : "contains"
-    Order ||--o{ OrderStatusHistory : "tracks"
-    Order ||--o{ OrderNote : "has"
-    OrderItem ||--o{ OrderItemReplacement : "may have"
+ Order ||--o{ OrderItem : "contains"
+ Order ||--o{ OrderStatusHistory : "tracks"
+ Order ||--o{ OrderNote : "has"
+ OrderItem ||--o{ OrderItemReplacement : "may have"
 ```
 
 ---
@@ -319,22 +319,22 @@ erDiagram
 
 ```
 PENDING
-    |
-    +--> CONFIRMED (merchant accepts)
-    |         |
-    |         +--> PREPARING
-    |                   |
-    |                   +--> READY_FOR_PICKUP
-    |                               |
-    |                   +-----------+
-    |                   |
-    |               OUT_FOR_DELIVERY
-    |                   |
-    |               DELIVERED
-    |
-    +--> CANCELLED (by customer or merchant)
-    |
-    +--> FAILED (payment failure)
+ |
+ +--> CONFIRMED (merchant accepts)
+ | |
+ | +--> PREPARING
+ | |
+ | +--> READY_FOR_PICKUP
+ | |
+ | +-----------+
+ | |
+ | OUT_FOR_DELIVERY
+ | |
+ | DELIVERED
+ |
+ +--> CANCELLED (by customer or merchant)
+ |
+ +--> FAILED (payment failure)
 ```
 
 Each transition writes a record to `OrderStatusHistory`.
@@ -361,6 +361,6 @@ The following PostgreSQL database constraint is to be applied via a raw SQL migr
 Prevents invalid zero or negative quantities in order line items directly at the database engine layer:
 ```sql
 ALTER TABLE order_items
-  ADD CONSTRAINT chk_order_items_quantity_positive CHECK (quantity > 0);
+ ADD CONSTRAINT chk_order_items_quantity_positive CHECK (quantity > 0);
 ```
 

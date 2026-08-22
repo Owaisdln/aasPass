@@ -20,19 +20,19 @@ All routes are protected by `SupabaseAuthGuard`.
 src/modules/wishlist/
 ├── wishlist.module.ts
 ├── controllers/
-│   └── wishlist.controller.ts
+│ └── wishlist.controller.ts
 ├── dto/
-│   ├── create-wishlist.dto.ts
-│   ├── update-wishlist.dto.ts
-│   ├── add-wishlist-item.dto.ts
-│   ├── wishlist-item-response.dto.ts
-│   └── wishlist-response.dto.ts
+│ ├── create-wishlist.dto.ts
+│ ├── update-wishlist.dto.ts
+│ ├── add-wishlist-item.dto.ts
+│ ├── wishlist-item-response.dto.ts
+│ └── wishlist-response.dto.ts
 ├── mappers/
-│   └── wishlist.mapper.ts
+│ └── wishlist.mapper.ts
 ├── services/
-│   └── wishlist.service.ts
+│ └── wishlist.service.ts
 └── types/
-    └── wishlist.types.ts
+ └── wishlist.types.ts
 ```
 
 ---
@@ -56,9 +56,9 @@ src/modules/wishlist/
 
 ```typescript
 export const WISHLIST_WITH_ITEMS_INCLUDE = {
-  items: {
-    orderBy: { createdAt: 'desc' },
-  },
+ items: {
+ orderBy: { createdAt: 'desc' },
+ },
 } as const satisfies Prisma.WishlistInclude;
 ```
 
@@ -66,7 +66,7 @@ export const WISHLIST_WITH_ITEMS_INCLUDE = {
 
 ```typescript
 export type WishlistWithItems = Prisma.WishlistGetPayload<{
-  include: typeof WISHLIST_WITH_ITEMS_INCLUDE;
+ include: typeof WISHLIST_WITH_ITEMS_INCLUDE;
 }>;
 ```
 

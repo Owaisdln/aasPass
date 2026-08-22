@@ -49,7 +49,7 @@
 
 ### Frontend
 
-> 🔧 **Status:** Directory exists — implementation not yet started.
+> **Status:** Directory exists — implementation not yet started.
 
 ---
 
@@ -57,12 +57,12 @@
 
 | # | Module | Responsibility | Status |
 |---|---|---|---|
-| 1 | **IAM** | Users, roles, permissions, auth, sessions | ✅ Auth, RBAC, Users implemented |
-| 2 | **Store** | Vendor onboarding, store profiles | ✅ Store profile, hours, delivery, images implemented |
-| 3 | **Catalog** | Products, categories, variants, inventory | ✅ Catalog (categories, brands, units, master products, product images, store products) + Inventory implemented |
-| 4 | **Cart** | Cart per store, wishlist, price snapshots | ✅ Wishlist implemented; Cart pending |
-| 5 | **Orders** | Checkout, order lifecycle, replacements | ⏳ Schema done; API pending |
-| 6 | **Payments** | Gateway integration, refunds, webhooks | ⏳ Schema done; API pending |
+| 1 | **IAM** | Users, roles, permissions, auth, sessions | Auth, RBAC, Users implemented |
+| 2 | **Store** | Vendor onboarding, store profiles | Store profile, hours, delivery, images implemented |
+| 3 | **Catalog** | Products, categories, variants, inventory | Catalog (categories, brands, units, master products, product images, store products) + Inventory implemented |
+| 4 | **Cart** | Cart per store, wishlist, price snapshots | Wishlist implemented; Cart pending |
+| 5 | **Orders** | Checkout, order lifecycle, replacements | Schema done; API pending |
+| 6 | **Payments** | Gateway integration, refunds, webhooks | Schema done; API pending |
 
 ---
 
@@ -70,28 +70,28 @@
 
 ```mermaid
 gantt
-    title aasPass Development Roadmap
-    dateFormat  YYYY-MM
-    section Foundation
-    Project Setup & Dependencies     :done, 2026-06, 2026-07
-    IAM Schema Design                :done, 2026-07, 2026-07
-    section Module 1 - IAM
-    User, OTP, Session Models        :active, 2026-07, 2026-08
-    Auth Endpoints                   : 2026-07, 2026-08
-    JWT Guards & RBAC                : 2026-08, 2026-08
-    section Module 2 - Store
-    Store Schema & APIs              :done, 2026-07, 2026-07
-    section Module 3 - Catalog
-    Product & Category Schema + APIs :done, 2026-07, 2026-07
-    section Module 4 - Cart
-    Cart Schema                      :done, 2026-07, 2026-07
-    Cart + Redis Integration         : 2026-10, 2026-10
-    section Module 5 - Orders
-    Order Schema                     :done, 2026-07, 2026-07
-    Checkout Flow & Order APIs       : 2026-10, 2026-11
-    section Module 6 - Payments
-    Payment Schema                   :done, 2026-07, 2026-07
-    Payment Gateway Integration      : 2026-11, 2026-12
-    section Frontend
-    Client App                       : 2026-09, 2027-01
+ title aasPass Development Roadmap
+ dateFormat YYYY-MM
+ section Foundation
+ Project Setup & Dependencies :done, 2026-06, 2026-07
+ IAM Schema Design :done, 2026-07, 2026-07
+ section Module 1 - IAM
+ User, OTP, Session Models :active, 2026-07, 2026-08
+ Auth Endpoints : 2026-07, 2026-08
+ JWT Guards & RBAC : 2026-08, 2026-08
+ section Module 2 - Store
+ Store Schema & APIs :done, 2026-07, 2026-07
+ section Module 3 - Catalog
+ Product & Category Schema + APIs :done, 2026-07, 2026-07
+ section Module 4 - Cart
+ Cart Schema :done, 2026-07, 2026-07
+ Cart + Redis Integration : 2026-10, 2026-10
+ section Module 5 - Orders
+ Order Schema :done, 2026-07, 2026-07
+ Checkout Flow & Order APIs : 2026-10, 2026-11
+ section Module 6 - Payments
+ Payment Schema :done, 2026-07, 2026-07
+ Payment Gateway Integration : 2026-11, 2026-12
+ section Frontend
+ Client App : 2026-09, 2027-01
 ```

@@ -1,8 +1,8 @@
 # Database — Module 6: Payment & Financial Management
 
-> [← Back to Index](../README.md)  
-> **Schema file:** [`server/prisma/modules/module6.payment.prisma`](../../server/prisma/modules/module6.payment.prisma)  
-> **Status:** ✅ Schema Complete (5 models)  
+> [← Back to Index](../README.md)
+> **Schema file:** [`server/prisma/modules/module6.payment.prisma`](../../server/prisma/modules/module6.payment.prisma)
+> **Status:** Schema Complete (5 models)
 > **Last Updated:** 2026-07-28
 
 ---
@@ -120,7 +120,7 @@ One payment record per order. Tracks the chosen payment method, gateway, and the
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([paymentStatus])`, `@@index([paymentMethod])`, `@@index([gateway])`, `@@index([paidAt])`, `@@index([gateway, paymentStatus])`  
+**Indexes:** `@@index([paymentStatus])`, `@@index([paymentMethod])`, `@@index([gateway])`, `@@index([paidAt])`, `@@index([gateway, paymentStatus])`
 **Relations:**
 - `order -> Order` (Cascade)
 - `transactions -> PaymentTransaction[]`
@@ -155,8 +155,8 @@ Records each individual attempt to charge the customer via a payment gateway. A 
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 
-**Constraints:** `@@unique([gateway, gatewayPaymentId])` — prevents duplicate gateway transaction records per gateway  
-**Indexes:** `@@index([paymentId])`, `@@index([paymentId, transactionStatus])`, `@@index([transactionStatus])`, `@@index([gateway])`, `@@index([gatewayOrderId])`, `@@index([gatewayPaymentId])`, `@@index([processedAt])`  
+**Constraints:** `@@unique([gateway, gatewayPaymentId])` — prevents duplicate gateway transaction records per gateway
+**Indexes:** `@@index([paymentId])`, `@@index([paymentId, transactionStatus])`, `@@index([transactionStatus])`, `@@index([gateway])`, `@@index([gatewayOrderId])`, `@@index([gatewayPaymentId])`, `@@index([processedAt])`
 **Relations:** `payment -> Payment` (Cascade)
 
 > **Design Note:** No `updatedAt` — transaction records are write-once. The `@@unique([gateway, gatewayPaymentId])` constraint prevents processing duplicate gateway transactions. The `gatewayResponse` JSON stores the full raw payload for debugging and compliance.
@@ -182,7 +182,7 @@ Records a refund (full or partial) against a payment. Tracks the gateway refund 
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([paymentId])`, `@@index([refundStatus])`, `@@index([gatewayRefundId])`, `@@index([refundedAt])`  
+**Indexes:** `@@index([paymentId])`, `@@index([refundStatus])`, `@@index([gatewayRefundId])`, `@@index([refundedAt])`
 **Relations:** `payment -> Payment` (Cascade)
 
 > **Design Note:** A payment may have multiple refund records (partial refunds). The sum of all `PROCESSED` refund amounts should equal `Payment.refundedAmount`.
@@ -206,8 +206,8 @@ Stores every inbound webhook event from payment gateways. Used for idempotent ev
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 
-**Constraints:** `@@unique([gatewayEventId])` — prevents duplicate event processing  
-**Indexes:** `@@index([paymentId])`, `@@index([eventType])`, `@@index([isProcessed])`, `@@index([processedAt])`  
+**Constraints:** `@@unique([gatewayEventId])` — prevents duplicate event processing
+**Indexes:** `@@index([paymentId])`, `@@index([eventType])`, `@@index([isProcessed])`, `@@index([processedAt])`
 **Relations:** `payment -> Payment` (Cascade)
 
 > **Design Notes:**
@@ -232,7 +232,7 @@ Stores references to generated financial documents (invoices, receipts, credit n
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `createdAt` | `created_at` | Timestamptz | Auto: `now()` | Timestamp |
 
-**Indexes:** `@@index([orderId])`, `@@index([orderId, documentType])`, `@@index([documentType])`, `@@index([generatedAt])`  
+**Indexes:** `@@index([orderId])`, `@@index([orderId, documentType])`, `@@index([documentType])`, `@@index([generatedAt])`
 **Relations:** `order -> Order` (Cascade)
 
 > **Design Notes:**
@@ -246,61 +246,61 @@ Stores references to generated financial documents (invoices, receipts, credit n
 
 ```mermaid
 erDiagram
-    Order {
-        uuid id PK
-        string orderNumber UK
-    }
-    Payment {
-        uuid id PK
-        uuid orderId FK_UK
-        PaymentMethod paymentMethod
-        PaymentStatus paymentStatus
-        PaymentGateway gateway
-        decimal payableAmount
-        decimal paidAmount
-        decimal refundedAmount
-        datetime paidAt
-    }
-    PaymentTransaction {
-        uuid id PK
-        uuid paymentId FK
-        PaymentGateway gateway
-        PaymentTransactionStatus transactionStatus
-        decimal amount
-        string gatewayOrderId
-        string gatewayPaymentId
-        datetime processedAt
-    }
-    Refund {
-        uuid id PK
-        uuid paymentId FK
-        decimal refundAmount
-        RefundStatus refundStatus
-        string gatewayRefundId
-        datetime refundedAt
-    }
-    PaymentWebhook {
-        uuid id PK
-        uuid paymentId FK
-        string gatewayEventId UK
-        string eventType
-        bool isProcessed
-        datetime processedAt
-    }
-    FinancialDocument {
-        uuid id PK
-        uuid orderId FK
-        FinancialDocumentType documentType
-        string documentNumber UK
-        string pdfKey
-        datetime generatedAt
-    }
+ Order {
+ uuid id PK
+ string orderNumber UK
+ }
+ Payment {
+ uuid id PK
+ uuid orderId FK_UK
+ PaymentMethod paymentMethod
+ PaymentStatus paymentStatus
+ PaymentGateway gateway
+ decimal payableAmount
+ decimal paidAmount
+ decimal refundedAmount
+ datetime paidAt
+ }
+ PaymentTransaction {
+ uuid id PK
+ uuid paymentId FK
+ PaymentGateway gateway
+ PaymentTransactionStatus transactionStatus
+ decimal amount
+ string gatewayOrderId
+ string gatewayPaymentId
+ datetime processedAt
+ }
+ Refund {
+ uuid id PK
+ uuid paymentId FK
+ decimal refundAmount
+ RefundStatus refundStatus
+ string gatewayRefundId
+ datetime refundedAt
+ }
+ PaymentWebhook {
+ uuid id PK
+ uuid paymentId FK
+ string gatewayEventId UK
+ string eventType
+ bool isProcessed
+ datetime processedAt
+ }
+ FinancialDocument {
+ uuid id PK
+ uuid orderId FK
+ FinancialDocumentType documentType
+ string documentNumber UK
+ string pdfKey
+ datetime generatedAt
+ }
 
-    Order ||--|| Payment : "has"
-    Order ||--o{ FinancialDocument : "has"
-    Payment ||--o{ PaymentTransaction : "has"
-    Payment ||--o{ Refund : "has"
-    Payment ||--o{ PaymentWebhook : "receives"
+ Order ||--|| Payment : "has"
+ Order ||--o{ FinancialDocument : "has"
+ Payment ||--o{ PaymentTransaction : "has"
+ Payment ||--o{ Refund : "has"
+ Payment ||--o{ PaymentWebhook : "receives"
 ```
 
 ---
@@ -309,28 +309,28 @@ erDiagram
 
 ```
 Customer places order
-    |
-    +--> Payment record created (status: PENDING)
-    |
-    +--> PaymentTransaction created (status: INITIATED)
-    |         |
-    |         +--> Gateway processes payment
-    |                   |
-    |                   +--> SUCCESS: Update PaymentTransaction + Payment (PAID, paidAmount)
-    |                   |
-    |                   +--> FAILED: Update PaymentTransaction, allow retry
-    |
-    +--> Gateway sends webhook -> PaymentWebhook stored
-    |
-    +--> Invoice generated -> FinancialDocument created (pdfKey stored)
-    |
-    +--> Refund requested
-              |
-              +--> Refund record created (status: PENDING)
-              +--> Gateway processes refund
-              +--> Refund.refundStatus = PROCESSED
-              +--> Payment.refundedAmount updated
-              +--> Credit Note generated -> FinancialDocument (CREDIT_NOTE)
+ |
+ +--> Payment record created (status: PENDING)
+ |
+ +--> PaymentTransaction created (status: INITIATED)
+ | |
+ | +--> Gateway processes payment
+ | |
+ | +--> SUCCESS: Update PaymentTransaction + Payment (PAID, paidAmount)
+ | |
+ | +--> FAILED: Update PaymentTransaction, allow retry
+ |
+ +--> Gateway sends webhook -> PaymentWebhook stored
+ |
+ +--> Invoice generated -> FinancialDocument created (pdfKey stored)
+ |
+ +--> Refund requested
+ |
+ +--> Refund record created (status: PENDING)
+ +--> Gateway processes refund
+ +--> Refund.refundStatus = PROCESSED
+ +--> Payment.refundedAmount updated
+ +--> Credit Note generated -> FinancialDocument (CREDIT_NOTE)
 ```
 
 ---
@@ -355,7 +355,7 @@ The following PostgreSQL database constraints are to be applied via a raw SQL mi
 Enforces financial data integrity directly at the database engine layer:
 ```sql
 ALTER TABLE payments
-  ADD CONSTRAINT chk_payments_paid_le_payable CHECK (paid_amount <= payable_amount),
-  ADD CONSTRAINT chk_payments_refunded_le_paid CHECK (refunded_amount <= paid_amount);
+ ADD CONSTRAINT chk_payments_paid_le_payable CHECK (paid_amount <= payable_amount),
+ ADD CONSTRAINT chk_payments_refunded_le_paid CHECK (refunded_amount <= paid_amount);
 ```
 

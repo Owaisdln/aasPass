@@ -1,8 +1,8 @@
 # Database — Module 4: Cart & Wishlist Management
 
-> [← Back to Index](../README.md)  
-> **Schema file:** [`server/prisma/modules/module4.cart.prisma`](../../server/prisma/modules/module4.cart.prisma)  
-> **Status:** ✅ Schema Complete (4 models)  
+> [← Back to Index](../README.md)
+> **Schema file:** [`server/prisma/modules/module4.cart.prisma`](../../server/prisma/modules/module4.cart.prisma)
+> **Status:** Schema Complete (4 models)
 > **Last Updated:** 2026-07-28
 
 ---
@@ -61,7 +61,7 @@ Represents a user's shopping cart scoped to a single store. Each user can have a
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Constraints:** `@@unique([userId, storeId])` — one cart per user per store  
+**Constraints:** `@@unique([userId, storeId])` — one cart per user per store
 **Indexes:** `@@index([userId])`, `@@index([storeId])`, `@@index([status])`, `@@index([expiresAt])`, `@@index([userId, status])`, `@@index([storeId, status])`
 
 > **Design Notes:**
@@ -91,7 +91,7 @@ A line item in a cart. Price and product data are **snapshotted at add-to-cart t
 | `createdAt` | `created_at` | Timestamptz(6) | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 
-**Constraints:** `@@unique([cartId, storeProductId])` — one line per product per cart  
+**Constraints:** `@@unique([cartId, storeProductId])` — one line per product per cart
 **Indexes:** `@@index([cartId])`, `@@index([cartId, storeProductId])`
 
 > **Snapshot Source Reference:**
@@ -122,7 +122,7 @@ A named bookmark list owned by a user. Users can have multiple wishlists; one is
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | Timestamptz(6)? | Optional | Soft-delete timestamp |
 
-**Constraints:** `@@unique([userId, name])` — unique wishlist name per user  
+**Constraints:** `@@unique([userId, name])` — unique wishlist name per user
 **Indexes:** `@@index([userId])`, `@@index([userId, isDefault])`
 
 ---
@@ -139,7 +139,7 @@ A bookmarked store product in a wishlist. **No price snapshots** — wishlist it
 | `createdBy` | `created_by` | UUID? | Optional | Audit trail |
 | `createdAt` | `created_at` | Timestamptz(6) | Auto: `now()` | Bookmark timestamp |
 
-**Constraints:** `@@unique([wishlistId, storeProductId])` — no duplicate bookmarks  
+**Constraints:** `@@unique([wishlistId, storeProductId])` — no duplicate bookmarks
 **Indexes:** `@@index([wishlistId])`
 
 > **Design Note:** `WishlistItem` intentionally has no `updatedAt` or price snapshots. It is a lightweight bookmark — the product details are fetched live at render time. If a product is removed from the store, the wishlist item will show it as unavailable.
@@ -150,59 +150,59 @@ A bookmarked store product in a wishlist. **No price snapshots** — wishlist it
 
 ```mermaid
 erDiagram
-    User {
-        uuid id PK
-    }
-    Store {
-        uuid id PK
-    }
-    StoreProduct {
-        uuid id PK
-        decimal mrp
-        decimal sellingPrice
-        AvailabilityStatus availabilityStatus
-    }
-    Cart {
-        uuid id PK
-        uuid userId FK
-        uuid storeId FK
-        CartStatus status
-        decimal subtotal
-        decimal totalAmount
-        datetime expiresAt
-        datetime deletedAt
-    }
-    CartItem {
-        uuid id PK
-        uuid cartId FK
-        uuid storeProductId FK
-        int quantity
-        string productNameSnapshot
-        decimal mrpSnapshot
-        decimal sellingPriceSnapshot
-        decimal subtotal
-    }
-    Wishlist {
-        uuid id PK
-        uuid userId FK
-        string name
-        bool isDefault
-        datetime deletedAt
-    }
-    WishlistItem {
-        uuid id PK
-        uuid wishlistId FK
-        uuid storeProductId FK
-        datetime createdAt
-    }
+ User {
+ uuid id PK
+ }
+ Store {
+ uuid id PK
+ }
+ StoreProduct {
+ uuid id PK
+ decimal mrp
+ decimal sellingPrice
+ AvailabilityStatus availabilityStatus
+ }
+ Cart {
+ uuid id PK
+ uuid userId FK
+ uuid storeId FK
+ CartStatus status
+ decimal subtotal
+ decimal totalAmount
+ datetime expiresAt
+ datetime deletedAt
+ }
+ CartItem {
+ uuid id PK
+ uuid cartId FK
+ uuid storeProductId FK
+ int quantity
+ string productNameSnapshot
+ decimal mrpSnapshot
+ decimal sellingPriceSnapshot
+ decimal subtotal
+ }
+ Wishlist {
+ uuid id PK
+ uuid userId FK
+ string name
+ bool isDefault
+ datetime deletedAt
+ }
+ WishlistItem {
+ uuid id PK
+ uuid wishlistId FK
+ uuid storeProductId FK
+ datetime createdAt
+ }
 
-    User ||--o{ Cart : "has"
-    Store ||--o{ Cart : "has"
-    Cart ||--o{ CartItem : "contains"
-    StoreProduct ||--o{ CartItem : "in"
-    User ||--o{ Wishlist : "has"
-    Wishlist ||--o{ WishlistItem : "contains"
-    StoreProduct ||--o{ WishlistItem : "bookmarked in"
+ User ||--o{ Cart : "has"
+ Store ||--o{ Cart : "has"
+ Cart ||--o{ CartItem : "contains"
+ StoreProduct ||--o{ CartItem : "in"
+ User ||--o{ Wishlist : "has"
+ Wishlist ||--o{ WishlistItem : "contains"
+ StoreProduct ||--o{ WishlistItem : "bookmarked in"
 ```
 
 ---

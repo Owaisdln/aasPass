@@ -23,39 +23,39 @@ All routes in this module are protected by `SupabaseAuthGuard` — an unauthenti
 src/modules/stores/
 ├── stores.module.ts
 ├── controllers/
-│   ├── stores.controller.ts
-│   ├── hours/
-│   │   └── store-hours.controller.ts
-│   ├── delivery-settings/
-│   │   └── store-delivery-settings.controller.ts
-│   └── images/
-│       └── store-images.controller.ts
+│ ├── stores.controller.ts
+│ ├── hours/
+│ │ └── store-hours.controller.ts
+│ ├── delivery-settings/
+│ │ └── store-delivery-settings.controller.ts
+│ └── images/
+│ └── store-images.controller.ts
 ├── dto/
-│   ├── create-store.dto.ts
-│   ├── update-store.dto.ts
-│   ├── store-response.dto.ts
-│   ├── hours/
-│   │   ├── store-hour-response.dto.ts
-│   │   └── update-store-hours.dto.ts      (contains StoreHourInputDto)
-│   ├── delivery-settings/
-│   │   ├── store-delivery-settings-response.dto.ts
-│   │   └── update-store-delivery-settings.dto.ts
-│   └── images/
-│       ├── create-store-image.dto.ts
-│       ├── update-store-image-order.dto.ts
-│       └── store-image-response.dto.ts
+│ ├── create-store.dto.ts
+│ ├── update-store.dto.ts
+│ ├── store-response.dto.ts
+│ ├── hours/
+│ │ ├── store-hour-response.dto.ts
+│ │ └── update-store-hours.dto.ts (contains StoreHourInputDto)
+│ ├── delivery-settings/
+│ │ ├── store-delivery-settings-response.dto.ts
+│ │ └── update-store-delivery-settings.dto.ts
+│ └── images/
+│ ├── create-store-image.dto.ts
+│ ├── update-store-image-order.dto.ts
+│ └── store-image-response.dto.ts
 ├── mappers/
-│   └── store.mapper.ts
+│ └── store.mapper.ts
 ├── services/
-│   ├── stores.service.ts
-│   ├── hours/
-│   │   └── store-hours.service.ts
-│   ├── delivery-settings/
-│   │   └── store-delivery-settings.service.ts
-│   └── images/
-│       └── store-images.service.ts
+│ ├── stores.service.ts
+│ ├── hours/
+│ │ └── store-hours.service.ts
+│ ├── delivery-settings/
+│ │ └── store-delivery-settings.service.ts
+│ └── images/
+│ └── store-images.service.ts
 └── types/
-    └── store.types.ts
+ └── store.types.ts
 ```
 
 ---
@@ -79,9 +79,9 @@ src/modules/stores/
 
 ```typescript
 export const STORE_WITH_RELATIONS_INCLUDE = {
-  images: true,
-  hours: true,
-  deliverySetting: true,
+ images: true,
+ hours: true,
+ deliverySetting: true,
 } as const satisfies Prisma.StoreInclude;
 ```
 
@@ -91,7 +91,7 @@ A constant Prisma `include` object using `as const satisfies` to enforce compile
 
 ```typescript
 export type StoreWithRelations = Prisma.StoreGetPayload<{
-  include: typeof STORE_WITH_RELATIONS_INCLUDE;
+ include: typeof STORE_WITH_RELATIONS_INCLUDE;
 }>;
 ```
 

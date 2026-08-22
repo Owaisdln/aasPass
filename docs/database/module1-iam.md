@@ -1,8 +1,8 @@
 # Database — Module 1: Identity & Access Management (IAM)
 
-> [← Back to Index](../README.md)  
-> **Schema file:** [`server/prisma/modules/module1.auth.prisma`](../../server/prisma/modules/module1.auth.prisma)  
-> **Status:** ✅ Schema Complete  
+> [← Back to Index](../README.md)
+> **Schema file:** [`server/prisma/modules/module1.auth.prisma`](../../server/prisma/modules/module1.auth.prisma)
+> **Status:** Schema Complete
 > **Last Updated:** 2026-07-28
 
 ---
@@ -117,7 +117,7 @@ Represents a named role assigned to users. Roles are linked to permissions.
 | `createdAt` | `created_at` | DateTime | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([isActive])`  
+**Indexes:** `@@index([isActive])`
 **Relations:** `users → User[]`, `rolePermissions → RolePermission[]`
 
 ---
@@ -140,7 +140,7 @@ A granular action that can be granted to a role (e.g. `catalog:product:create`).
 | `createdAt` | `created_at` | DateTime | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
 
-**Indexes:** `@@index([module])`, `@@index([isActive])`  
+**Indexes:** `@@index([module])`, `@@index([isActive])`
 **Relations:** `rolePermissions → RolePermission[]`
 
 ---
@@ -159,7 +159,7 @@ Bridge table connecting roles to permissions (many-to-many).
 | `createdAt` | `created_at` | DateTime | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
 
-**Constraints:** `@@unique([roleId, permissionId])`  
+**Constraints:** `@@unique([roleId, permissionId])`
 **Indexes:** `@@index([roleId])`, `@@index([permissionId])`
 
 ---
@@ -186,8 +186,8 @@ Core user account record. The `id` is **not** auto-generated — it is set from 
 | `updatedAt` | `updated_at` | DateTime | Auto-updated | Timestamp |
 | `deletedAt` | `deleted_at` | DateTime? | Optional | Soft-delete timestamp |
 
-**Constraints:** `@@unique([phone])`, `@@unique([email])`  
-**Indexes:** `@@index([roleId])`, `@@index([status])`, `@@index([phone])`, `@@index([email])`  
+**Constraints:** `@@unique([phone])`, `@@unique([email])`
+**Indexes:** `@@index([roleId])`, `@@index([status])`, `@@index([phone])`, `@@index([email])`
 **Relations:** `role`, `addresses[]`, `businessOtps[]`, `sessions[]`, `ownedStore`, `verifiedStores[]`, `carts[]`, `wishlists[]`, `orders[]`
 
 > **Design Note:** Authentication (password, OAuth, OTP login) is delegated to Supabase Auth. This table stores only application-layer user data — profile, role, and status. Removed from earlier schema: `passwordHash`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `lastLoginIp`, `passwordChangedAt`.
@@ -301,75 +301,75 @@ The following models existed in earlier schema iterations but have been **remove
 
 ```mermaid
 erDiagram
-    Role {
-        uuid id PK
-        string code UK
-        string name UK
-        bool isSystem
-        bool isActive
-        datetime createdAt
-    }
-    Permission {
-        uuid id PK
-        string code UK
-        string name UK
-        string module
-        bool isSystem
-        bool isActive
-    }
-    RolePermission {
-        uuid id PK
-        uuid roleId FK
-        uuid permissionId FK
-    }
-    User {
-        uuid id PK
-        uuid roleId FK
-        string firstName
-        string phone UK
-        string email UK
-        UserStatus status
-        datetime emailVerifiedAt
-        datetime phoneVerifiedAt
-        datetime deletedAt
-    }
-    Address {
-        uuid id PK
-        uuid userId FK
-        string receiverName
-        string city
-        string pincode
-        bool isDefault
-        datetime deletedAt
-    }
-    BusinessOTP {
-        uuid id PK
-        uuid userId FK
-        OTPPurpose purpose
-        OTPChannel channel
-        string destination
-        string otpHash
-        int attempts
-        datetime expiresAt
-        datetime verifiedAt
-        datetime consumedAt
-    }
-    UserSession {
-        uuid id PK
-        uuid userId FK
-        DeviceType deviceType
-        string ipAddress
-        datetime lastActivityAt
-        datetime revokedAt
-        RevocationReason revocationReason
-    }
+ Role {
+ uuid id PK
+ string code UK
+ string name UK
+ bool isSystem
+ bool isActive
+ datetime createdAt
+ }
+ Permission {
+ uuid id PK
+ string code UK
+ string name UK
+ string module
+ bool isSystem
+ bool isActive
+ }
+ RolePermission {
+ uuid id PK
+ uuid roleId FK
+ uuid permissionId FK
+ }
+ User {
+ uuid id PK
+ uuid roleId FK
+ string firstName
+ string phone UK
+ string email UK
+ UserStatus status
+ datetime emailVerifiedAt
+ datetime phoneVerifiedAt
+ datetime deletedAt
+ }
+ Address {
+ uuid id PK
+ uuid userId FK
+ string receiverName
+ string city
+ string pincode
+ bool isDefault
+ datetime deletedAt
+ }
+ BusinessOTP {
+ uuid id PK
+ uuid userId FK
+ OTPPurpose purpose
+ OTPChannel channel
+ string destination
+ string otpHash
+ int attempts
+ datetime expiresAt
+ datetime verifiedAt
+ datetime consumedAt
+ }
+ UserSession {
+ uuid id PK
+ uuid userId FK
+ DeviceType deviceType
+ string ipAddress
+ datetime lastActivityAt
+ datetime revokedAt
+ RevocationReason revocationReason
+ }
 
-    Role ||--o{ RolePermission : "has"
-    Permission ||--o{ RolePermission : "assigned via"
-    Role ||--o{ User : "assigned to"
-    User ||--o{ Address : "has"
-    User ||--o{ BusinessOTP : "has"
-    User ||--o{ UserSession : "has"
+ Role ||--o{ RolePermission : "has"
+ Permission ||--o{ RolePermission : "assigned via"
+ Role ||--o{ User : "assigned to"
+ User ||--o{ Address : "has"
+ User ||--o{ BusinessOTP : "has"
+ User ||--o{ UserSession : "has"
 ```
 
 ---

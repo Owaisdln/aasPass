@@ -29,15 +29,15 @@ This section documents the **actual, implemented** NestJS server application —
 
 ```
 AppModule
-  ├── ConfigModule   (isGlobal: true, Zod-validated)
-  ├── PrismaModule   (global database access)
-  ├── SupabaseModule (global Supabase client)
-  ├── AuthModule     (authentication — token verification, user sync)
-  ├── UsersModule    (user self-management — profile, session management)
-  ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
-  ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
-  ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
-  └── WishlistModule  *(implemented; pending AppModule registration)*
+ ├── ConfigModule (isGlobal: true, Zod-validated)
+ ├── PrismaModule (global database access)
+ ├── SupabaseModule (global Supabase client)
+ ├── AuthModule (authentication — token verification, user sync)
+ ├── UsersModule (user self-management — profile, session management)
+ ├── StoresModule (store owner self-management — profile, hours, delivery, images)
+ ├── CatalogModule (catalog master data — categories, brands, units, master products, product images, store products)
+ ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
+ └── WishlistModule *(implemented; pending AppModule registration)*
 ```
 
 `AuthorizationModule` is implemented and available as an importable module — feature modules import it as needed when they require RBAC guards.

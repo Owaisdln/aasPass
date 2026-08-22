@@ -21,15 +21,15 @@ The `AuthModule` provides **stateless JWT authentication** for the aasPass serve
 src/modules/auth/
 ├── auth.module.ts
 ├── controllers/
-│   └── auth.controller.ts
+│ └── auth.controller.ts
 ├── decorators/
-│   └── authenticated-user.decorator.ts
+│ └── authenticated-user.decorator.ts
 ├── guards/
-│   └── supabase-auth.guard.ts
+│ └── supabase-auth.guard.ts
 ├── interfaces/
-│   └── auth-user.interface.ts
+│ └── auth-user.interface.ts
 └── services/
-    └── auth.service.ts
+ └── auth.service.ts
 ```
 
 ---
@@ -82,25 +82,25 @@ A NestJS `CanActivate` guard that extracts and validates the Bearer token from e
 
 ```
 Incoming Request
-       │
-       ▼
+ │
+ ▼
 1. Read request.headers.authorization
-       │
-       ├── Missing → UnauthorizedException('Authorization header is missing.')
-       │
-       ├── Does not start with 'Bearer ' → UnauthorizedException('Invalid authorization header.')
-       │
-       └── Extract token after 'Bearer '
-              │
-              ├── Empty token → UnauthorizedException('Access token is missing.')
-              │
-              └── authService.authenticate(accessToken)
-                     │
-                     ├── Supabase rejects token → UnauthorizedException (propagated)
-                     ├── User is BLOCKED → UnauthorizedException (propagated)
-                     │
-                     └── Success → request.user = CurrentUser instance
-                                   return true
+ │
+ ├── Missing → UnauthorizedException('Authorization header is missing.')
+ │
+ ├── Does not start with 'Bearer ' → UnauthorizedException('Invalid authorization header.')
+ │
+ └── Extract token after 'Bearer '
+ │
+ ├── Empty token → UnauthorizedException('Access token is missing.')
+ │
+ └── authService.authenticate(accessToken)
+ │
+ ├── Supabase rejects token → UnauthorizedException (propagated)
+ ├── User is BLOCKED → UnauthorizedException (propagated)
+ │
+ └── Success → request.user = CurrentUser instance
+ return true
 ```
 
 ### Usage
@@ -155,7 +155,7 @@ A custom NestJS `createParamDecorator` that extracts the `CurrentUser` object fr
 @Get('me')
 @UseGuards(SupabaseAuthGuard)
 getCurrentUser(@AuthenticatedUser() user: CurrentUser): CurrentUser {
-  return user;
+ return user;
 }
 ```
 
@@ -171,7 +171,7 @@ The guard must run before this decorator is applied — it is the guard that pop
 |---|---|
 | **Controller** | `AuthController` |
 | **Guard** | `SupabaseAuthGuard` |
-| **Auth Required** | ✅ Yes — Bearer token in `Authorization` header |
+| **Auth Required** | Yes — Bearer token in `Authorization` header |
 | **Response** | `CurrentUser` object (id, email, phone, roleId, roleCode, permissions, status) |
 
 **Request:**
@@ -183,13 +183,13 @@ Authorization: Bearer <supabase-access-token>
 **Success Response:**
 ```json
 {
-  "id": "uuid",
-  "email": "user@example.com",
-  "phone": null,
-  "roleId": "uuid",
-  "roleCode": "CUSTOMER",
-  "permissions": ["catalog:product:read", "cart:item:manage"],
-  "status": "ACTIVE"
+ "id": "uuid",
+ "email": "user@example.com",
+ "phone": null,
+ "roleId": "uuid",
+ "roleCode": "CUSTOMER",
+ "permissions": ["catalog:product:read", "cart:item:manage"],
+ "status": "ACTIVE"
 }
 ```
 

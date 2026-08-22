@@ -1,10 +1,10 @@
 # Data Dictionary — aasPass Platform
 
-> **Document Type:** Data Dictionary  
-> **Version:** v0.1 (Draft)  
-> **Status:** 🟡 Draft  
-> **Date:** 2026-07-28  
-> **Author:** Engineering Team  
+> **Document Type:** Data Dictionary
+> **Version:** v0.1 (Draft)
+> **Status:** Draft
+> **Date:** 2026-07-28
+> **Author:** Engineering Team
 
 ---
 
@@ -20,11 +20,11 @@
 
 | Symbol | Meaning |
 |---|---|
-| 🔑 | Primary Key |
-| 🔗 | Foreign Key |
-| 🔒 | Unique constraint |
-| ★ | Indexed column |
-| ✳ | Composite index |
+| | Primary Key |
+| | Foreign Key |
+| | Unique constraint |
+| | Indexed column |
+| | Composite index |
 
 **Column Attribute Abbreviations:**
 
@@ -109,7 +109,7 @@ Prisma Model: `Role`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique role identifier |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique role identifier |
 | `code` | `varchar(50)` | UQ, NN | — | Machine-readable role code (e.g. `ADMIN`) |
 | `name` | `varchar(100)` | UQ, NN | — | Human-readable role name |
 | `description` | `varchar(255)` | — | `NULL` | Optional description |
@@ -137,7 +137,7 @@ Prisma Model: `Permission`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique permission identifier |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique permission identifier |
 | `code` | `varchar(100)` | UQ, NN | — | Machine-readable permission code (e.g. `catalog:product:create`) |
 | `name` | `varchar(100)` | UQ, NN | — | Human-readable permission name |
 | `module` | `varchar(100)` | NN | — | Owning module (e.g. `catalog`, `order`) |
@@ -167,9 +167,9 @@ Prisma Model: `RolePermission`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique row identifier |
-| `role_id` 🔗 | `uuid` | FK → `roles.id`, NN | — | Role reference (CASCADE DELETE) |
-| `permission_id` 🔗 | `uuid` | FK → `permissions.id`, NN | — | Permission reference (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique row identifier |
+| `role_id` | `uuid` | FK → `roles.id`, NN | — | Role reference (CASCADE DELETE) |
+| `permission_id` | `uuid` | FK → `permissions.id`, NN | — | Permission reference (CASCADE DELETE) |
 | `created_by` | `uuid` | — | `NULL` | Audit: creator user ID |
 | `updated_by` | `uuid` | — | `NULL` | Audit: last updater user ID |
 | `created_at` | `timestamptz` | NN | `now()` | Record creation timestamp |
@@ -200,8 +200,8 @@ Prisma Model: `User`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | — | Supabase Auth user UUID (no auto-generate) |
-| `role_id` 🔗 | `uuid` | FK → `roles.id`, NN | — | Assigned role (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | — | Supabase Auth user UUID (no auto-generate) |
+| `role_id` | `uuid` | FK → `roles.id`, NN | — | Assigned role (RESTRICT DELETE) |
 | `first_name` | `varchar(100)` | NN | — | First name |
 | `last_name` | `varchar(100)` | — | `NULL` | Last name (optional) |
 | `phone` | `varchar(15)` | UQ | `NULL` | Mobile phone number |
@@ -236,8 +236,8 @@ Prisma Model: `Address`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique address identifier |
-| `user_id` 🔗 | `uuid` | FK → `users.id`, NN | — | Owning user (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique address identifier |
+| `user_id` | `uuid` | FK → `users.id`, NN | — | Owning user (CASCADE DELETE) |
 | `label` | `varchar(50)` | — | `NULL` | User label (e.g. "Home", "Office") |
 | `receiver_name` | `varchar(100)` | NN | — | Name of the delivery receiver |
 | `receiver_phone` | `varchar(15)` | NN | — | Phone of the delivery receiver |
@@ -276,8 +276,8 @@ Prisma Model: `BusinessOTP`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique OTP record identifier |
-| `user_id` 🔗 | `uuid` | FK → `users.id` | `NULL` | Associated user (nullable for pre-auth OTPs; CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique OTP record identifier |
+| `user_id` | `uuid` | FK → `users.id` | `NULL` | Associated user (nullable for pre-auth OTPs; CASCADE DELETE) |
 | `reference_type` | `business_otp_reference_type` | — | `NULL` | Polymorphic entity type (`ORDER`, `ACCOUNT`) |
 | `reference_id` | `uuid` | — | `NULL` | Polymorphic entity ID |
 | `purpose` | `otp_purpose` | NN | — | Why OTP was generated |
@@ -316,8 +316,8 @@ Prisma Model: `UserSession`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique session identifier |
-| `user_id` 🔗 | `uuid` | FK → `users.id`, NN | — | Session owner (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique session identifier |
+| `user_id` | `uuid` | FK → `users.id`, NN | — | Session owner (CASCADE DELETE) |
 | `device_type` | `device_type` | NN | — | Type of client device |
 | `device_name` | `varchar(255)` | — | `NULL` | Friendly device name |
 | `device_id` | `varchar(255)` | — | `NULL` | Device fingerprint identifier |
@@ -351,8 +351,8 @@ Prisma Model: `Store`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique store identifier |
-| `owner_id` 🔗 | `uuid` | FK → `users.id`, UQ, NN | — | Store owner — one per user (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique store identifier |
+| `owner_id` | `uuid` | FK → `users.id`, UQ, NN | — | Store owner — one per user (RESTRICT DELETE) |
 | `name` | `varchar(150)` | NN | — | Store display name |
 | `slug` | `varchar(180)` | UQ, NN | — | URL-safe store identifier |
 | `description` | `text` | — | `NULL` | Store description |
@@ -374,7 +374,7 @@ Prisma Model: `Store`
 | `status` | `store_status` | NN | `PENDING` | Platform operational status |
 | `verification_status` | `verification_status` | NN | `PENDING` | Document verification status |
 | `verified_at` | `timestamptz(6)` | — | `NULL` | When the store was verified |
-| `verified_by_id` 🔗 | `uuid` | FK → `users.id` | `NULL` | Admin who verified the store (SET NULL) |
+| `verified_by_id` | `uuid` | FK → `users.id` | `NULL` | Admin who verified the store (SET NULL) |
 | `is_open` | `boolean` | NN | `false` | Real-time merchant toggle (pause orders) |
 | `created_by` | `uuid` | — | `NULL` | Audit: creator user ID |
 | `updated_by` | `uuid` | — | `NULL` | Audit: last updater user ID |
@@ -411,8 +411,8 @@ Prisma Model: `StoreImage`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique image record |
-| `store_id` 🔗 | `uuid` | FK → `stores.id`, NN | — | Owner store (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique image record |
+| `store_id` | `uuid` | FK → `stores.id`, NN | — | Owner store (CASCADE DELETE) |
 | `object_key` | `varchar(500)` | NN | — | Object storage key for the image |
 | `display_order` | `integer` | NN | `1` | Display sequence order |
 | `created_by` | `uuid` | — | `NULL` | Audit: creator user ID |
@@ -436,8 +436,8 @@ Prisma Model: `StoreHour`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique store hour record |
-| `store_id` 🔗 | `uuid` | FK → `stores.id`, NN | — | Owner store (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique store hour record |
+| `store_id` | `uuid` | FK → `stores.id`, NN | — | Owner store (CASCADE DELETE) |
 | `week_day` | `week_day` | NN | — | Day of week |
 | `opening_time` | `time(6)` | — | `NULL` | Opening time (null if closed all day) |
 | `closing_time` | `time(6)` | — | `NULL` | Closing time (null if closed all day) |
@@ -470,8 +470,8 @@ Prisma Model: `StoreDeliverySetting`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique settings record |
-| `store_id` 🔗 | `uuid` | FK → `stores.id`, UQ, NN | — | Owner store — one-to-one (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique settings record |
+| `store_id` | `uuid` | FK → `stores.id`, UQ, NN | — | Owner store — one-to-one (CASCADE DELETE) |
 | `is_delivery_available` | `boolean` | NN | `true` | Whether home delivery is offered |
 | `is_pickup_available` | `boolean` | NN | `true` | Whether customer pickup is offered |
 | `minimum_order_amount` | `decimal(10,2)` | NN | `0.00` | Minimum cart value for delivery |
@@ -501,8 +501,8 @@ Prisma Model: `Category`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique category identifier |
-| `parent_category_id` 🔗 | `uuid` | FK → `categories.id` | `NULL` | Parent category (SET NULL on parent delete) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique category identifier |
+| `parent_category_id` | `uuid` | FK → `categories.id` | `NULL` | Parent category (SET NULL on parent delete) |
 | `name` | `varchar(150)` | NN | — | Category display name |
 | `slug` | `varchar(170)` | UQ, NN | — | URL-safe category identifier |
 | `description` | `text` | — | `NULL` | Category description |
@@ -535,7 +535,7 @@ Prisma Model: `Brand`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique brand identifier |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique brand identifier |
 | `name` | `varchar(150)` | NN | — | Brand display name |
 | `slug` | `varchar(170)` | UQ, NN | — | URL-safe brand identifier |
 | `logo_key` | `varchar(500)` | — | `NULL` | Object storage key for brand logo |
@@ -563,7 +563,7 @@ Prisma Model: `Unit`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique unit identifier |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique unit identifier |
 | `name` | `varchar(100)` | UQ, NN | — | Full unit name (e.g. "Kilogram") |
 | `symbol` | `varchar(20)` | UQ, NN | — | Short symbol (e.g. "kg") |
 | `description` | `text` | — | `NULL` | Optional description |
@@ -591,10 +591,10 @@ Prisma Model: `MasterProduct`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique product identifier |
-| `category_id` 🔗 | `uuid` | FK → `categories.id`, NN | — | Product category (RESTRICT DELETE) |
-| `brand_id` 🔗 | `uuid` | FK → `brands.id` | `NULL` | Product brand (SET NULL on delete) |
-| `unit_id` 🔗 | `uuid` | FK → `units.id`, NN | — | Measurement unit (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique product identifier |
+| `category_id` | `uuid` | FK → `categories.id`, NN | — | Product category (RESTRICT DELETE) |
+| `brand_id` | `uuid` | FK → `brands.id` | `NULL` | Product brand (SET NULL on delete) |
+| `unit_id` | `uuid` | FK → `units.id`, NN | — | Measurement unit (RESTRICT DELETE) |
 | `name` | `varchar(200)` | NN | — | Product name |
 | `slug` | `varchar(220)` | UQ, NN | — | URL-safe product identifier |
 | `description` | `text` | — | `NULL` | Product description |
@@ -639,8 +639,8 @@ Prisma Model: `ProductImage`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique image record |
-| `master_product_id` 🔗 | `uuid` | FK → `master_products.id`, NN | — | Owner product (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique image record |
+| `master_product_id` | `uuid` | FK → `master_products.id`, NN | — | Owner product (CASCADE DELETE) |
 | `object_key` | `varchar(500)` | NN | — | Object storage key |
 | `image_type` | `product_image_type` | NN | — | `PRIMARY` or `GALLERY` |
 | `is_primary` | `boolean` | NN | `false` | Whether this is the primary display image |
@@ -667,9 +667,9 @@ Prisma Model: `StoreProduct`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique store product listing |
-| `store_id` 🔗 | `uuid` | FK → `stores.id`, NN | — | Owner store (CASCADE DELETE) |
-| `master_product_id` 🔗 | `uuid` | FK → `master_products.id`, NN | — | Reference product (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique store product listing |
+| `store_id` | `uuid` | FK → `stores.id`, NN | — | Owner store (CASCADE DELETE) |
+| `master_product_id` | `uuid` | FK → `master_products.id`, NN | — | Reference product (RESTRICT DELETE) |
 | `mrp` | `decimal(10,2)` | NN | — | Maximum Retail Price |
 | `selling_price` | `decimal(10,2)` | NN | — | Actual selling price |
 | `availability_status` | `availability_status` | NN | `AVAILABLE` | Stock/availability status |
@@ -709,8 +709,8 @@ Prisma Model: `Inventory`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique inventory record |
-| `store_product_id` 🔗 | `uuid` | FK → `store_products.id`, UQ, NN | — | One-to-one with StoreProduct (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique inventory record |
+| `store_product_id` | `uuid` | FK → `store_products.id`, UQ, NN | — | One-to-one with StoreProduct (CASCADE DELETE) |
 | `stock_quantity` | `integer` | NN | `0` | Current total stock units |
 | `reserved_quantity` | `integer` | NN | `0` | Units reserved for pending orders |
 | `low_stock_threshold` | `integer` | NN | `10` | Alert threshold for low stock |
@@ -743,8 +743,8 @@ Prisma Model: `InventoryTransaction`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique transaction record |
-| `inventory_id` 🔗 | `uuid` | FK → `inventory.id`, NN | — | Associated inventory (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique transaction record |
+| `inventory_id` | `uuid` | FK → `inventory.id`, NN | — | Associated inventory (CASCADE DELETE) |
 | `transaction_type` | `inventory_transaction_type` | NN | — | Type of stock movement |
 | `quantity` | `integer` | NN | — | Units changed (positive = in, negative = out) |
 | `balance_after_transaction` | `integer` | NN | — | Stock balance snapshot after this transaction |
@@ -776,9 +776,9 @@ Prisma Model: `Cart`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique cart identifier |
-| `user_id` 🔗 | `uuid` | FK → `users.id`, NN | — | Cart owner (CASCADE DELETE) |
-| `store_id` 🔗 | `uuid` | FK → `stores.id`, NN | — | Target store (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique cart identifier |
+| `user_id` | `uuid` | FK → `users.id`, NN | — | Cart owner (CASCADE DELETE) |
+| `store_id` | `uuid` | FK → `stores.id`, NN | — | Target store (RESTRICT DELETE) |
 | `status` | `cart_status` | NN | `ACTIVE` | Cart lifecycle status |
 | `subtotal` | `decimal(10,2)` | NN | `0.00` | Sum of all item subtotals |
 | `discount_amount` | `decimal(10,2)` | NN | `0.00` | Total discount applied |
@@ -820,9 +820,9 @@ Prisma Model: `CartItem`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique cart item |
-| `cart_id` 🔗 | `uuid` | FK → `carts.id`, NN | — | Parent cart (CASCADE DELETE) |
-| `store_product_id` 🔗 | `uuid` | FK → `store_products.id`, NN | — | Listed product (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique cart item |
+| `cart_id` | `uuid` | FK → `carts.id`, NN | — | Parent cart (CASCADE DELETE) |
+| `store_product_id` | `uuid` | FK → `store_products.id`, NN | — | Listed product (RESTRICT DELETE) |
 | `quantity` | `integer` | NN | — | Quantity added |
 | `product_name_snapshot` | `varchar(200)` | NN | — | Product name at time of add |
 | `unit_snapshot` | `varchar(50)` | NN | — | Unit description at time of add |
@@ -858,8 +858,8 @@ Prisma Model: `Wishlist`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique wishlist identifier |
-| `user_id` 🔗 | `uuid` | FK → `users.id`, NN | — | Wishlist owner (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique wishlist identifier |
+| `user_id` | `uuid` | FK → `users.id`, NN | — | Wishlist owner (CASCADE DELETE) |
 | `name` | `varchar(100)` | NN | — | Wishlist name |
 | `is_default` | `boolean` | NN | `false` | Whether this is the user's default wishlist |
 | `created_by` | `uuid` | — | `NULL` | Audit: creator user ID |
@@ -891,9 +891,9 @@ Prisma Model: `WishlistItem`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique wishlist item |
-| `wishlist_id` 🔗 | `uuid` | FK → `wishlists.id`, NN | — | Parent wishlist (CASCADE DELETE) |
-| `store_product_id` 🔗 | `uuid` | FK → `store_products.id`, NN | — | Bookmarked product (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique wishlist item |
+| `wishlist_id` | `uuid` | FK → `wishlists.id`, NN | — | Parent wishlist (CASCADE DELETE) |
+| `store_product_id` | `uuid` | FK → `store_products.id`, NN | — | Bookmarked product (RESTRICT DELETE) |
 | `created_by` | `uuid` | — | `NULL` | Audit: creator user ID |
 | `created_at` | `timestamptz(6)` | NN | `now()` | Bookmark timestamp |
 
@@ -921,10 +921,10 @@ Prisma Model: `Order`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique order identifier |
-| `user_id` 🔗 | `uuid` | FK → `users.id`, NN | — | Order placer (RESTRICT DELETE) |
-| `store_id` 🔗 | `uuid` | FK → `stores.id`, NN | — | Order target store (RESTRICT DELETE) |
-| `address_id` 🔗 | `uuid` | FK → `addresses.id`, NN | — | Delivery address reference (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique order identifier |
+| `user_id` | `uuid` | FK → `users.id`, NN | — | Order placer (RESTRICT DELETE) |
+| `store_id` | `uuid` | FK → `stores.id`, NN | — | Order target store (RESTRICT DELETE) |
+| `address_id` | `uuid` | FK → `addresses.id`, NN | — | Delivery address reference (RESTRICT DELETE) |
 | `order_number` | `varchar(50)` | UQ, NN | — | Human-readable order number |
 | `status` | `order_status` | NN | `PENDING` | Order lifecycle status |
 | `payment_status` | `payment_status` | NN | `PENDING` | Payment lifecycle status |
@@ -984,9 +984,9 @@ Prisma Model: `OrderItem`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique order item |
-| `order_id` 🔗 | `uuid` | FK → `orders.id`, NN | — | Parent order (CASCADE DELETE) |
-| `store_product_id` 🔗 | `uuid` | FK → `store_products.id`, NN | — | Ordered product (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique order item |
+| `order_id` | `uuid` | FK → `orders.id`, NN | — | Parent order (CASCADE DELETE) |
+| `store_product_id` | `uuid` | FK → `store_products.id`, NN | — | Ordered product (RESTRICT DELETE) |
 | `quantity` | `integer` | NN | — | Ordered quantity |
 | `product_name_snapshot` | `varchar(200)` | NN | — | **Snapshot**: product name at placement |
 | `unit_snapshot` | `varchar(50)` | NN | — | **Snapshot**: unit at placement |
@@ -1016,9 +1016,9 @@ Prisma Model: `OrderItemReplacement`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique replacement record |
-| `order_item_id` 🔗 | `uuid` | FK → `order_items.id`, NN | — | Original item (CASCADE DELETE) |
-| `replacement_store_product_id` 🔗 | `uuid` | FK → `store_products.id`, NN | — | Proposed replacement product (RESTRICT DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique replacement record |
+| `order_item_id` | `uuid` | FK → `order_items.id`, NN | — | Original item (CASCADE DELETE) |
+| `replacement_store_product_id` | `uuid` | FK → `store_products.id`, NN | — | Proposed replacement product (RESTRICT DELETE) |
 | `status` | `replacement_status` | NN | `PENDING` | Replacement decision status |
 | `replacement_product_name_snapshot` | `varchar(200)` | NN | — | **Snapshot**: replacement product name |
 | `replacement_unit_snapshot` | `varchar(50)` | NN | — | **Snapshot**: replacement unit |
@@ -1053,8 +1053,8 @@ Prisma Model: `OrderStatusHistory`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique history record |
-| `order_id` 🔗 | `uuid` | FK → `orders.id`, NN | — | Associated order (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique history record |
+| `order_id` | `uuid` | FK → `orders.id`, NN | — | Associated order (CASCADE DELETE) |
 | `previous_status` | `order_status` | — | `NULL` | Status before transition (null for initial) |
 | `new_status` | `order_status` | NN | — | Status after transition |
 | `remarks` | `text` | — | `NULL` | Optional transition remarks |
@@ -1079,8 +1079,8 @@ Prisma Model: `OrderNote`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique note record |
-| `order_id` 🔗 | `uuid` | FK → `orders.id`, NN | — | Associated order (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique note record |
+| `order_id` | `uuid` | FK → `orders.id`, NN | — | Associated order (CASCADE DELETE) |
 | `note_type` | `order_note_type` | NN | — | Who wrote the note |
 | `note` | `text` | NN | — | Note content |
 | `created_by` | `uuid` | — | `NULL` | Who wrote the note |
@@ -1104,8 +1104,8 @@ Prisma Model: `Payment`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique payment record |
-| `order_id` 🔗 | `uuid` | FK → `orders.id`, UQ, NN | — | One-to-one with Order (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique payment record |
+| `order_id` | `uuid` | FK → `orders.id`, UQ, NN | — | One-to-one with Order (CASCADE DELETE) |
 | `payment_method` | `payment_method` | NN | — | Payment method used |
 | `payment_status` | `payment_status` | NN | `PENDING` | Aggregated payment status |
 | `gateway` | `payment_gateway` | NN | — | Payment gateway used |
@@ -1141,8 +1141,8 @@ Prisma Model: `PaymentTransaction`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique transaction record |
-| `payment_id` 🔗 | `uuid` | FK → `payments.id`, NN | — | Parent payment (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique transaction record |
+| `payment_id` | `uuid` | FK → `payments.id`, NN | — | Parent payment (CASCADE DELETE) |
 | `gateway` | `payment_gateway` | NN | — | Gateway used for this attempt |
 | `gateway_order_id` | `varchar(255)` | — | `NULL` | Gateway's order ID (e.g. Razorpay order) |
 | `gateway_payment_id` | `varchar(255)` | — | `NULL` | Gateway's payment ID after charge |
@@ -1184,8 +1184,8 @@ Prisma Model: `Refund`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique refund record |
-| `payment_id` 🔗 | `uuid` | FK → `payments.id`, NN | — | Parent payment (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique refund record |
+| `payment_id` | `uuid` | FK → `payments.id`, NN | — | Parent payment (CASCADE DELETE) |
 | `refund_amount` | `decimal(10,2)` | NN | — | Amount to be refunded |
 | `refund_status` | `refund_status` | NN | `PENDING` | Refund processing status |
 | `gateway_refund_id` | `varchar(255)` | — | `NULL` | Gateway's refund reference ID |
@@ -1215,8 +1215,8 @@ Prisma Model: `PaymentWebhook`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique webhook event record |
-| `payment_id` 🔗 | `uuid` | FK → `payments.id`, NN | — | Associated payment (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique webhook event record |
+| `payment_id` | `uuid` | FK → `payments.id`, NN | — | Associated payment (CASCADE DELETE) |
 | `gateway_event_id` | `varchar(255)` | UQ, NN | — | Gateway's unique event ID (idempotency key) |
 | `event_type` | `varchar(100)` | NN | — | Gateway event type (e.g. `payment.captured`) |
 | `payload` | `jsonb` | NN | — | Full raw webhook payload |
@@ -1245,8 +1245,8 @@ Prisma Model: `FinancialDocument`
 
 | Column | DB Type | Constraints | Default | Description |
 |---|---|---|---|---|
-| `id` 🔑 | `uuid` | PK, NN | `gen_random_uuid()` | Unique document record |
-| `order_id` 🔗 | `uuid` | FK → `orders.id`, NN | — | Associated order (CASCADE DELETE) |
+| `id` | `uuid` | PK, NN | `gen_random_uuid()` | Unique document record |
+| `order_id` | `uuid` | FK → `orders.id`, NN | — | Associated order (CASCADE DELETE) |
 | `document_type` | `financial_document_type` | NN | — | Type of financial document |
 | `document_number` | `varchar(100)` | UQ, NN | — | Sequential document number (tax-compliant) |
 | `pdf_key` | `varchar(500)` | NN | — | Object storage key for PDF file |

@@ -8,53 +8,53 @@
 
 ```mermaid
 graph TB
-    subgraph Client["Client Layer (Planned)"]
-        WEB[Web App]
-        MOB[Mobile App]
-    end
+ subgraph Client["Client Layer (Planned)"]
+ WEB[Web App]
+ MOB[Mobile App]
+ end
 
-    subgraph API["API Layer — NestJS Server :3000"]
-        MAIN[main.ts · Bootstrap]
-        APP[AppModule · Root]
+ subgraph API["API Layer — NestJS Server :3000"]
+ MAIN[main.ts · Bootstrap]
+ APP[AppModule · Root]
 
-        subgraph Modules["Feature Modules"]
-            AUTH[Auth Module]
-            STORE[Store Module]
-            CATALOG[Catalog Module]
-            CART[Cart Module]
-            ORDER[Order Module]
-            PAYMENT[Payment Module]
-        end
+ subgraph Modules["Feature Modules"]
+ AUTH[Auth Module]
+ STORE[Store Module]
+ CATALOG[Catalog Module]
+ CART[Cart Module]
+ ORDER[Order Module]
+ PAYMENT[Payment Module]
+ end
 
-        subgraph CrossCutting["Cross-Cutting Concerns"]
-            GUARD[JWT Guard · Role Guard]
-            PIPE[Validation Pipes]
-            FILTER[Exception Filters]
-            INTER[Interceptors]
-        end
+ subgraph CrossCutting["Cross-Cutting Concerns"]
+ GUARD[JWT Guard · Role Guard]
+ PIPE[Validation Pipes]
+ FILTER[Exception Filters]
+ INTER[Interceptors]
+ end
 
-        subgraph Infra["Infrastructure"]
-            QUEUE[BullMQ · Job Queues]
-            WS[Socket.io · WebSockets]
-            SWAGGER[Swagger · API Docs]
-        end
-    end
+ subgraph Infra["Infrastructure"]
+ QUEUE[BullMQ · Job Queues]
+ WS[Socket.io · WebSockets]
+ SWAGGER[Swagger · API Docs]
+ end
+ end
 
-    subgraph DataLayer["Data Layer"]
-        PRISMA[Prisma ORM]
-        PG[(PostgreSQL\naaspass DB)]
-        REDIS[(Redis)]
-    end
+ subgraph DataLayer["Data Layer"]
+ PRISMA[Prisma ORM]
+ PG[(PostgreSQL\naaspass DB)]
+ REDIS[(Redis)]
+ end
 
-    WEB --> API
-    MOB --> API
-    MAIN --> APP
-    APP --> Modules
-    APP --> CrossCutting
-    APP --> Infra
-    Modules --> PRISMA
-    QUEUE --> REDIS
-    PRISMA --> PG
+ WEB --> API
+ MOB --> API
+ MAIN --> APP
+ APP --> Modules
+ APP --> CrossCutting
+ APP --> Infra
+ Modules --> PRISMA
+ QUEUE --> REDIS
+ PRISMA --> PG
 ```
 
 ---
@@ -65,69 +65,69 @@ Every HTTP request passes through this pipeline before reaching a controller:
 
 ```
 Incoming HTTP Request
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Helmet             │  ← Security headers (XSS, CSRF, etc.)
+│ Helmet │ ← Security headers (XSS, CSRF, etc.)
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Rate Limiter       │  ← Throttle abuse (e.g. 100 req/min)
+│ Rate Limiter │ ← Throttle abuse (e.g. 100 req/min)
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Cookie Parser      │  ← Parse HTTP-only cookies
+│ Cookie Parser │ ← Parse HTTP-only cookies
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Compression        │  ← gzip response body
+│ Compression │ ← gzip response body
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  NestJS Router      │  ← Match route to controller
+│ NestJS Router │ ← Match route to controller
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  JWT Guard          │  ← Verify access token
+│ JWT Guard │ ← Verify access token
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Role Guard         │  ← Check user role/permissions (RBAC)
+│ Role Guard │ ← Check user role/permissions (RBAC)
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Validation Pipe    │  ← class-validator DTO validation
+│ Validation Pipe │ ← class-validator DTO validation
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Controller         │  ← Handle request, call service
+│ Controller │ ← Handle request, call service
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Service            │  ← Business logic
+│ Service │ ← Business logic
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Prisma             │  ← Database query
+│ Prisma │ ← Database query
 └─────────────────────┘
-        │
-        ▼
+ │
+ ▼
 ┌─────────────────────┐
-│  Response Interceptor│  ← Transform / wrap response
+│ Response Interceptor│ ← Transform / wrap response
 └─────────────────────┘
-        │
-        ▼
-   HTTP Response
+ │
+ ▼
+ HTTP Response
 ```
 
 ---
@@ -145,9 +145,9 @@ Incoming HTTP Request
 - **Role:** Cache store + BullMQ backend
 - **Connection:** `localhost:6379` (default)
 - **Used for:**
-  - Background job queues (BullMQ)
-  - Guest cart session storage (planned)
-  - Token revocation cache (optional — primary revocation is DB-based via `RefreshToken.revokedAt`)
+ - Background job queues (BullMQ)
+ - Guest cart session storage (planned)
+ - Token revocation cache (optional — primary revocation is DB-based via `RefreshToken.revokedAt`)
 
 ### BullMQ (Job Queues)
 

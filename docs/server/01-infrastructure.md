@@ -10,10 +10,10 @@ The server is bootstrapped using `NestFactory.create(AppModule)`. The port is re
 
 ```
 bootstrap():
-  1. NestFactory.create(AppModule)
-  2. configService.get('app.port', 3000)
-  3. app.listen(port)
-  4. console.log(`Server running on http://localhost:${port}`)
+ 1. NestFactory.create(AppModule)
+ 2. configService.get('app.port', 3000)
+ 3. app.listen(port)
+ 4. console.log(`Server running on http://localhost:${port}`)
 ```
 
 No global prefix, global pipe, or versioning is applied at this stage. These will be added when feature modules introduce API routes.
@@ -28,10 +28,10 @@ All environment variables are validated at startup using **Zod**. If any require
 |---|---|---|---|---|
 | `NODE_ENV` | `development` \| `production` \| `test` | No | `development` | Controls environment-specific behaviour |
 | `PORT` | positive integer | No | `3000` | HTTP server port |
-| `DATABASE_URL` | URL string | ✅ Yes | — | PostgreSQL connection string |
-| `SUPABASE_URL` | URL string | ✅ Yes | — | Supabase project URL |
-| `SUPABASE_ANON_KEY` | string (min 1) | ✅ Yes | — | Public anonymous API key |
-| `SUPABASE_SERVICE_ROLE_KEY` | string (min 1) | ✅ Yes | — | Admin service role key (bypasses RLS) |
+| `DATABASE_URL` | URL string | Yes | — | PostgreSQL connection string |
+| `SUPABASE_URL` | URL string | Yes | — | Supabase project URL |
+| `SUPABASE_ANON_KEY` | string (min 1) | Yes | — | Public anonymous API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | string (min 1) | Yes | — | Admin service role key (bypasses RLS) |
 
 ---
 
@@ -56,14 +56,14 @@ All namespaces are aggregated in `src/config/index.ts` and loaded into `ConfigMo
 
 ```
 AppModule
-  ├── ConfigModule   (isGlobal: true, cache: true, expandVariables: true)
-  ├── PrismaModule   (global — provides PrismaService everywhere)
-  ├── SupabaseModule (global — provides SupabaseService everywhere)
-  ├── AuthModule     (authentication — token verification, user sync)
-  ├── UsersModule    (user self-management — profile, session management)
-  ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
-  ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
-  └── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
+ ├── ConfigModule (isGlobal: true, cache: true, expandVariables: true)
+ ├── PrismaModule (global — provides PrismaService everywhere)
+ ├── SupabaseModule (global — provides SupabaseService everywhere)
+ ├── AuthModule (authentication — token verification, user sync)
+ ├── UsersModule (user self-management — profile, session management)
+ ├── StoresModule (store owner self-management — profile, hours, delivery, images)
+ ├── CatalogModule (catalog master data — categories, brands, units, master products, product images, store products)
+ └── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
 ```
 
 `WishlistModule` is fully implemented and TypeScript-clean but is not yet added to the `AppModule` imports array — its routes are not active until it is wired in.
@@ -78,7 +78,7 @@ A single root controller exposing one public endpoint:
 
 | Method | Path | Auth Required | Response |
 |---|---|---|---|
-| `GET` | `/` | No | `{ success: true, message: 'aasPass Backend is running successfully 🚀' }` |
+| `GET` | `/` | No | `{ success: true, message: 'aasPass Backend is running successfully ' }` |
 
 This endpoint serves as a basic liveness probe. No guard, no authentication.
 
@@ -95,10 +95,10 @@ Prisma v7 no longer accepts an empty `super()` constructor. The database connect
 ```
 1. new Pool({ connectionString: process.env.DATABASE_URL })
 2. new PrismaPg(pool)
-3. super({ adapter })                  — Prisma 7 constructor
-4. OnModuleInit  → $connect()
+3. super({ adapter }) — Prisma 7 constructor
+4. OnModuleInit → $connect()
 5. OnModuleDestroy → $disconnect()
-                  → pool.end()         — prevents connection leaks
+ → pool.end() — prevents connection leaks
 ```
 
 ### `PrismaModule` Registration

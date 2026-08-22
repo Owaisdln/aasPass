@@ -1,10 +1,10 @@
 # Low Level Design (LLD) — aasPass Platform
 
-> **Document Type:** Low Level Design  
-> **Version:** v0.1 (Draft)  
-> **Status:** 🟡 Draft  
-> **Date:** 2026-07-28  
-> **Author:** Engineering Team  
+> **Document Type:** Low Level Design
+> **Version:** v0.1 (Draft)
+> **Status:** Draft
+> **Date:** 2026-07-28
+> **Author:** Engineering Team
 
 ---
 
@@ -60,71 +60,71 @@ The LLD is organized by the same 6-module decomposition used in the codebase:
 ```
 server/
 ├── src/
-│   ├── main.ts                     # Bootstrap: NestFactory.create, port binding
-│   ├── app.module.ts               # Root module: ConfigModule, PrismaModule, SupabaseModule, AuthModule, UsersModule, StoresModule, CatalogModule, InventoryModule
-│   ├── app.controller.ts           # Root controller: GET / health check
-│   ├── config/
-│   │   ├── app.config.ts           # app.port, app.nodeEnv
-│   │   ├── database.config.ts      # database.url namespace
-│   │   ├── supabase.config.ts      # supabase.url, anonKey, serviceRoleKey
-│   │   ├── env.validation.ts       # Zod schema for all required env vars
-│   │   └── index.ts                # Aggregates all config factories
-│   ├── infrastructure/
-│   │   ├── prisma/
-│   │   │   ├── prisma.service.ts   # PrismaClient extension with pg Pool adapter
-│   │   │   └── prisma.module.ts    # Global PrismaModule
-│   │   └── supabase/
-│   │       ├── supabase.service.ts # anonClient + adminClient + verifyAccessToken + getUserById
-│   │       └── supabase.module.ts  # Global SupabaseModule
-│   ├── common/
-│   │   ├── identity/
-│   │   │   └── current-user.model.ts # CurrentUser domain identity model (RBAC, status)
-│   │   └── parsers/
-│   │       └── browser.parser.ts   # User-agent parser using bowser
-│   ├── shared/                     # (reserved) Shared DTOs, utilities
-│   └── modules/
-│       ├── auth/                   # Authentication feature module
-│       │   ├── auth.module.ts      # AuthModule registration
-│       │   ├── controllers/
-│       │   │   └── auth.controller.ts # AuthController: GET /auth/me
-│       │   ├── decorators/
-│       │   │   └── authenticated-user.decorator.ts # @AuthenticatedUser() param decorator
-│       │   ├── guards/
-│       │   │   └── supabase-auth.guard.ts # SupabaseAuthGuard (Bearer token validation)
-│       │   └── services/
-│       │       └── auth.service.ts # AuthService: authenticate(), user sync & RBAC loading
-│       ├── authorization/          # Authorization & RBAC feature module
-│       │   ├── authorization.module.ts
-│       │   ├── constants/
-│       │   │   └── metadata.constants.ts
-│       │   ├── decorators/
-│       │   │   ├── public.decorator.ts
-│       │   │   ├── roles.decorator.ts
-│       │   │   ├── permissions.decorator.ts
-│       │   │   └── any-permission.decorator.ts
-│       │   ├── guards/
-│       │   │   ├── roles.guard.ts
-│       │   │   ├── permissions.guard.ts
-│       │   │   └── any-permission.guard.ts
-│       │   ├── interfaces/
-│       │   │   └── permissions-provider.interface.ts
-│       │   └── providers/
-│       │       └── prisma-permissions.provider.ts
-│       ├── users/                  # User self-management module
-│       ├── stores/                 # Store owner management module
-│       ├── catalog/                # Product catalog module (6 sub-domains)
-│       ├── inventory/              # Inventory & stock management module
-│       └── wishlist/               # Wishlist module (pending AppModule registration)
+│ ├── main.ts # Bootstrap: NestFactory.create, port binding
+│ ├── app.module.ts # Root module: ConfigModule, PrismaModule, SupabaseModule, AuthModule, UsersModule, StoresModule, CatalogModule, InventoryModule
+│ ├── app.controller.ts # Root controller: GET / health check
+│ ├── config/
+│ │ ├── app.config.ts # app.port, app.nodeEnv
+│ │ ├── database.config.ts # database.url namespace
+│ │ ├── supabase.config.ts # supabase.url, anonKey, serviceRoleKey
+│ │ ├── env.validation.ts # Zod schema for all required env vars
+│ │ └── index.ts # Aggregates all config factories
+│ ├── infrastructure/
+│ │ ├── prisma/
+│ │ │ ├── prisma.service.ts # PrismaClient extension with pg Pool adapter
+│ │ │ └── prisma.module.ts # Global PrismaModule
+│ │ └── supabase/
+│ │ ├── supabase.service.ts # anonClient + adminClient + verifyAccessToken + getUserById
+│ │ └── supabase.module.ts # Global SupabaseModule
+│ ├── common/
+│ │ ├── identity/
+│ │ │ └── current-user.model.ts # CurrentUser domain identity model (RBAC, status)
+│ │ └── parsers/
+│ │ └── browser.parser.ts # User-agent parser using bowser
+│ ├── shared/ # (reserved) Shared DTOs, utilities
+│ └── modules/
+│ ├── auth/ # Authentication feature module
+│ │ ├── auth.module.ts # AuthModule registration
+│ │ ├── controllers/
+│ │ │ └── auth.controller.ts # AuthController: GET /auth/me
+│ │ ├── decorators/
+│ │ │ └── authenticated-user.decorator.ts # @AuthenticatedUser() param decorator
+│ │ ├── guards/
+│ │ │ └── supabase-auth.guard.ts # SupabaseAuthGuard (Bearer token validation)
+│ │ └── services/
+│ │ └── auth.service.ts # AuthService: authenticate(), user sync & RBAC loading
+│ ├── authorization/ # Authorization & RBAC feature module
+│ │ ├── authorization.module.ts
+│ │ ├── constants/
+│ │ │ └── metadata.constants.ts
+│ │ ├── decorators/
+│ │ │ ├── public.decorator.ts
+│ │ │ ├── roles.decorator.ts
+│ │ │ ├── permissions.decorator.ts
+│ │ │ └── any-permission.decorator.ts
+│ │ ├── guards/
+│ │ │ ├── roles.guard.ts
+│ │ │ ├── permissions.guard.ts
+│ │ │ └── any-permission.guard.ts
+│ │ ├── interfaces/
+│ │ │ └── permissions-provider.interface.ts
+│ │ └── providers/
+│ │ └── prisma-permissions.provider.ts
+│ ├── users/ # User self-management module
+│ ├── stores/ # Store owner management module
+│ ├── catalog/ # Product catalog module (6 sub-domains)
+│ ├── inventory/ # Inventory & stock management module
+│ └── wishlist/ # Wishlist module (pending AppModule registration)
 ├── prisma/
-│   ├── schema.prisma               # Aggregated Prisma schema (main entry)
-│   ├── prisma.config.ts            # Prisma CLI config (datasource URL)
-│   └── modules/
-│       ├── module1.auth.prisma     # IAM — Roles, Users, OTP, Sessions
-│       ├── module2.store.prisma    # Store, Hours, Delivery Settings
-│       ├── module3.catalog.prisma  # Categories, Brands, Products, Inventory
-│       ├── module4.cart.prisma     # Carts, CartItems, Wishlists
-│       ├── module5.order.prisma    # Orders, Items, Replacements, History
-│       └── module6.payment.prisma  # Payments, Transactions, Refunds, Webhooks
+│ ├── schema.prisma # Aggregated Prisma schema (main entry)
+│ ├── prisma.config.ts # Prisma CLI config (datasource URL)
+│ └── modules/
+│ ├── module1.auth.prisma # IAM — Roles, Users, OTP, Sessions
+│ ├── module2.store.prisma # Store, Hours, Delivery Settings
+│ ├── module3.catalog.prisma # Categories, Brands, Products, Inventory
+│ ├── module4.cart.prisma # Carts, CartItems, Wishlists
+│ ├── module5.order.prisma # Orders, Items, Replacements, History
+│ └── module6.payment.prisma # Payments, Transactions, Refunds, Webhooks
 ```
 
 
@@ -147,14 +147,14 @@ await app.listen(port);
 
 ```
 AppModule
-  ├── ConfigModule  (isGlobal: true, cache: true, expandVariables: true)
-  ├── PrismaModule  (global provider)
-  ├── SupabaseModule
-  ├── AuthModule
-  ├── UsersModule
-  ├── StoresModule
-  ├── CatalogModule
-  └── InventoryModule
+ ├── ConfigModule (isGlobal: true, cache: true, expandVariables: true)
+ ├── PrismaModule (global provider)
+ ├── SupabaseModule
+ ├── AuthModule
+ ├── UsersModule
+ ├── StoresModule
+ ├── CatalogModule
+ └── InventoryModule
 ```
 
 `WishlistModule` is implemented but not yet registered in `AppModule` — its routes are inactive.
@@ -193,11 +193,11 @@ Prisma v7 requires an explicit driver adapter — the datasource block in `schem
 
 ```
 PrismaService constructor flow:
-  1. Create pg.Pool from process.env.DATABASE_URL
-  2. Wrap in PrismaPg adapter
-  3. Pass { adapter } to super() — Prisma 7 constructor signature
-  4. OnModuleInit  → $connect()
-  5. OnModuleDestroy → $disconnect() + pool.end()   ← prevents connection leaks
+ 1. Create pg.Pool from process.env.DATABASE_URL
+ 2. Wrap in PrismaPg adapter
+ 3. Pass { adapter } to super() — Prisma 7 constructor signature
+ 4. OnModuleInit → $connect()
+ 5. OnModuleDestroy → $disconnect() + pool.end() ← prevents connection leaks
 ```
 
 ### 4.6 Supabase Clients & Token Verification (`src/infrastructure/supabase/supabase.service.ts`)
@@ -331,17 +331,17 @@ Core authentication service coordinating Supabase JWT validation and local Postg
 #### 6.5.5 `AuthorizationModule` — RBAC & Permissions (`src/modules/authorization/`)
 Provides declarative, metadata-driven authorization via NestJS Reflector:
 - **Decorators:**
-  - `@Public()` (`public.decorator.ts`): Bypasses authorization requirements.
-  - `@Roles(...roles)` (`roles.decorator.ts`): Attaches required role codes.
-  - `@Permissions(...permissions)` (`permissions.decorator.ts`): Attaches required permission codes (AND logic).
-  - `@AnyPermission(...permissions)` (`any-permission.decorator.ts`): Attaches required permission codes (OR logic).
+ - `@Public()` (`public.decorator.ts`): Bypasses authorization requirements.
+ - `@Roles(...roles)` (`roles.decorator.ts`): Attaches required role codes.
+ - `@Permissions(...permissions)` (`permissions.decorator.ts`): Attaches required permission codes (AND logic).
+ - `@AnyPermission(...permissions)` (`any-permission.decorator.ts`): Attaches required permission codes (OR logic).
 - **Guards:**
-  - `RolesGuard` (`roles.guard.ts`): Evaluates `@Roles()` metadata against `currentUser.hasRole(role)`.
-  - `PermissionsGuard` (`permissions.guard.ts`): Evaluates `@Permissions()` metadata against `currentUser.hasPermission(permission)` (every permission must match).
-  - `AnyPermissionGuard` (`any-permission.guard.ts`): Evaluates `@AnyPermission()` metadata against `currentUser.hasPermission(permission)` (at least one must match).
+ - `RolesGuard` (`roles.guard.ts`): Evaluates `@Roles()` metadata against `currentUser.hasRole(role)`.
+ - `PermissionsGuard` (`permissions.guard.ts`): Evaluates `@Permissions()` metadata against `currentUser.hasPermission(permission)` (every permission must match).
+ - `AnyPermissionGuard` (`any-permission.guard.ts`): Evaluates `@AnyPermission()` metadata against `currentUser.hasPermission(permission)` (at least one must match).
 - **Providers:**
-  - `PermissionsProvider` (`interfaces/permissions-provider.interface.ts`): Abstract contract defining `getPermissionsForRole(roleId: string): Promise<string[]>`.
-  - `PrismaPermissionsProvider` (`providers/prisma-permissions.provider.ts`): Concrete database implementation fetching role permission codes via `PrismaService`.
+ - `PermissionsProvider` (`interfaces/permissions-provider.interface.ts`): Abstract contract defining `getPermissionsForRole(roleId: string): Promise<string[]>`.
+ - `PrismaPermissionsProvider` (`providers/prisma-permissions.provider.ts`): Concrete database implementation fetching role permission codes via `PrismaService`.
 
 ---
 
@@ -363,8 +363,8 @@ A store has two independent status axes:
 A customer can only checkout from a store if **all three** conditions are true:
 ```
 CanCheckout = (Store.status == ACTIVE)
-           AND (Store.isOpen == true)
-           AND (CurrentTime is within today's StoreHour window)
+ AND (Store.isOpen == true)
+ AND (CurrentTime is within today's StoreHour window)
 ```
 `isOpen` is a real-time merchant toggle (e.g., disable during rush hours). `StoreStatus` is the platform lifecycle. `StoreHour` is the scheduled availability.
 
@@ -495,9 +495,9 @@ This means if the store later changes its price, the cart item continues to disp
 
 #### 9.1.4 Cart Status Lifecycle
 ```
-ACTIVE → CHECKED_OUT  (on successful order placement)
-ACTIVE → ABANDONED    (background job after TTL)
-ACTIVE → EXPIRED      (system cleanup)
+ACTIVE → CHECKED_OUT (on successful order placement)
+ACTIVE → ABANDONED (background job after TTL)
+ACTIVE → EXPIRED (system cleanup)
 ```
 
 ### 9.2 Models
@@ -661,46 +661,46 @@ Order ──< FinancialDocument
 
 ```
 User has ACTIVE Cart
-         │
-         ▼
+ │
+ ▼
 [Checkout Service]
-  - Validate Store.status == ACTIVE && Store.isOpen == true
-  - Validate StoreHour for today
-  - Validate each CartItem still has sufficient inventory
-    (StoreProduct.availabilityStatus == AVAILABLE)
-    (Inventory.stockQuantity - Inventory.reservedQuantity >= qty)
-         │
-         ▼
+ - Validate Store.status == ACTIVE && Store.isOpen == true
+ - Validate StoreHour for today
+ - Validate each CartItem still has sufficient inventory
+ (StoreProduct.availabilityStatus == AVAILABLE)
+ (Inventory.stockQuantity - Inventory.reservedQuantity >= qty)
+ │
+ ▼
 [Order Creation — DB Transaction]
-  - Create Order (snapshot delivery address from Address)
-  - Create OrderItems (snapshot pricing from CartItem snapshots)
-  - Increment Inventory.reservedQuantity per item
-  - Increment Inventory.version (OCC)
-  - Create Payment record (status: PENDING)
-  - Update Cart.status = CHECKED_OUT
-         │
-         ▼
+ - Create Order (snapshot delivery address from Address)
+ - Create OrderItems (snapshot pricing from CartItem snapshots)
+ - Increment Inventory.reservedQuantity per item
+ - Increment Inventory.version (OCC)
+ - Create Payment record (status: PENDING)
+ - Update Cart.status = CHECKED_OUT
+ │
+ ▼
 [Payment Gateway]
-  - Create PaymentTransaction (status: INITIATED)
-  - If success: PaymentTransaction.status = SUCCESS
-                Payment.paidAmount updated
-                Payment.paymentStatus = PAID
-                Order.paymentStatus = PAID
-  - If failure: PaymentTransaction.status = FAILED
-                New retry transaction may be appended
+ - Create PaymentTransaction (status: INITIATED)
+ - If success: PaymentTransaction.status = SUCCESS
+ Payment.paidAmount updated
+ Payment.paymentStatus = PAID
+ Order.paymentStatus = PAID
+ - If failure: PaymentTransaction.status = FAILED
+ New retry transaction may be appended
 ```
 
 ### 12.2 Inventory Adjustment Flow
 
 ```
 Order confirmed:
-  Inventory.stockQuantity    -= ordered_qty
-  Inventory.reservedQuantity -= ordered_qty
-  Append InventoryTransaction (type: SALE, quantity: -N, balanceAfterTransaction: X)
+ Inventory.stockQuantity -= ordered_qty
+ Inventory.reservedQuantity -= ordered_qty
+ Append InventoryTransaction (type: SALE, quantity: -N, balanceAfterTransaction: X)
 
 Order cancelled:
-  Inventory.reservedQuantity -= cancelled_qty
-  Append InventoryTransaction (type: RETURN, quantity: +N)
+ Inventory.reservedQuantity -= cancelled_qty
+ Append InventoryTransaction (type: RETURN, quantity: +N)
 ```
 
 ---

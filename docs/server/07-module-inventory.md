@@ -20,19 +20,19 @@ All routes are scoped to the authenticated user's **own store** and are protecte
 src/modules/inventory/
 ├── inventory.module.ts
 ├── controllers/
-│   └── inventory.controller.ts
+│ └── inventory.controller.ts
 ├── dto/
-│   ├── create-inventory.dto.ts
-│   ├── update-inventory.dto.ts
-│   ├── adjust-inventory.dto.ts
-│   ├── inventory-response.dto.ts
-│   └── inventory-transaction-response.dto.ts
+│ ├── create-inventory.dto.ts
+│ ├── update-inventory.dto.ts
+│ ├── adjust-inventory.dto.ts
+│ ├── inventory-response.dto.ts
+│ └── inventory-transaction-response.dto.ts
 ├── mappers/
-│   └── inventory.mapper.ts
+│ └── inventory.mapper.ts
 ├── services/
-│   └── inventory.service.ts
+│ └── inventory.service.ts
 └── types/
-    └── inventory.types.ts
+ └── inventory.types.ts
 ```
 
 ---
@@ -56,9 +56,9 @@ src/modules/inventory/
 
 ```typescript
 export const INVENTORY_WITH_TRANSACTIONS_INCLUDE = {
-  transactions: {
-    orderBy: { createdAt: 'desc' },
-  },
+ transactions: {
+ orderBy: { createdAt: 'desc' },
+ },
 } as const satisfies Prisma.InventoryInclude;
 ```
 
@@ -66,7 +66,7 @@ export const INVENTORY_WITH_TRANSACTIONS_INCLUDE = {
 
 ```typescript
 export type InventoryWithTransactions = Prisma.InventoryGetPayload<{
-  include: typeof INVENTORY_WITH_TRANSACTIONS_INCLUDE;
+ include: typeof INVENTORY_WITH_TRANSACTIONS_INCLUDE;
 }>;
 ```
 

@@ -32,16 +32,16 @@
 ### Token Rotation Flow
 
 ```
-Client                         Server
-  |                               |
-  |-- POST /auth/refresh -------->|
-  |   (sends refresh token)       |
-  |                               |-- Hash incoming refresh token
-  |                               |-- Look up RefreshToken by tokenHash
-  |                               |-- Validate: not expired, not revoked
-  |                               |-- Revoke old token (TOKEN_ROTATED)
-  |                               |-- Issue new access + refresh token pair
-  |<-- New tokens ----------------|
+Client Server
+ | |
+ |-- POST /auth/refresh -------->|
+ | (sends refresh token) |
+ | |-- Hash incoming refresh token
+ | |-- Look up RefreshToken by tokenHash
+ | |-- Validate: not expired, not revoked
+ | |-- Revoke old token (TOKEN_ROTATED)
+ | |-- Issue new access + refresh token pair
+ |<-- New tokens ----------------|
 ```
 
 > **Security Note:** Only the SHA-256/bcrypt **hash** of the refresh token is stored in the `refresh_tokens` table — never the raw token. On each refresh request, the incoming token is hashed and looked up. If not found or already revoked, the request is rejected.
@@ -114,7 +114,7 @@ OTPs are issued via the `OTPVerification` model (`otp_verifications` table):
 - `expiresAt` enforces a TTL on each OTP
 - `userId` is nullable — supports pre-registration OTPs (user doesn't exist yet)
 
-OTP channels (`OTPChannel` → `otp_channel`): `SMS`, `EMAIL`  
+OTP channels (`OTPChannel` → `otp_channel`): `SMS`, `EMAIL`
 OTP purposes (`OTPPurpose` → `otp_purpose`): `REGISTRATION`, `LOGIN`, `PASSWORD_RESET`, `PHONE_VERIFICATION`, `EMAIL_VERIFICATION`
 
 ---

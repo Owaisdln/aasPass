@@ -25,83 +25,83 @@ All routes are protected by `SupabaseAuthGuard` at the controller class level �
 src/modules/catalog/
 ├── catalog.module.ts
 ├── categories/
-│   ├── controllers/
-│   │   └── categories.controller.ts
-│   ├── dto/
-│   │   ├── create-category.dto.ts
-│   │   ├── update-category.dto.ts
-│   │   └── category-response.dto.ts
-│   ├── mappers/
-│   │   └── category.mapper.ts
-│   ├── services/
-│   │   └── categories.service.ts
-│   └── types/
-│       └── category.types.ts
+│ ├── controllers/
+│ │ └── categories.controller.ts
+│ ├── dto/
+│ │ ├── create-category.dto.ts
+│ │ ├── update-category.dto.ts
+│ │ └── category-response.dto.ts
+│ ├── mappers/
+│ │ └── category.mapper.ts
+│ ├── services/
+│ │ └── categories.service.ts
+│ └── types/
+│ └── category.types.ts
 ├── brands/
-│   ├── controllers/
-│   │   └── brands.controller.ts
-│   ├── dto/
-│   │   ├── create-brand.dto.ts
-│   │   ├── update-brand.dto.ts
-│   │   └── brand-response.dto.ts
-│   ├── mappers/
-│   │   └── brand.mapper.ts
-│   ├── services/
-│   │   └── brands.service.ts
-│   └── types/
-│       └── brand.types.ts
+│ ├── controllers/
+│ │ └── brands.controller.ts
+│ ├── dto/
+│ │ ├── create-brand.dto.ts
+│ │ ├── update-brand.dto.ts
+│ │ └── brand-response.dto.ts
+│ ├── mappers/
+│ │ └── brand.mapper.ts
+│ ├── services/
+│ │ └── brands.service.ts
+│ └── types/
+│ └── brand.types.ts
 ├── units/
-│   ├── controllers/
-│   │   └── units.controller.ts
-│   ├── dto/
-│   │   ├── create-unit.dto.ts
-│   │   ├── update-unit.dto.ts
-│   │   └── unit-response.dto.ts
-│   ├── mappers/
-│   │   └── unit.mapper.ts
-│   ├── services/
-│   │   └── units.service.ts
-│   └── types/
-│       └── unit.types.ts
+│ ├── controllers/
+│ │ └── units.controller.ts
+│ ├── dto/
+│ │ ├── create-unit.dto.ts
+│ │ ├── update-unit.dto.ts
+│ │ └── unit-response.dto.ts
+│ ├── mappers/
+│ │ └── unit.mapper.ts
+│ ├── services/
+│ │ └── units.service.ts
+│ └── types/
+│ └── unit.types.ts
 ├── master-products/
-│   ├── controllers/
-│   │   └── master-products.controller.ts
-│   ├── dto/
-│   │   ├── create-master-product.dto.ts
-│   │   ├── update-master-product.dto.ts
-│   │   └── master-product-response.dto.ts
-│   ├── mappers/
-│   │   └── master-product.mapper.ts
-│   ├── services/
-│   │   └── master-products.service.ts
-│   └── types/
-│       └── master-product.types.ts
+│ ├── controllers/
+│ │ └── master-products.controller.ts
+│ ├── dto/
+│ │ ├── create-master-product.dto.ts
+│ │ ├── update-master-product.dto.ts
+│ │ └── master-product-response.dto.ts
+│ ├── mappers/
+│ │ └── master-product.mapper.ts
+│ ├── services/
+│ │ └── master-products.service.ts
+│ └── types/
+│ └── master-product.types.ts
 ├── product-images/
-│   ├── controllers/
-│   │   └── product-images.controller.ts
-│   ├── dto/
-│   │   ├── create-product-image.dto.ts
-│   │   ├── update-product-image.dto.ts
-│   │   └── product-image-response.dto.ts
-│   ├── mappers/
-│   │   └── product-image.mapper.ts
-│   ├── services/
-│   │   └── product-images.service.ts
-│   └── types/
-│       └── product-image.types.ts
+│ ├── controllers/
+│ │ └── product-images.controller.ts
+│ ├── dto/
+│ │ ├── create-product-image.dto.ts
+│ │ ├── update-product-image.dto.ts
+│ │ └── product-image-response.dto.ts
+│ ├── mappers/
+│ │ └── product-image.mapper.ts
+│ ├── services/
+│ │ └── product-images.service.ts
+│ └── types/
+│ └── product-image.types.ts
 └── store-products/
-    ├── controllers/
-    │   └── store-products.controller.ts
-    ├── dto/
-    │   ├── create-store-product.dto.ts
-    │   ├── update-store-product.dto.ts
-    │   └── store-product-response.dto.ts
-    ├── mappers/
-    │   └── store-product.mapper.ts
-    ├── services/
-    │   └── store-products.service.ts
-    └── types/
-        └── store-product.types.ts
+ ├── controllers/
+ │ └── store-products.controller.ts
+ ├── dto/
+ │ ├── create-store-product.dto.ts
+ │ ├── update-store-product.dto.ts
+ │ └── store-product-response.dto.ts
+ ├── mappers/
+ │ └── store-product.mapper.ts
+ ├── services/
+ │ └── store-products.service.ts
+ └── types/
+ └── store-product.types.ts
 ```
 
 ---
@@ -127,7 +127,7 @@ src/modules/catalog/
 
 ```typescript
 export const CATEGORY_WITH_PARENT_INCLUDE = {
-  parentCategory: true,
+ parentCategory: true,
 } as const satisfies Prisma.CategoryInclude;
 ```
 
@@ -137,7 +137,7 @@ Includes the `parentCategory` relation on every full category query. Typed with 
 
 ```typescript
 export type CategoryWithParent = Prisma.CategoryGetPayload<{
-  include: typeof CATEGORY_WITH_PARENT_INCLUDE;
+ include: typeof CATEGORY_WITH_PARENT_INCLUDE;
 }>;
 ```
 

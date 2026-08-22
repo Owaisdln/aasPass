@@ -1,8 +1,8 @@
 # Database — Module 2: Store Management
 
-> [← Back to Index](../README.md)  
-> **Schema file:** [`server/prisma/modules/module2.store.prisma`](../../server/prisma/modules/module2.store.prisma)  
-> **Status:** ✅ Schema Complete (4 models)  
+> [← Back to Index](../README.md)
+> **Schema file:** [`server/prisma/modules/module2.store.prisma`](../../server/prisma/modules/module2.store.prisma)
+> **Status:** Schema Complete (4 models)
 > **Last Updated:** 2026-07-28
 
 ---
@@ -79,23 +79,23 @@ For a customer to place an order, **all three** conditions must be satisfied sim
 
 ```
 CanCheckout = (Store.status == ACTIVE)
-           AND (Store.isOpen == true)
-           AND (CurrentTime is within today's StoreHour window)
+ AND (Store.isOpen == true)
+ AND (CurrentTime is within today's StoreHour window)
 ```
 
 ```typescript
 function isStoreAcceptingOrders(store: Store, storeHours: StoreHour[], now: Date = new Date()): boolean {
-  if (store.status !== StoreStatus.ACTIVE) return false;
-  if (!store.isOpen) return false;
+ if (store.status !== StoreStatus.ACTIVE) return false;
+ if (!store.isOpen) return false;
 
-  const currentDay = getWeekDayEnum(now);
-  const todayHours = storeHours.find((h) => h.weekDay === currentDay);
+ const currentDay = getWeekDayEnum(now);
+ const todayHours = storeHours.find((h) => h.weekDay === currentDay);
 
-  if (!todayHours || todayHours.isClosed) return false;
-  if (!todayHours.openingTime || !todayHours.closingTime) return false;
+ if (!todayHours || todayHours.isClosed) return false;
+ if (!todayHours.openingTime || !todayHours.closingTime) return false;
 
-  const currentTimeStr = formatTime(now); // "HH:mm:ss"
-  return currentTimeStr >= todayHours.openingTime && currentTimeStr <= todayHours.closingTime;
+ const currentTimeStr = formatTime(now); // "HH:mm:ss"
+ return currentTimeStr >= todayHours.openingTime && currentTimeStr <= todayHours.closingTime;
 }
 ```
 
@@ -198,7 +198,7 @@ Defines the operating hours for each day of the week for a store.
 | `createdAt` | `created_at` | Timestamptz(6) | Auto: `now()` | Timestamp |
 | `updatedAt` | `updated_at` | Timestamptz(6) | Auto-updated | Timestamp |
 
-**Constraints:** `@@unique([storeId, weekDay])` — one record per day per store  
+**Constraints:** `@@unique([storeId, weekDay])` — one record per day per store
 **Indexes:** `@@index([storeId])`, `@@index([weekDay])`
 
 > **Design Note:** `openingTime` and `closingTime` are nullable — setting `isClosed = true` without needing to clear times is valid. Exactly 7 rows should exist per store (one per weekday), created atomically with the store.
@@ -231,19 +231,19 @@ Stores all delivery configuration for a store. One-to-one relationship with `Sto
 >
 > ```typescript
 > await prisma.store.create({
->   data: {
->     ...storeData,
->     deliverySetting: {
->       create: {
->         isDeliveryAvailable: true,
->         isPickupAvailable: true,
->         minimumOrderAmount: 0.00,
->         deliveryRadiusKm: 5.00,
->         deliveryCharge: 0.00,
->         estimatedDeliveryTime: 30,
->       },
->     },
->   },
+> data: {
+> ...storeData,
+> deliverySetting: {
+> create: {
+> isDeliveryAvailable: true,
+> isPickupAvailable: true,
+> minimumOrderAmount: 0.00,
+> deliveryRadiusKm: 5.00,
+> deliveryCharge: 0.00,
+> estimatedDeliveryTime: 30,
+> },
+> },
+> },
 > });
 > ```
 
@@ -253,54 +253,54 @@ Stores all delivery configuration for a store. One-to-one relationship with `Sto
 
 ```mermaid
 erDiagram
-    User {
-        uuid id PK
-        string phone UK
-    }
-    Store {
-        uuid id PK
-        uuid ownerId FK_UK
-        uuid verifiedById FK
-        string name
-        string slug UK
-        string phone UK
-        string gstNumber UK
-        StoreStatus status
-        VerificationStatus verificationStatus
-        bool isOpen
-        datetime deletedAt
-    }
-    StoreImage {
-        uuid id PK
-        uuid storeId FK
-        string objectKey
-        int displayOrder
-    }
-    StoreHour {
-        uuid id PK
-        uuid storeId FK
-        WeekDay weekDay
-        time openingTime
-        time closingTime
-        bool isClosed
-    }
-    StoreDeliverySetting {
-        uuid id PK
-        uuid storeId FK_UK
-        bool isDeliveryAvailable
-        bool isPickupAvailable
-        decimal minimumOrderAmount
-        decimal deliveryRadiusKm
-        decimal deliveryCharge
-        decimal freeDeliveryAbove
-        int estimatedDeliveryTime
-    }
+ User {
+ uuid id PK
+ string phone UK
+ }
+ Store {
+ uuid id PK
+ uuid ownerId FK_UK
+ uuid verifiedById FK
+ string name
+ string slug UK
+ string phone UK
+ string gstNumber UK
+ StoreStatus status
+ VerificationStatus verificationStatus
+ bool isOpen
+ datetime deletedAt
+ }
+ StoreImage {
+ uuid id PK
+ uuid storeId FK
+ string objectKey
+ int displayOrder
+ }
+ StoreHour {
+ uuid id PK
+ uuid storeId FK
+ WeekDay weekDay
+ time openingTime
+ time closingTime
+ bool isClosed
+ }
+ StoreDeliverySetting {
+ uuid id PK
+ uuid storeId FK_UK
+ bool isDeliveryAvailable
+ bool isPickupAvailable
+ decimal minimumOrderAmount
+ decimal deliveryRadiusKm
+ decimal deliveryCharge
+ decimal freeDeliveryAbove
+ int estimatedDeliveryTime
+ }
 
-    User ||--o| Store : "owns"
-    User ||--o{ Store : "verifies"
-    Store ||--o{ StoreImage : "has"
-    Store ||--o{ StoreHour : "has (7 rows)"
-    Store ||--|| StoreDeliverySetting : "has"
+ User ||--o| Store : "owns"
+ User ||--o{ Store : "verifies"
+ Store ||--o{ StoreImage : "has"
+ Store ||--o{ StoreHour : "has (7 rows)"
+ Store ||--|| StoreDeliverySetting : "has"
 ```
 
 ---
@@ -309,7 +309,7 @@ erDiagram
 
 | Model | Table | Status |
 |---|---|---|
-| `Store` | `stores` | ✅ Documented |
-| `StoreImage` | `store_images` | ✅ Documented |
-| `StoreHour` | `store_hours` | ✅ Documented |
-| `StoreDeliverySetting` | `store_delivery_settings` | ✅ Documented |
+| `Store` | `stores` | Documented |
+| `StoreImage` | `store_images` | Documented |
+| `StoreHour` | `store_hours` | Documented |
+| `StoreDeliverySetting` | `store_delivery_settings` | Documented |
