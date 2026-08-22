@@ -1,7 +1,7 @@
 # aasPass Documentation
 
 > **Platform:** aasPass — Hyperlocal commerce platform  
-> **Last Updated:** 2026-08-04
+> **Last Updated:** 2026-08-22
 
 ---
 
@@ -15,7 +15,11 @@
 | [Infrastructure Layer](./server/01-infrastructure.md) | — | ✅ Active | Bootstrap, config, Prisma, Supabase, health check |
 | [Module — Auth](./server/02-module-auth.md) | — | ✅ Active | SupabaseAuthGuard, AuthService, CurrentUser, `GET /auth/me` |
 | [Module — Authorization](./server/03-module-authorization.md) | — | ✅ Active | RBAC guards, decorators, permissions provider |
-| [Module — Users](./server/04-module-users.md) | — | ✅ Active | User self-management: `GET /users/me`, `PATCH /users/me` |
+| [Module — Users](./server/04-module-users.md) | — | ✅ Active | User self-management: `GET /users/me`, `PATCH /users/me`, sessions |
+| [Module — Stores](./server/05-module-stores.md) | — | ✅ Active | Store owner self-management: profile, hours, delivery, images |
+| [Module — Catalog](./server/06-module-catalog.md) | — | ✅ Active | Catalog master data: categories, brands, units, master products, product images, store products |
+| [Module — Inventory](./server/07-module-inventory.md) | — | ✅ Active | Stock management: OCC-safe adjustments, transaction ledger |
+| [Module — Wishlist](./server/08-module-wishlist.md) | — | ✅ Active | User wishlists: named bookmark lists with items, default promotion |
 
 ### Architecture & Design
 

@@ -59,10 +59,14 @@ AppModule
   ├── ConfigModule   (isGlobal: true, cache: true, expandVariables: true)
   ├── PrismaModule   (global — provides PrismaService everywhere)
   ├── SupabaseModule (global — provides SupabaseService everywhere)
-  └── AuthModule
+  ├── AuthModule     (authentication — token verification, user sync)
+  ├── UsersModule    (user self-management — profile, session management)
+  ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
+  ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
+  └── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
 ```
 
-**Controllers registered at root:** `AppController`
+`WishlistModule` is fully implemented and TypeScript-clean but is not yet added to the `AppModule` imports array — its routes are not active until it is wired in.
 
 `ConfigModule` is marked `isGlobal: true` — `ConfigService` is injectable in any module without re-importing.
 

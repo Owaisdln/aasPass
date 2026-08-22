@@ -137,26 +137,41 @@ Swagger UI will display all available endpoints.
 server/
 ├── src/
 │   ├── main.ts              ← App entry point — binds port via ConfigService
-│   ├── app.module.ts        ← Root NestJS module (ConfigModule + PrismaModule)
+│   ├── app.module.ts        ← Root NestJS module (ConfigModule, PrismaModule, SupabaseModule, AuthModule, UsersModule, StoresModule, CatalogModule, InventoryModule)
+│   ├── app.controller.ts    ← Health check: GET /
 │   ├── config/              ← Config namespaces + Zod env validation
 │   │   ├── index.ts         ← Aggregates all config loaders
 │   │   ├── app.config.ts    ← app.port, app.nodeEnv
 │   │   ├── database.config.ts ← database.url
 │   │   ├── supabase.config.ts ← supabase.url, keys
 │   │   └── env.validation.ts  ← Zod schema — validates all env vars at boot
-│   ├── prisma/              ← Database access layer
-│   │   ├── prisma.service.ts  ← PrismaClient with pg Pool adapter (Prisma 7)
-│   │   └── prisma.module.ts   ← Global @Module exporting PrismaService
-│   ├── modules/             ← Feature modules (to be built)
-│   ├── common/              ← Guards, pipes, filters, decorators
-│   ├── infrastructure/      ← Redis, BullMQ, Socket.io setup
-│   └── shared/              ← DTOs, interfaces, utilities
+│   ├── infrastructure/      ← Database and external service clients
+│   │   ├── prisma/
+│   │   │   ├── prisma.service.ts  ← PrismaClient with pg Pool adapter (Prisma 7)
+│   │   │   └── prisma.module.ts   ← Global @Module exporting PrismaService
+│   │   └── supabase/
+│   │       ├── supabase.service.ts ← anonClient + adminClient + verifyAccessToken
+│   │       └── supabase.module.ts  ← Global @Module exporting SupabaseService
+│   ├── common/              ← Shared utilities and domain models
+│   │   ├── identity/
+│   │   │   └── current-user.model.ts ← CurrentUser domain model (RBAC, status)
+│   │   └── parsers/
+│   │       └── browser.parser.ts  ← User-agent parser (bowser)
+│   ├── shared/              ← (reserved) Shared DTOs, utilities
+│   └── modules/             ← Feature modules
+│       ├── auth/            ← Authentication (SupabaseAuthGuard, AuthService)
+│       ├── authorization/   ← RBAC guards and decorators
+│       ├── users/           ← User self-management (profile, sessions)
+│       ├── stores/          ← Store owner management (profile, hours, delivery, images)
+│       ├── catalog/         ← Product catalog (categories, brands, units, master products, product images, store products)
+│       ├── inventory/       ← Stock management (OCC adjustments, transaction ledger)
+│       └── wishlist/        ← Wishlists (pending AppModule registration)
 ├── prisma/
 │   ├── schema.prisma        ← Merged schema (no url in datasource — Prisma 7)
+│   ├── prisma.config.ts     ← Prisma 7 config (CLI datasource URL + paths)
 │   ├── modules/             ← Per-module split schema files (modules 1–6)
 │   ├── migrations/          ← Migration history
 │   └── ERD.svg              ← Auto-generated ER diagram
-├── prisma.config.ts         ← Prisma 7 config (CLI datasource URL + paths)
 ├── .env                     ← Environment variables (not committed)
 ├── nest-cli.json
 ├── package.json

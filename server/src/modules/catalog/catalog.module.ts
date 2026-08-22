@@ -23,6 +23,10 @@ import { ProductImagesController } from './product-images/controllers/product-im
 import { ProductImagesService } from './product-images/services/product-images.service';
 import { ProductImageMapper } from './product-images/mappers/product-image.mapper';
 
+import { StoreProductsController } from './store-products/controllers/store-products.controller';
+import { StoreProductsService } from './store-products/services/store-products.service';
+import { StoreProductMapper } from './store-products/mappers/store-product.mapper';
+
 @Module({
   imports: [
     PrismaModule,
@@ -34,6 +38,7 @@ import { ProductImageMapper } from './product-images/mappers/product-image.mappe
     UnitsController,
     MasterProductsController,
     ProductImagesController,
+    StoreProductsController,
   ],
   providers: [
     CategoriesService,
@@ -50,6 +55,9 @@ import { ProductImageMapper } from './product-images/mappers/product-image.mappe
 
     ProductImagesService,
     ProductImageMapper,
+
+    StoreProductsService,
+    StoreProductMapper,
   ],
 })
 export class CatalogModule {}

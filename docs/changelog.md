@@ -6,6 +6,112 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 22, 2026]
+
+### Server — Store Products, Inventory Module, Wishlist Module Implementation
+
+#### Catalog Module — Store Products Sub-Domain
+
+- Updated `CatalogModule` (`src/modules/catalog/catalog.module.ts`):
+  - Added `StoreProductsController` to controllers
+  - Added `StoreProductsService`, `StoreProductMapper` to providers
+
+- **Store Products sub-domain** (`src/modules/catalog/store-products/`):
+  - Added type alias `StoreProductEntity = StoreProduct` (`types/store-product.types.ts`)
+  - Added DTOs:
+    - `CreateStoreProductDto` — required: `masterProductId` (UUID), `mrp` (number, ≥0, 2dp), `sellingPrice` (number, ≥0, 2dp); optional: `availabilityStatus` (defaults to `AVAILABLE`), `trackInventory` (defaults to `true`), `isFeatured` (defaults to `false`), `displayOrder` (defaults to `0`)
+    - `UpdateStoreProductDto` — all optional: `mrp`, `sellingPrice`, `availabilityStatus`, `trackInventory`, `isFeatured`, `displayOrder`; pricing merged with existing values before validation
+    - `StoreProductResponseDto` — `id`, `storeId`, `masterProductId`, `mrp` (string), `sellingPrice` (string), `availabilityStatus`, `trackInventory`, `isFeatured`, `displayOrder`, timestamps; `mrp`/`sellingPrice` serialised from Prisma `Decimal` via `.toString()`
+  - Added `StoreProductMapper` (static class):
+    - `static toResponse(storeProduct: StoreProduct): StoreProductResponseDto` — direct mapping; Decimal → string for `mrp`/`sellingPrice`
+  - Added `StoreProductsService`:
+    - `create(userId, dto)`: `resolveOwnStore` → `ensureMasterProductExists` → `ensureStoreProductDoesNotExist` (distinguishes active vs previously-soft-deleted records with distinct error messages) → `validatePricing(mrp, sellingPrice)` (rejects `sellingPrice > mrp`) → `prisma.storeProduct.create`
+    - `findMine(userId)`: all non-deleted listings, ordered `displayOrder asc, createdAt desc`
+    - `findMineById(userId, id)`: store-scoped lookup
+    - `update(userId, id, dto)`: merges effective `mrp`/`sellingPrice` before `validatePricing`; spread-guard update
+    - `remove(userId, id)`: soft-delete with `deletedAt`, `isFeatured = false`, `availabilityStatus = HIDDEN`
+    - Private: `resolveOwnStore`, `ensureMasterProductExists`, `ensureStoreProductDoesNotExist`, `findStoreProduct`, `validatePricing`, `handlePrismaError` (P2002/P2025/P2003)
+  - Added `StoreProductsController` at `catalog/store-products` (class-level `SupabaseAuthGuard`):
+    - `POST /catalog/store-products/me`, `GET /catalog/store-products/me`, `GET /catalog/store-products/me/:id`, `PATCH /catalog/store-products/me/:id`, `DELETE /catalog/store-products/me/:id`
+
+---
+
+#### Server — Inventory Module (`InventoryModule`) Implementation
+
+- Created `InventoryModule` (`src/modules/inventory/inventory.module.ts`) importing `PrismaModule` and `AuthModule`:
+  - Registered `InventoryController`, `InventoryService`, `InventoryMapper`; exports `InventoryService`
+
+- Added Prisma type utilities (`src/modules/inventory/types/inventory.types.ts`):
+  - `INVENTORY_WITH_TRANSACTIONS_INCLUDE`: includes `transactions` ordered by `createdAt desc`
+  - `InventoryWithTransactions`: derived `Prisma.InventoryGetPayload` type
+
+- Added DTOs:
+  - `CreateInventoryDto` — required: `storeProductId` (UUID); optional: `stockQuantity`, `reservedQuantity`, `lowStockThreshold` (default 10), `reorderLevel` (default 20)
+  - `UpdateInventoryDto` — optional: `lowStockThreshold`, `reorderLevel` only (stock levels are write-protected; use `/adjust`)
+  - `AdjustInventoryDto` — required: `transactionType` (`InventoryTransactionType`), `quantity` (int ≥1), `expectedVersion` (OCC token); optional: `referenceType`, `referenceId`, `source`, `notes`
+  - `InventoryResponseDto` — `id`, `storeProductId`, `stockQuantity`, `reservedQuantity`, `lowStockThreshold`, `reorderLevel`, `version`, `lastStockUpdate`, timestamps
+  - `InventoryTransactionResponseDto` — `id`, `inventoryId`, `transactionType`, `quantity`, `balanceAfterTransaction`, `referenceType`, `referenceId`, `source`, `notes`, `createdBy`, `createdAt` (append-only, no `updatedAt`)
+
+- Added `InventoryMapper` (static class):
+  - `static toResponse(inventory: Inventory): InventoryResponseDto`
+  - `static toTransactionResponse(transaction: InventoryTransaction): InventoryTransactionResponseDto`
+
+- Added `InventoryService`:
+  - `create(userId, dto)`: validates store ownership via nested `store: { ownerId }` filter; checks `trackInventory = true`; checks no existing inventory; validates `reservedQuantity ≤ stockQuantity` and `reorderLevel ≥ lowStockThreshold`; `$transaction` creates `Inventory` (`version: 0`) + initial `RESTOCK` ledger entry if `stockQuantity > 0`
+  - `findAll(userId)`: all inventory records scoped by store ownership, `createdAt desc`
+  - `findOne(userId, inventoryId)`: single record scoped by ownership
+  - `update(userId, inventoryId, dto)`: updates `lowStockThreshold`/`reorderLevel` with merged validation; increments `version`
+  - `adjustStock(userId, inventoryId, dto)`: double OCC — application-level version check + in-DB `updateMany` with version filter; derives signed delta from `transactionType` (`PURCHASE`/`RESTOCK`/`RETURN` = +qty, `SALE`/`DAMAGE`/`EXPIRED` = -qty); validates `newStockQuantity ≥ 0` and `≥ reservedQuantity`; `$transaction` writes `updateMany` + `InventoryTransaction` + re-fetches
+  - `getTransactions(userId, inventoryId)`: ownership check then full ledger `createdAt desc`
+  - Private: `findOwnedInventory` (nested store scope), `getQuantityDelta` (`ADJUSTMENT` throws)
+
+- Added `InventoryController` at `inventory/me` (class-level `SupabaseAuthGuard`):
+  - `POST /inventory/me`, `GET /inventory/me`, `GET /inventory/me/:id`, `PATCH /inventory/me/:id`, `POST /inventory/me/:id/adjust`, `GET /inventory/me/:id/transactions`
+
+- Updated `AppModule` (`src/app.module.ts`):
+  - Added `InventoryModule` to the `imports` array
+
+---
+
+#### Server — Wishlist Module (`WishlistModule`) Implementation
+
+- Created `WishlistModule` (`src/modules/wishlist/wishlist.module.ts`) importing `PrismaModule` and `AuthModule`:
+  - Registered `WishlistController`, `WishlistService`, `WishlistMapper`; exports `WishlistService`
+  - Module is fully implemented and TypeScript-clean; **not yet added to `AppModule` imports** — routes inactive
+
+- Added Prisma type utilities (`src/modules/wishlist/types/wishlist.types.ts`):
+  - `WISHLIST_WITH_ITEMS_INCLUDE`: includes `items` ordered by `createdAt desc`
+  - `WishlistWithItems`: derived `Prisma.WishlistGetPayload` type
+
+- Added DTOs:
+  - `CreateWishlistDto` — required: `name` (1–100 chars); optional: `isDefault`
+  - `UpdateWishlistDto` — required: `name` (1–100 chars); name only
+  - `AddWishlistItemDto` — required: `storeProductId` (UUID)
+  - `WishlistItemResponseDto` — `id`, `wishlistId`, `storeProductId`, `createdBy`, `createdAt` (append-only)
+  - `WishlistResponseDto` — `id`, `userId`, `name`, `isDefault`, timestamps, `items: WishlistItemResponseDto[]`
+
+- Added `WishlistMapper` (static class):
+  - `static toItemResponse(item: WishlistItem): WishlistItemResponseDto`
+  - `static toResponse(wishlist: WishlistWithItems): WishlistResponseDto` — maps with full items array
+  - `static toBasicResponse(wishlist: Wishlist): WishlistResponseDto` — maps without join (`items: []`)
+
+- Added `WishlistService`:
+  - `create(userId, dto)`: trims name; `$transaction` — if `isDefault: true`, demotes all existing defaults; creates wishlist; P2002 → conflict
+  - `findAll(userId)`: non-deleted, ordered `isDefault desc, createdAt asc`
+  - `findOne(userId, wishlistId)`: delegates to `findOwnedWishlist`
+  - `update(userId, wishlistId, dto)`: name-only update; P2002 guard
+  - `setDefault(userId, wishlistId)`: `$transaction` — demotes all existing defaults, sets target as default
+  - `remove(userId, wishlistId)`: guards default (`ConflictException('The default wishlist cannot be deleted')`); soft-delete
+  - `addItem(userId, wishlistId, dto)`: validates `storeProduct` (not deleted, not DISCONTINUED, store ACTIVE, masterProduct ACTIVE); `prisma.wishlistItem.create`; P2002 guard
+  - `removeItem(userId, wishlistId, itemId)`: ownership check → hard-delete single item
+  - `clear(userId, wishlistId)`: ownership check → `wishlistItem.deleteMany` (hard-delete all items)
+  - Private: `findOwnedWishlist` (userId + `deletedAt: null` + `WISHLIST_WITH_ITEMS_INCLUDE`)
+
+- Added `WishlistController` at `wishlists` (class-level `SupabaseAuthGuard`):
+  - `POST /wishlists`, `GET /wishlists`, `GET /wishlists/:id`, `PATCH /wishlists/:id`, `PATCH /wishlists/:id/default`, `DELETE /wishlists/:id`, `POST /wishlists/:id/items`, `DELETE /wishlists/:id/items/:itemId`, `DELETE /wishlists/:id/items`
+
+---
+
 ## [August 19, 2026]
 
 ### Server — Catalog Module Expansion (Units, Master Products, Product Images)

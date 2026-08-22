@@ -61,7 +61,7 @@ The LLD is organized by the same 6-module decomposition used in the codebase:
 server/
 ├── src/
 │   ├── main.ts                     # Bootstrap: NestFactory.create, port binding
-│   ├── app.module.ts               # Root module: ConfigModule, PrismaModule, SupabaseModule, AuthModule
+│   ├── app.module.ts               # Root module: ConfigModule, PrismaModule, SupabaseModule, AuthModule, UsersModule, StoresModule, CatalogModule, InventoryModule
 │   ├── app.controller.ts           # Root controller: GET / health check
 │   ├── config/
 │   │   ├── app.config.ts           # app.port, app.nodeEnv
@@ -75,11 +75,12 @@ server/
 │   │   │   └── prisma.module.ts    # Global PrismaModule
 │   │   └── supabase/
 │   │       ├── supabase.service.ts # anonClient + adminClient + verifyAccessToken + getUserById
-│   │       ├── supabase.service.spec.ts # Unit tests for SupabaseService
 │   │       └── supabase.module.ts  # Global SupabaseModule
 │   ├── common/
-│   │   └── identity/
-│   │       └── current-user.model.ts # CurrentUser domain identity model (RBAC, status)
+│   │   ├── identity/
+│   │   │   └── current-user.model.ts # CurrentUser domain identity model (RBAC, status)
+│   │   └── parsers/
+│   │       └── browser.parser.ts   # User-agent parser using bowser
 │   ├── shared/                     # (reserved) Shared DTOs, utilities
 │   └── modules/
 │       ├── auth/                   # Authentication feature module
@@ -92,23 +93,28 @@ server/
 │       │   │   └── supabase-auth.guard.ts # SupabaseAuthGuard (Bearer token validation)
 │       │   └── services/
 │       │       └── auth.service.ts # AuthService: authenticate(), user sync & RBAC loading
-│       └── authorization/          # Authorization & RBAC feature module
-│           ├── authorization.module.ts # AuthorizationModule registration
-│           ├── constants/
-│           │   └── metadata.constants.ts # Metadata keys (PUBLIC, ROLES, PERMISSIONS, ANY_PERMISSIONS)
-│           ├── decorators/
-│           │   ├── public.decorator.ts # @Public() bypass decorator
-│           │   ├── roles.decorator.ts # @Roles(...roles) decorator
-│           │   ├── permissions.decorator.ts # @Permissions(...permissions) decorator (AND)
-│           │   └── any-permission.decorator.ts # @AnyPermission(...permissions) decorator (OR)
-│           ├── guards/
-│           │   ├── roles.guard.ts  # RolesGuard (role matching)
-│           │   ├── permissions.guard.ts # PermissionsGuard (all permissions matching)
-│           │   └── any-permission.guard.ts # AnyPermissionGuard (at least one permission matching)
-│           ├── interfaces/
-│           │   └── permissions-provider.interface.ts # PermissionsProvider abstract interface
-│           └── providers/
-│               └── prisma-permissions.provider.ts # PrismaPermissionsProvider (Prisma DB queries)
+│       ├── authorization/          # Authorization & RBAC feature module
+│       │   ├── authorization.module.ts
+│       │   ├── constants/
+│       │   │   └── metadata.constants.ts
+│       │   ├── decorators/
+│       │   │   ├── public.decorator.ts
+│       │   │   ├── roles.decorator.ts
+│       │   │   ├── permissions.decorator.ts
+│       │   │   └── any-permission.decorator.ts
+│       │   ├── guards/
+│       │   │   ├── roles.guard.ts
+│       │   │   ├── permissions.guard.ts
+│       │   │   └── any-permission.guard.ts
+│       │   ├── interfaces/
+│       │   │   └── permissions-provider.interface.ts
+│       │   └── providers/
+│       │       └── prisma-permissions.provider.ts
+│       ├── users/                  # User self-management module
+│       ├── stores/                 # Store owner management module
+│       ├── catalog/                # Product catalog module (6 sub-domains)
+│       ├── inventory/              # Inventory & stock management module
+│       └── wishlist/               # Wishlist module (pending AppModule registration)
 ├── prisma/
 │   ├── schema.prisma               # Aggregated Prisma schema (main entry)
 │   ├── prisma.config.ts            # Prisma CLI config (datasource URL)
@@ -120,6 +126,7 @@ server/
 │       ├── module5.order.prisma    # Orders, Items, Replacements, History
 │       └── module6.payment.prisma  # Payments, Transactions, Refunds, Webhooks
 ```
+
 
 ---
 
@@ -140,10 +147,17 @@ await app.listen(port);
 
 ```
 AppModule
-  └── ConfigModule  (isGlobal: true, cache: true, expandVariables: true)
-  └── PrismaModule  (global provider)
-  └── SupabaseModule
+  ├── ConfigModule  (isGlobal: true, cache: true, expandVariables: true)
+  ├── PrismaModule  (global provider)
+  ├── SupabaseModule
+  ├── AuthModule
+  ├── UsersModule
+  ├── StoresModule
+  ├── CatalogModule
+  └── InventoryModule
 ```
+
+`WishlistModule` is implemented but not yet registered in `AppModule` — its routes are inactive.
 
 - `ConfigModule` loads `.env`, executes Zod validation, and caches results — safe to inject `ConfigService` anywhere.
 
@@ -691,24 +705,34 @@ Order cancelled:
 
 ---
 
-## 13. Planned Work (Not Yet Implemented)
 
-The following are planned but not yet in any schema or code:
+---
 
-| Area | Description |
-|---|---|
-| Feature modules (NestJS) | `UsersModule` ✅ implemented — `GET /users/me`, `PATCH /users/me`. Store, Catalog, Cart, Order, Payment controllers/services are pending. |
-| Supabase Auth Guard | ✅ Implemented — `SupabaseAuthGuard` in `src/modules/auth/guards/` |
-| RBAC Guards & Decorators | ✅ Implemented — `AuthorizationModule` in `src/modules/authorization/` |
-| Coupon/Promotions | Coupon module — `couponId` removed from Cart pending this |
-| Review Module | Store/product reviews — `averageRating` removed from Store pending this |
-| Notification Module | Push notification system |
-| BullMQ Queues | Email, notification, payment job queues |
-| Socket.io Events | Real-time order status updates |
-| Redis Cache | Guest cart sessions, token revocation cache |
-| Global Filters | Exception filters for standardized error responses |
-| Global Interceptors | Response transformation interceptor |
-| Swagger Setup | API documentation configuration |
+## 13. Implemented Modules & Planned Work
+
+The following summarises what has been implemented and what remains pending:
+
+| Area | Status | Description |
+|---|---|---|
+| `AuthModule` | Done | SupabaseAuthGuard, AuthService, GET /auth/me, user auto-provisioning |
+| `AuthorizationModule` | Done | RBAC guards and decorators |
+| `UsersModule` | Done | GET /users/me, PATCH /users/me, session list/revoke endpoints |
+| `StoresModule` | Done | Store profile, operating hours, delivery settings, gallery images |
+| `CatalogModule` | Done | Categories, brands, units, master products, product images, store products |
+| `InventoryModule` | Done | Stock management with OCC version locking, transaction ledger |
+| `WishlistModule` | Done (pending AppModule registration) | Wishlists with items, default promotion, add/remove/clear |
+| Cart API | Pending | Cart controller/service - schema exists in module4.cart.prisma |
+| Order API | Pending | Checkout flow, order lifecycle - schema exists in module5.order.prisma |
+| Payment API | Pending | Razorpay integration, refunds - schema exists in module6.payment.prisma |
+| Coupon/Promotions | Pending | Coupon module |
+| Review Module | Pending | Store/product reviews |
+| Notification Module | Pending | Push notification system |
+| BullMQ Queues | Pending | Email, notification, payment job queues |
+| Socket.io Events | Pending | Real-time order status updates |
+| Redis Cache | Pending | Guest cart sessions, token revocation cache |
+| Global Filters | Pending | Exception filters for standardized error responses |
+| Global Interceptors | Pending | Response transformation interceptor |
+| Swagger Setup | Pending | API documentation configuration |
 
 ---
 
