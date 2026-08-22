@@ -13,6 +13,7 @@ The `CatalogModule` manages the **product catalog master data** — the global, 
 3. **Units** — units of measure (`catalog/units`)
 4. **Master Products** — global product definitions (`catalog/master-products`)
 5. **Product Images** — image metadata attached to master products (`catalog/product-images`)
+6. **Store Products** — per-store listings that map master products into a store's inventory (`catalog/store-products`)
 
 All routes are protected by `SupabaseAuthGuard` at the controller class level — every request requires a valid Supabase JWT.
 
@@ -75,19 +76,32 @@ src/modules/catalog/
 │   │   └── master-products.service.ts
 │   └── types/
 │       └── master-product.types.ts
-└── product-images/
+├── product-images/
+│   ├── controllers/
+│   │   └── product-images.controller.ts
+│   ├── dto/
+│   │   ├── create-product-image.dto.ts
+│   │   ├── update-product-image.dto.ts
+│   │   └── product-image-response.dto.ts
+│   ├── mappers/
+│   │   └── product-image.mapper.ts
+│   ├── services/
+│   │   └── product-images.service.ts
+│   └── types/
+│       └── product-image.types.ts
+└── store-products/
     ├── controllers/
-    │   └── product-images.controller.ts
+    │   └── store-products.controller.ts
     ├── dto/
-    │   ├── create-product-image.dto.ts
-    │   ├── update-product-image.dto.ts
-    │   └── product-image-response.dto.ts
+    │   ├── create-store-product.dto.ts
+    │   ├── update-store-product.dto.ts
+    │   └── store-product-response.dto.ts
     ├── mappers/
-    │   └── product-image.mapper.ts
+    │   └── store-product.mapper.ts
     ├── services/
-    │   └── product-images.service.ts
+    │   └── store-products.service.ts
     └── types/
-        └── product-image.types.ts
+        └── store-product.types.ts
 ```
 
 ---
@@ -97,8 +111,8 @@ src/modules/catalog/
 | Property | Value |
 |---|---|
 | **Imports** | `PrismaModule`, `AuthModule` |
-| **Controllers** | `CategoriesController`, `BrandsController`, `UnitsController`, `MasterProductsController`, `ProductImagesController` |
-| **Providers** | `CategoriesService`, `CategoryMapper`, `BrandsService`, `BrandMapper`, `UnitsService`, `UnitMapper`, `MasterProductsService`, `MasterProductMapper`, `ProductImagesService`, `ProductImageMapper` |
+| **Controllers** | `CategoriesController`, `BrandsController`, `UnitsController`, `MasterProductsController`, `ProductImagesController`, `StoreProductsController` |
+| **Providers** | `CategoriesService`, `CategoryMapper`, `BrandsService`, `BrandMapper`, `UnitsService`, `UnitMapper`, `MasterProductsService`, `MasterProductMapper`, `ProductImagesService`, `ProductImageMapper`, `StoreProductsService`, `StoreProductMapper` |
 | **Exports** | *(none)* |
 
 `AuthModule` is imported to provide `SupabaseAuthGuard` and the `@AuthenticatedUser()` decorator to all controllers.
@@ -1218,6 +1232,229 @@ Partial update. If `imageType` is changed to `PRIMARY`, the previously primary i
 |---|---|
 | `401 Unauthorized` | Missing or invalid Bearer token |
 | `404 Not Found` | Product image not found |
+
+---
+
+## Part 6 — Store Products
+
+### Type Alias (`src/modules/catalog/store-products/types/store-product.types.ts`)
+
+```typescript
+export type StoreProductEntity = StoreProduct;
+```
+
+A simple re-export alias for the Prisma `StoreProduct` type. Store products have no relation includes at the service level.
+
+---
+
+### Data Transfer Objects
+
+#### `CreateStoreProductDto` (`src/modules/catalog/store-products/dto/create-store-product.dto.ts`)
+
+| Field | Type | Validations |
+|---|---|---|
+| `masterProductId` | `string` | `@IsUUID` |
+| `mrp` | `number` | `@IsNumber({ maxDecimalPlaces: 2 })`, `@Min(0)` |
+| `sellingPrice` | `number` | `@IsNumber({ maxDecimalPlaces: 2 })`, `@Min(0)` |
+| `availabilityStatus` | `AvailabilityStatus` (optional) | `@IsOptional`, `@IsEnum(AvailabilityStatus)` — defaults to `AVAILABLE` |
+| `trackInventory` | `boolean` (optional) | `@IsOptional`, `@IsBoolean` — defaults to `true` |
+| `isFeatured` | `boolean` (optional) | `@IsOptional`, `@IsBoolean` — defaults to `false` |
+| `displayOrder` | `number` (optional) | `@IsOptional`, `@IsInt`, `@Min(0)` — defaults to `0` |
+
+#### `UpdateStoreProductDto` (`src/modules/catalog/store-products/dto/update-store-product.dto.ts`)
+
+| Field | Type | Validations |
+|---|---|---|
+| `mrp` | `number` (optional) | `@IsOptional`, `@IsNumber({ maxDecimalPlaces: 2 })`, `@Min(0)` |
+| `sellingPrice` | `number` (optional) | `@IsOptional`, `@IsNumber({ maxDecimalPlaces: 2 })`, `@Min(0)` |
+| `availabilityStatus` | `AvailabilityStatus` (optional) | `@IsOptional`, `@IsEnum(AvailabilityStatus)` |
+| `trackInventory` | `boolean` (optional) | `@IsOptional`, `@IsBoolean` |
+| `isFeatured` | `boolean` (optional) | `@IsOptional`, `@IsBoolean` |
+| `displayOrder` | `number` (optional) | `@IsOptional`, `@IsInt`, `@Min(0)` |
+
+> **Pricing validation on update:** The service merges `dto.mrp`/`dto.sellingPrice` with the existing values before calling `validatePricing`. Partial price updates are always validated against the effective combined result.
+
+#### `StoreProductResponseDto` (`src/modules/catalog/store-products/dto/store-product-response.dto.ts`)
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `string` | UUID |
+| `storeId` | `string` | UUID of the owning store |
+| `masterProductId` | `string` | UUID of the linked master product |
+| `mrp` | `string` | Serialised from Prisma `Decimal` |
+| `sellingPrice` | `string` | Serialised from Prisma `Decimal` |
+| `availabilityStatus` | `AvailabilityStatus` | `AVAILABLE`, `OUT_OF_STOCK`, `HIDDEN`, or `DISCONTINUED` |
+| `trackInventory` | `boolean` | Whether inventory is tracked for this listing |
+| `isFeatured` | `boolean` | |
+| `displayOrder` | `number` | Integer sort key |
+| `createdAt` | `Date` | |
+| `updatedAt` | `Date` | |
+
+> **Decimal serialisation:** `mrp` and `sellingPrice` are stored as `Decimal` in Prisma and serialised to `string` via `.toString()` to avoid floating-point precision loss.
+
+---
+
+### Mapper (`src/modules/catalog/store-products/mappers/store-product.mapper.ts`)
+
+A **static** class — all methods are called as `StoreProductMapper.toResponse(storeProduct)`.
+
+#### `static toResponse(storeProduct: StoreProduct): StoreProductResponseDto`
+
+Direct field mapping. `mrp` and `sellingPrice` converted from Prisma `Decimal` to `string`.
+
+---
+
+### `StoreProductsService` (`src/modules/catalog/store-products/services/store-products.service.ts`)
+
+Injected dependencies: `PrismaService` only (mapper is called statically).
+
+All read/write queries filter by `deletedAt: null`. All operations are scoped to the authenticated user's own store via `resolveOwnStore(userId)`.
+
+#### `create(userId: string, dto: CreateStoreProductDto): Promise<StoreProductResponseDto>`
+
+| Step | Action | Error |
+|---|---|---|
+| 1 | `resolveOwnStore(userId)` — finds the store owned by the user | `NotFoundException('Store not found for the current user')` |
+| 2 | `ensureMasterProductExists(masterProductId)` — verifies master product exists and is not soft-deleted | `NotFoundException('Master product not found')` |
+| 3 | `ensureStoreProductDoesNotExist(storeId, masterProductId)` — checks `@@unique([storeId, masterProductId])`; distinguishes active vs previously-deleted records | `ConflictException` |
+| 4 | `validatePricing(mrp, sellingPrice)` — rejects if `sellingPrice > mrp` | `ConflictException('Selling price cannot be greater than MRP')` |
+| 5 | `prisma.storeProduct.create(...)` — `availabilityStatus` defaults to `AVAILABLE`, `trackInventory` to `true`, `isFeatured` to `false`, `displayOrder` to `0` | — |
+| 6 | `StoreProductMapper.toResponse(storeProduct)` | — |
+| catch | `handlePrismaError(error)` | — |
+
+> **Previously-deleted guard:** `ensureStoreProductDoesNotExist` queries with no `deletedAt` filter. If the record exists and is soft-deleted, it throws a distinct message: *"This product has previously been removed from the store and cannot be recreated with the same store-product relationship"*.
+
+#### `findMine(userId: string): Promise<StoreProductResponseDto[]>`
+
+Returns all non-deleted store products for the current user's store, ordered by `displayOrder asc, createdAt desc`.
+
+#### `findMineById(userId: string, id: string): Promise<StoreProductResponseDto>`
+
+Returns a single store product scoped to the current user's store. Throws `NotFoundException('Store product not found')` if absent or belonging to another store.
+
+#### `update(userId: string, id: string, dto: UpdateStoreProductDto): Promise<StoreProductResponseDto>`
+
+| Step | Action | Error |
+|---|---|---|
+| 1 | `resolveOwnStore(userId)` | `NotFoundException` |
+| 2 | `findStoreProduct(id, storeId)` | `NotFoundException` |
+| 3 | Merges `dto.mrp`/`dto.sellingPrice` with existing values; `validatePricing(effectiveMrp, effectiveSellingPrice)` | `ConflictException` |
+| 4 | Builds `data: Prisma.StoreProductUpdateInput` with spread-guard pattern | — |
+| 5 | `prisma.storeProduct.update(...)` | — |
+| 6 | `StoreProductMapper.toResponse(updated)` | — |
+| catch | `handlePrismaError(error)` | — |
+
+#### `remove(userId: string, id: string): Promise<void>`
+
+Soft-delete — sets `deletedAt = new Date()`, `isFeatured = false`, `availabilityStatus = HIDDEN`, `updatedBy = userId`. No guard checks on dependent records at this level.
+
+#### Private Helpers
+
+| Method | Purpose |
+|---|---|
+| `resolveOwnStore(userId)` | `prisma.store.findUnique({ where: { ownerId: userId } })`; throws `NotFoundException('Store not found for the current user')` if absent |
+| `ensureMasterProductExists(masterProductId)` | `prisma.masterProduct.findFirst({ where: { id, deletedAt: null } })`; throws `NotFoundException('Master product not found')` |
+| `ensureStoreProductDoesNotExist(storeId, masterProductId)` | Queries by `@@unique` composite key (no `deletedAt` filter); throws `ConflictException` with context-specific message |
+| `findStoreProduct(id, storeId)` | `prisma.storeProduct.findFirst({ where: { id, storeId, deletedAt: null } })`; throws `NotFoundException('Store product not found')` |
+| `validatePricing(mrp, sellingPrice)` | Throws `ConflictException('Selling price cannot be greater than MRP')` if `sellingPrice > mrp` |
+| `handlePrismaError(error)` | Maps P2002 → `ConflictException('This product is already listed in the store')`, P2025 → `NotFoundException('Store product not found')`, P2003 → `ConflictException('Store product references an invalid record')`; re-throws all others |
+
+---
+
+### Store Products Endpoints
+
+#### `POST /catalog/store-products/me`
+
+| Property | Value |
+|---|---|
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | Yes |
+| **Request Body** | `CreateStoreProductDto` |
+| **Response** | `StoreProductResponseDto` |
+
+Adds a master product to the authenticated user's store. Validates master product existence, enforces uniqueness of `(storeId, masterProductId)`, and validates pricing (`sellingPrice ≤ mrp`).
+
+**Error Responses:**
+
+| Status | Condition |
+|---|---|
+| `400 Bad Request` | Validation failure |
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `404 Not Found` | Authenticated user has no store; or master product not found |
+| `409 Conflict` | Product already listed in the store; or previously removed; or `sellingPrice > mrp` |
+
+---
+
+#### `GET /catalog/store-products/me`
+
+| Property | Value |
+|---|---|
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | Yes |
+| **Response** | `StoreProductResponseDto[]` |
+
+Returns all active (non-deleted) store product listings for the current user's store, ordered by `displayOrder asc, createdAt desc`.
+
+---
+
+#### `GET /catalog/store-products/me/:id`
+
+| Property | Value |
+|---|---|
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | Yes |
+| **Path Param** | `id` — UUID of the store product |
+| **Response** | `StoreProductResponseDto` |
+
+**Error Responses:**
+
+| Status | Condition |
+|---|---|
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `404 Not Found` | Store product not found, soft-deleted, or belongs to a different store |
+
+---
+
+#### `PATCH /catalog/store-products/me/:id`
+
+| Property | Value |
+|---|---|
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | Yes |
+| **Path Param** | `id` — UUID of the store product |
+| **Request Body** | `UpdateStoreProductDto` |
+| **Response** | `StoreProductResponseDto` (updated) |
+
+Partial update with spread-guard pattern. Pricing is re-validated against the effective combined `mrp`/`sellingPrice` after merging dto values with existing values.
+
+**Error Responses:**
+
+| Status | Condition |
+|---|---|
+| `400 Bad Request` | Validation failure |
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `404 Not Found` | Store product not found or belongs to a different store |
+| `409 Conflict` | `sellingPrice > mrp` (effective combined values) |
+
+---
+
+#### `DELETE /catalog/store-products/me/:id`
+
+| Property | Value |
+|---|---|
+| **Guard** | `SupabaseAuthGuard` (class-level) |
+| **Auth Required** | Yes |
+| **Path Param** | `id` — UUID of the store product |
+| **Response** | `204 No Content` (void) |
+
+Soft-delete — sets `deletedAt`, `isFeatured = false`, `availabilityStatus = HIDDEN`.
+
+**Error Responses:**
+
+| Status | Condition |
+|---|---|
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `404 Not Found` | Store product not found or belongs to a different store |
 
 ---
 

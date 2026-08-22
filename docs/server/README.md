@@ -19,7 +19,9 @@ This section documents the **actual, implemented** NestJS server application —
 | [Module — Authorization](./03-module-authorization.md) | RBAC: role/permission guards and decorators |
 | [Module — Users](./04-module-users.md) | User self-management: `GET /users/me`, `PATCH /users/me`, session management |
 | [Module — Stores](./05-module-stores.md) | Store owner self-management: core profile, hours, delivery settings, images |
-| [Module — Catalog](./06-module-catalog.md) | Product catalog master data: categories (hierarchical), brands, units, master products, product images |
+| [Module — Catalog](./06-module-catalog.md) | Product catalog master data: categories (hierarchical), brands, units, master products, product images, store products |
+| [Module — Inventory](./07-module-inventory.md) | Stock management: OCC-safe adjustments, transaction ledger (`inventory/me`) |
+| [Module — Wishlist](./08-module-wishlist.md) | User wishlists: named bookmark lists with items, default promotion (`wishlists`) |
 
 ---
 
@@ -33,7 +35,9 @@ AppModule
   ├── AuthModule     (authentication — token verification, user sync)
   ├── UsersModule    (user self-management — profile, session management)
   ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
-  └── CatalogModule  (catalog master data — categories, brands, units, master products, product images)
+  ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
+  ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
+  └── WishlistModule  *(implemented; pending AppModule registration)*
 ```
 
 `AuthorizationModule` is implemented and available as an importable module — feature modules import it as needed when they require RBAC guards.
@@ -87,6 +91,17 @@ AppModule
 | `GET` | `/catalog/product-images/:id` | `SupabaseAuthGuard` | Returns a single product image by ID |
 | `PATCH` | `/catalog/product-images/:id` | `SupabaseAuthGuard` | Partially updates a product image |
 | `DELETE` | `/catalog/product-images/:id` | `SupabaseAuthGuard` | Hard-deletes a product image |
+| `POST` | `/catalog/store-products/me` | `SupabaseAuthGuard` | Adds a master product to the authenticated user's store |
+| `GET` | `/catalog/store-products/me` | `SupabaseAuthGuard` | Lists all active store product listings (ordered by displayOrder, createdAt) |
+| `GET` | `/catalog/store-products/me/:id` | `SupabaseAuthGuard` | Returns a single store product listing by ID |
+| `PATCH` | `/catalog/store-products/me/:id` | `SupabaseAuthGuard` | Partially updates a store product (pricing re-validated) |
+| `DELETE` | `/catalog/store-products/me/:id` | `SupabaseAuthGuard` | Soft-deletes a store product (sets availabilityStatus=HIDDEN) |
+| `POST` | `/inventory/me` | `SupabaseAuthGuard` | Creates an inventory record for a store product |
+| `GET` | `/inventory/me` | `SupabaseAuthGuard` | Lists all inventory records for the user's store |
+| `GET` | `/inventory/me/:id` | `SupabaseAuthGuard` | Returns a single inventory record by ID |
+| `PATCH` | `/inventory/me/:id` | `SupabaseAuthGuard` | Updates lowStockThreshold and/or reorderLevel |
+| `POST` | `/inventory/me/:id/adjust` | `SupabaseAuthGuard` | OCC-safe stock adjustment (appends InventoryTransaction) |
+| `GET` | `/inventory/me/:id/transactions` | `SupabaseAuthGuard` | Returns the full transaction ledger for an inventory record |
 
 ---
 
