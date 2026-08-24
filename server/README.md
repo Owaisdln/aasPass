@@ -94,7 +94,7 @@ server/
 │   └── ERD.svg                # Auto-generated entity relationship diagram
 ├── prisma.config.ts           # Prisma 7 config — datasource URL & migration path
 ├── src/
-│   ├── app.module.ts          # Root NestJS module
+│   ├── app.module.ts          # Root NestJS module — registers all feature modules
 │   ├── app.controller.ts      # Health check controller (GET /)
 │   ├── main.ts                # Application entry point
 │   ├── config/                # Configuration layer
@@ -112,11 +112,79 @@ server/
 │   │       ├── supabase.service.spec.ts # SupabaseService unit tests
 │   │       └── supabase.module.ts  # Global NestJS module exporting SupabaseService
 │   ├── common/                # Shared utilities & domain models
-│   │   └── identity/          # CurrentUser domain model
-│   ├── modules/               # Feature modules
-│   │   ├── auth/              # Authentication module (Guard, Service, Controller)
-│   │   └── authorization/     # Authorization module (RolesGuard, PermissionsGuard, AnyPermissionGuard)
-│   └── shared/                # Shared DTOs, utilities (to be added)
+│   │   ├── identity/
+│   │   │   └── current-user.model.ts  # CurrentUser domain model (RBAC, status)
+│   │   └── parsers/
+│   │       └── browser.parser.ts      # User-agent parser (bowser)
+│   └── modules/               # Feature modules
+│       ├── auth/              # Authentication
+│       │   ├── auth.module.ts
+│       │   ├── constants/     # Auth metadata constants
+│       │   ├── controllers/   # AuthController (GET /auth/me)
+│       │   ├── decorators/    # @AuthenticatedUser() param decorator
+│       │   ├── dto/           # Auth response DTOs
+│       │   ├── guards/        # SupabaseAuthGuard
+│       │   └── services/      # AuthService — token verification, user sync
+│       ├── authorization/     # RBAC
+│       │   ├── authorization.module.ts
+│       │   ├── constants/     # Metadata key constants
+│       │   ├── decorators/    # @Roles, @Permissions, @AnyPermission, @Public
+│       │   ├── guards/        # RolesGuard, PermissionsGuard, AnyPermissionGuard
+│       │   ├── interfaces/    # PermissionsProvider abstract interface
+│       │   ├── providers/     # PrismaPermissionsProvider
+│       │   └── services/      # Authorization service
+│       ├── users/             # User self-management
+│       │   ├── users.module.ts
+│       │   ├── controllers/   # UsersController (GET/PATCH /users/me, sessions)
+│       │   ├── dto/           # UserResponseDto, UpdateUserDto, UserSessionResponseDto
+│       │   ├── mappers/       # UserMapper, UserSessionMapper
+│       │   ├── services/      # UsersService — profile, session CRUD
+│       │   └── types/         # USER_WITH_ROLE_INCLUDE, UserWithRole
+│       ├── stores/            # Store owner management
+│       │   ├── stores.module.ts
+│       │   ├── controllers/   # StoresController, StoreHoursController,
+│       │   │                  # StoreDeliverySettingsController, StoreImagesController
+│       │   ├── dto/           # Store, hours, delivery settings, image DTOs
+│       │   ├── mappers/       # StoreMapper
+│       │   ├── services/      # StoresService, StoreHoursService,
+│       │   │                  # StoreDeliverySettingsService, StoreImagesService
+│       │   └── types/         # STORE_WITH_RELATIONS_INCLUDE, StoreWithRelations
+│       ├── catalog/           # Product catalog master data
+│       │   ├── catalog.module.ts
+│       │   ├── categories/    # CategoriesController, CategoriesService, CategoryMapper
+│       │   ├── brands/        # BrandsController, BrandsService, BrandMapper
+│       │   ├── units/         # UnitsController, UnitsService, UnitMapper
+│       │   ├── master-products/ # MasterProductsController, MasterProductsService
+│       │   ├── product-images/  # ProductImagesController, ProductImagesService
+│       │   └── store-products/  # StoreProductsController, StoreProductsService
+│       ├── inventory/         # Stock management
+│       │   ├── inventory.module.ts
+│       │   ├── controllers/   # InventoryController (GET/POST/PATCH /inventory/me, adjust, transactions)
+│       │   ├── dto/           # Create, Update, Adjust, Response DTOs
+│       │   ├── mappers/       # InventoryMapper
+│       │   ├── services/      # InventoryService — OCC-safe stock adjustments
+│       │   └── types/         # INVENTORY_WITH_TRANSACTIONS_INCLUDE
+│       ├── wishlist/          # User wishlists
+│       │   ├── wishlist.module.ts
+│       │   ├── controllers/   # WishlistController (wishlists, items)
+│       │   ├── dto/           # Wishlist and item DTOs
+│       │   ├── mappers/       # WishlistMapper
+│       │   ├── services/      # WishlistService — default promotion, item CRUD
+│       │   └── types/         # WISHLIST_WITH_ITEMS_INCLUDE
+│       ├── orders/            # Order lifecycle
+│       │   ├── orders.module.ts
+│       │   ├── controllers/   # OrdersController (POST/GET /orders, cancel)
+│       │   ├── dto/           # CreateOrderDto, CancelOrderDto, response DTOs
+│       │   ├── mappers/       # OrdersMapper
+│       │   ├── services/      # OrdersService — checkout, OCC stock deduction, cancellation
+│       │   └── types/         # ORDER_WITH_ITEMS_INCLUDE
+│       └── payments/          # Payment lifecycle
+│           ├── payments.module.ts
+│           ├── controllers/   # PaymentsController (create, findByOrder, verify, COD paid, refund)
+│           ├── dto/           # CreatePaymentDto, VerifyPaymentDto, CreateRefundDto, PaymentResponseDto
+│           ├── mappers/       # PaymentsMapper
+│           ├── services/      # PaymentsService — COD/Razorpay flow, refunds
+│           └── types/         # PAYMENT_WITH_TRANSACTIONS_INCLUDE
 └── .env                       # Local environment variables (git-ignored)
 ```
 

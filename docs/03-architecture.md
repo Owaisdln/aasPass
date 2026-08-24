@@ -57,11 +57,13 @@ graph TB
  PRISMA --> PG
 ```
 
+Module implementation status: Auth, Store, Catalog, Inventory, Wishlist, Orders, and Payments modules are fully implemented. Cart Module is planned (schema exists). Cross-cutting concerns (Helmet, Rate Limiting, BullMQ, Socket.io, Swagger) are planned infrastructure.
+
 ---
 
 ## Request Lifecycle
 
-Every HTTP request passes through this pipeline before reaching a controller:
+Every HTTP request passes through this pipeline before reaching a controller. The full pipeline below represents the intended design — guards and validation pipes are active; middleware layers (Helmet, Rate Limiter, Cookie Parser, Compression) and interceptors are planned.
 
 ```
 Incoming HTTP Request
