@@ -137,7 +137,7 @@ Swagger UI will display all available endpoints.
 server/
 ├── src/
 │ ├── main.ts ← App entry point — binds port via ConfigService
-│ ├── app.module.ts ← Root NestJS module (ConfigModule, PrismaModule, SupabaseModule, AuthModule, UsersModule, StoresModule, CatalogModule, InventoryModule)
+│ ├── app.module.ts ← Root NestJS module (ConfigModule, PrismaModule, SupabaseModule, AuthModule, UsersModule, StoresModule, CatalogModule, InventoryModule, WishlistModule, OrdersModule)
 │ ├── app.controller.ts ← Health check: GET /
 │ ├── config/ ← Config namespaces + Zod env validation
 │ │ ├── index.ts ← Aggregates all config loaders
@@ -165,7 +165,8 @@ server/
 │ ├── stores/ ← Store owner management (profile, hours, delivery, images)
 │ ├── catalog/ ← Product catalog (categories, brands, units, master products, product images, store products)
 │ ├── inventory/ ← Stock management (OCC adjustments, transaction ledger)
-│ └── wishlist/ ← Wishlists (pending AppModule registration)
+│ ├── wishlist/ ← Wishlists (named bookmark lists with items, default promotion)
+│ └── orders/ ← Orders (order placement, address snapshot, OCC stock deduction, cancellation)
 ├── prisma/
 │ ├── schema.prisma ← Merged schema (no url in datasource — Prisma 7)
 │ ├── prisma.config.ts ← Prisma 7 config (CLI datasource URL + paths)

@@ -8,8 +8,6 @@
 
 The `WishlistModule` manages **named bookmark lists** that users create to save products they are interested in. Each user can have multiple wishlists; one can be marked as the default. Items are linked to `StoreProduct` records and are only addable if the product and its store are active.
 
-> **Registration note:** `WishlistModule` is fully implemented and compiles successfully, but is not yet included in the `AppModule` imports array. Its routes are therefore not active in the running server until it is wired in.
-
 All routes are protected by `SupabaseAuthGuard`.
 
 ---

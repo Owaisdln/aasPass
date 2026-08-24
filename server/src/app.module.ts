@@ -23,6 +23,9 @@ import { UsersModule } from './modules/users/users.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 
 import { WishlistModule } from './modules/wishlist/wishlist.module';
+
+import { OrdersModule } from './modules/orders/orders.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -47,6 +50,10 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
     CatalogModule,
 
     InventoryModule,
+
+    WishlistModule,
+
+    OrdersModule,
   ],
 
   controllers: [AppController],

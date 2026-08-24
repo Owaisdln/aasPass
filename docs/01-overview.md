@@ -60,8 +60,8 @@
 | 1 | **IAM** | Users, roles, permissions, auth, sessions | Auth, RBAC, Users implemented |
 | 2 | **Store** | Vendor onboarding, store profiles | Store profile, hours, delivery, images implemented |
 | 3 | **Catalog** | Products, categories, variants, inventory | Catalog (categories, brands, units, master products, product images, store products) + Inventory implemented |
-| 4 | **Cart** | Cart per store, wishlist, price snapshots | Wishlist implemented; Cart pending |
-| 5 | **Orders** | Checkout, order lifecycle, replacements | Schema done; API pending |
+| 4 | **Cart** | Cart per store, wishlist, price snapshots | Wishlist implemented; Cart API pending |
+| 5 | **Orders** | Checkout, order placement, replacements, cancellation | Order placement, address snapshot, OCC stock deduction, cancellation implemented |
 | 6 | **Payments** | Gateway integration, refunds, webhooks | Schema done; API pending |
 
 ---

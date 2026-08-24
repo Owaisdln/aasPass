@@ -1,7 +1,7 @@
 # aasPass Documentation
 
 > **Platform:** aasPass — Hyperlocal commerce platform
-> **Last Updated:** 2026-08-22
+> **Last Updated:** 2026-08-24
 
 ---
 
@@ -20,6 +20,7 @@
 | [Module — Catalog](./server/06-module-catalog.md) | — | Active | Catalog master data: categories, brands, units, master products, product images, store products |
 | [Module — Inventory](./server/07-module-inventory.md) | — | Active | Stock management: OCC-safe adjustments, transaction ledger |
 | [Module — Wishlist](./server/08-module-wishlist.md) | — | Active | User wishlists: named bookmark lists with items, default promotion |
+| [Module — Orders](./server/09-module-orders.md) | — | Active | Order placement & management: checkout from cart, address snapshot, stock deduction, cancellation |
 
 ### Architecture & Design
 

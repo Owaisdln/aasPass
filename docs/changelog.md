@@ -6,6 +6,46 @@ All notable changes to this project are documented here.
 
 ---
 
+## [August 24, 2026]
+
+### Server — Orders Module Implementation & AppModule Registration
+
+#### Orders Module (`OrdersModule`) Implementation
+
+- Created `OrdersModule` (`src/modules/orders/orders.module.ts`) importing `PrismaModule` and `AuthModule`:
+  - Registered `OrdersController`, `OrdersService`, `OrdersMapper`; exports `OrdersService`
+
+- Added Prisma type utilities (`src/modules/orders/types/orders.types.ts`):
+  - `ORDER_WITH_ITEMS_INCLUDE`: includes `items` ordered by `createdAt asc`
+  - `OrderWithItems`: derived `Prisma.OrderGetPayload` type
+
+- Added DTOs:
+  - `CreateOrderDto` — required: `addressId` (UUID), `fulfillmentType` (`DELIVERY` | `PICKUP`); optional: `notes` (1–1000 chars)
+  - `CancelOrderDto` — optional: `reason` (1–500 chars)
+  - `UpdateOrderStatusDto` — required: `status` (`OrderStatus` enum)
+  - `OrderItemResponseDto` — `id`, `orderId`, `storeProductId`, `quantity`, `productNameSnapshot`, `unitSnapshot`, `mrpSnapshot`, `sellingPriceSnapshot`, `gstRateSnapshot`, `subtotal`, `fulfillmentStatus`, timestamps
+  - `OrderResponseDto` — `id`, `userId`, `storeId`, `addressId`, `orderNumber`, `status`, `paymentStatus`, `fulfillmentType`, financial amounts (`subtotal`, `discountAmount`, `taxAmount`, `deliveryFee`, `totalAmount`), 13 delivery address snapshot fields, status timestamps, `items: OrderItemResponseDto[]`
+
+- Added `OrdersMapper` (static class):
+  - `static toItemResponse(item: OrderItem): OrderItemResponseDto` — maps Prisma Decimals to JavaScript numbers
+  - `static toResponse(order: OrderWithItems): OrderResponseDto` — maps complete order entity with nested items
+
+- Added `OrdersService`:
+  - `create(userId, dto)`: `$transaction` — validates active cart with items and non-deleted store; validates user address; checks store delivery settings (`isDeliveryAvailable`, `isPickupAvailable`, `minimumOrderAmount`); validates availability of store products and master products; calculates item subtotals and GST tax; deducts inventory stock atomically with OCC (`updateMany` with version check and `stockQuantity >= quantity`), appends `InventoryTransaction` (`SALE`, `ORDER_PLACEMENT`); calculates delivery fee (`freeDeliveryAbove` threshold); generates unique `orderNumber` (`ORD-TIMESTAMP-RANDOM`); creates `Order` with 13-field address snapshot, `OrderItem` snapshots, and initial `OrderStatusHistory` entry (`PENDING`); marks `Cart.status = CHECKED_OUT`
+  - `findAll(userId)`: all non-deleted orders for user ordered by `placedAt desc` with items included
+  - `findOne(userId, orderId)`: single order lookup by ID with items included
+  - `cancel(userId, orderId, reason)`: `$transaction` — verifies order belongs to user and is in cancellable state (`PENDING`, `CONFIRMED`, `PREPARING`); restores inventory stock for tracked products with OCC (`updateMany` incrementing `stockQuantity`), appends `InventoryTransaction` (`RETURN`, `ORDER_CANCELLATION`); sets `Order.status = CANCELLED`, records `cancelledAt`, appends `OrderStatusHistory` entry
+  - Private helper: `generateOrderNumber(tx)` with recursive collision retry
+
+- Added `OrdersController` at `orders` (class-level `SupabaseAuthGuard`):
+  - `POST /orders`, `GET /orders`, `GET /orders/:id`, `POST /orders/:id/cancel`
+
+- Updated `AppModule` (`src/app.module.ts`):
+  - Registered `WishlistModule` in `imports` array — `/wishlists` routes active
+  - Registered `OrdersModule` in `imports` array — `/orders` routes active
+
+---
+
 ## [August 22, 2026]
 
 ### Server — Store Products, Inventory Module, Wishlist Module Implementation

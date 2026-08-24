@@ -56,17 +56,17 @@ All namespaces are aggregated in `src/config/index.ts` and loaded into `ConfigMo
 
 ```
 AppModule
- ├── ConfigModule (isGlobal: true, cache: true, expandVariables: true)
- ├── PrismaModule (global — provides PrismaService everywhere)
- ├── SupabaseModule (global — provides SupabaseService everywhere)
- ├── AuthModule (authentication — token verification, user sync)
- ├── UsersModule (user self-management — profile, session management)
- ├── StoresModule (store owner self-management — profile, hours, delivery, images)
- ├── CatalogModule (catalog master data — categories, brands, units, master products, product images, store products)
- └── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
+  ├── ConfigModule   (isGlobal: true, cache: true, expandVariables: true)
+  ├── PrismaModule   (global — provides PrismaService everywhere)
+  ├── SupabaseModule (global — provides SupabaseService everywhere)
+  ├── AuthModule     (authentication — token verification, user sync)
+  ├── UsersModule    (user self-management — profile, session management)
+  ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
+  ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
+  ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
+  ├── WishlistModule (user bookmark lists — default promotion, items management)
+  └── OrdersModule   (order placement, address snapshot, OCC stock deduction, cancellation)
 ```
-
-`WishlistModule` is fully implemented and TypeScript-clean but is not yet added to the `AppModule` imports array — its routes are not active until it is wired in.
 
 `ConfigModule` is marked `isGlobal: true` — `ConfigService` is injectable in any module without re-importing.
 

@@ -114,7 +114,8 @@ server/
 │ ├── stores/ # Store owner management module
 │ ├── catalog/ # Product catalog module (6 sub-domains)
 │ ├── inventory/ # Inventory & stock management module
-│ └── wishlist/ # Wishlist module (pending AppModule registration)
+│ ├── wishlist/ # Wishlist module (named bookmark lists, default promotion)
+│ └── orders/ # Order placement & management module (checkout, OCC stock deduction, cancellation)
 ├── prisma/
 │ ├── schema.prisma # Aggregated Prisma schema (main entry)
 │ ├── prisma.config.ts # Prisma CLI config (datasource URL)
@@ -147,17 +148,17 @@ await app.listen(port);
 
 ```
 AppModule
- ├── ConfigModule (isGlobal: true, cache: true, expandVariables: true)
- ├── PrismaModule (global provider)
- ├── SupabaseModule
- ├── AuthModule
- ├── UsersModule
- ├── StoresModule
- ├── CatalogModule
- └── InventoryModule
+  ├── ConfigModule  (isGlobal: true, cache: true, expandVariables: true)
+  ├── PrismaModule  (global provider)
+  ├── SupabaseModule
+  ├── AuthModule
+  ├── UsersModule
+  ├── StoresModule
+  ├── CatalogModule
+  ├── InventoryModule
+  ├── WishlistModule
+  └── OrdersModule
 ```
-
-`WishlistModule` is implemented but not yet registered in `AppModule` — its routes are inactive.
 
 - `ConfigModule` loads `.env`, executes Zod validation, and caches results — safe to inject `ConfigService` anywhere.
 
@@ -720,9 +721,9 @@ The following summarises what has been implemented and what remains pending:
 | `StoresModule` | Done | Store profile, operating hours, delivery settings, gallery images |
 | `CatalogModule` | Done | Categories, brands, units, master products, product images, store products |
 | `InventoryModule` | Done | Stock management with OCC version locking, transaction ledger |
-| `WishlistModule` | Done (pending AppModule registration) | Wishlists with items, default promotion, add/remove/clear |
+| `WishlistModule` | Done | Wishlists with items, default promotion, add/remove/clear |
+| `OrdersModule` | Done | Order placement from active cart, address snapshot, OCC stock deduction, cancellation |
 | Cart API | Pending | Cart controller/service - schema exists in module4.cart.prisma |
-| Order API | Pending | Checkout flow, order lifecycle - schema exists in module5.order.prisma |
 | Payment API | Pending | Razorpay integration, refunds - schema exists in module6.payment.prisma |
 | Coupon/Promotions | Pending | Coupon module |
 | Review Module | Pending | Store/product reviews |

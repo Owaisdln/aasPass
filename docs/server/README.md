@@ -22,6 +22,7 @@ This section documents the **actual, implemented** NestJS server application —
 | [Module — Catalog](./06-module-catalog.md) | Product catalog master data: categories (hierarchical), brands, units, master products, product images, store products |
 | [Module — Inventory](./07-module-inventory.md) | Stock management: OCC-safe adjustments, transaction ledger (`inventory/me`) |
 | [Module — Wishlist](./08-module-wishlist.md) | User wishlists: named bookmark lists with items, default promotion (`wishlists`) |
+| [Module — Orders](./09-module-orders.md) | Order placement & management: checkout from cart, address snapshot, stock deduction, cancellation (`orders`) |
 
 ---
 
@@ -29,15 +30,16 @@ This section documents the **actual, implemented** NestJS server application —
 
 ```
 AppModule
- ├── ConfigModule (isGlobal: true, Zod-validated)
- ├── PrismaModule (global database access)
- ├── SupabaseModule (global Supabase client)
- ├── AuthModule (authentication — token verification, user sync)
- ├── UsersModule (user self-management — profile, session management)
- ├── StoresModule (store owner self-management — profile, hours, delivery, images)
- ├── CatalogModule (catalog master data — categories, brands, units, master products, product images, store products)
- ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
- └── WishlistModule *(implemented; pending AppModule registration)*
+  ├── ConfigModule   (isGlobal: true, Zod-validated)
+  ├── PrismaModule   (global database access)
+  ├── SupabaseModule (global Supabase client)
+  ├── AuthModule     (authentication — token verification, user sync)
+  ├── UsersModule    (user self-management — profile, session management)
+  ├── StoresModule   (store owner self-management — profile, hours, delivery, images)
+  ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
+  ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
+  ├── WishlistModule (user bookmark lists — default promotion, items management)
+  └── OrdersModule   (order placement, address snapshot, OCC stock deduction, cancellation)
 ```
 
 `AuthorizationModule` is implemented and available as an importable module — feature modules import it as needed when they require RBAC guards.
@@ -102,6 +104,19 @@ AppModule
 | `PATCH` | `/inventory/me/:id` | `SupabaseAuthGuard` | Updates lowStockThreshold and/or reorderLevel |
 | `POST` | `/inventory/me/:id/adjust` | `SupabaseAuthGuard` | OCC-safe stock adjustment (appends InventoryTransaction) |
 | `GET` | `/inventory/me/:id/transactions` | `SupabaseAuthGuard` | Returns the full transaction ledger for an inventory record |
+| `POST` | `/wishlists` | `SupabaseAuthGuard` | Creates a new wishlist for the user |
+| `GET` | `/wishlists` | `SupabaseAuthGuard` | Lists all wishlists for the user (default first) |
+| `GET` | `/wishlists/:id` | `SupabaseAuthGuard` | Returns a single wishlist by ID with items |
+| `PATCH` | `/wishlists/:id` | `SupabaseAuthGuard` | Updates a wishlist name |
+| `PATCH` | `/wishlists/:id/default` | `SupabaseAuthGuard` | Promotes a wishlist to default (transactional demotion of previous default) |
+| `DELETE` | `/wishlists/:id` | `SupabaseAuthGuard` | Soft-deletes a wishlist (guarded against default deletion) |
+| `POST` | `/wishlists/:id/items` | `SupabaseAuthGuard` | Adds a store product to a wishlist |
+| `DELETE` | `/wishlists/:id/items/:itemId` | `SupabaseAuthGuard` | Hard-deletes a single item from a wishlist |
+| `DELETE` | `/wishlists/:id/items` | `SupabaseAuthGuard` | Clears all items from a wishlist |
+| `POST` | `/orders` | `SupabaseAuthGuard` | Places a new order from active cart (atomic OCC stock deduction & address snapshot) |
+| `GET` | `/orders` | `SupabaseAuthGuard` | Lists all orders placed by the user (newest first) |
+| `GET` | `/orders/:id` | `SupabaseAuthGuard` | Returns a single order by ID with line items |
+| `POST` | `/orders/:id/cancel` | `SupabaseAuthGuard` | Cancels an order and restores inventory stock |
 
 ---
 
