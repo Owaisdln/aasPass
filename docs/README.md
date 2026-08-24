@@ -21,6 +21,7 @@
 | [Module — Inventory](./server/07-module-inventory.md) | — | Active | Stock management: OCC-safe adjustments, transaction ledger |
 | [Module — Wishlist](./server/08-module-wishlist.md) | — | Active | User wishlists: named bookmark lists with items, default promotion |
 | [Module — Orders](./server/09-module-orders.md) | — | Active | Order placement & management: checkout from cart, address snapshot, stock deduction, cancellation |
+| [Module — Payments](./server/10-module-payments.md) | — | Active | Payment creation, COD confirmation, Razorpay verification flow, refund initiation |
 
 ### Architecture & Design
 

@@ -157,7 +157,8 @@ AppModule
   ├── CatalogModule
   ├── InventoryModule
   ├── WishlistModule
-  └── OrdersModule
+  ├── OrdersModule
+  └── PaymentsModule
 ```
 
 - `ConfigModule` loads `.env`, executes Zod validation, and caches results — safe to inject `ConfigService` anywhere.
@@ -723,8 +724,9 @@ The following summarises what has been implemented and what remains pending:
 | `InventoryModule` | Done | Stock management with OCC version locking, transaction ledger |
 | `WishlistModule` | Done | Wishlists with items, default promotion, add/remove/clear |
 | `OrdersModule` | Done | Order placement from active cart, address snapshot, OCC stock deduction, cancellation |
+| `PaymentsModule` | Done | Payment creation (COD and Razorpay), COD confirmation, Razorpay verification flow, refund initiation |
 | Cart API | Pending | Cart controller/service - schema exists in module4.cart.prisma |
-| Payment API | Pending | Razorpay integration, refunds - schema exists in module6.payment.prisma |
+| Razorpay Webhook | Pending | Webhook handler for payment confirmation and refund status updates |
 | Coupon/Promotions | Pending | Coupon module |
 | Review Module | Pending | Store/product reviews |
 | Notification Module | Pending | Push notification system |

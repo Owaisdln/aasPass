@@ -65,7 +65,8 @@ AppModule
   ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
   ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
   ├── WishlistModule (user bookmark lists — default promotion, items management)
-  └── OrdersModule   (order placement, address snapshot, OCC stock deduction, cancellation)
+  ├── OrdersModule   (order placement, address snapshot, OCC stock deduction, cancellation)
+  └── PaymentsModule (payment creation, COD confirmation, Razorpay verification, refund initiation)
 ```
 
 `ConfigModule` is marked `isGlobal: true` — `ConfigService` is injectable in any module without re-importing.

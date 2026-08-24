@@ -8,6 +8,41 @@ All notable changes to this project are documented here.
 
 ## [August 24, 2026]
 
+### Server — Payments Module (`PaymentsModule`) Implementation
+
+#### Payments Module (`PaymentsModule`) Implementation
+
+- Created `PaymentsModule` (`src/modules/payments/payments.module.ts`) importing `PrismaModule` and `AuthModule`:
+  - Registered `PaymentsController`, `PaymentsService`, `PaymentsMapper`; exports `PaymentsService`
+
+- Added Prisma type utilities (`src/modules/payments/types/payments.types.ts`):
+  - `PAYMENT_WITH_TRANSACTIONS_INCLUDE`: includes `transactions` ordered by `createdAt desc`
+  - `PaymentWithTransactions`: derived `Prisma.PaymentGetPayload` type
+
+- Added DTOs:
+  - `CreatePaymentDto` — required: `paymentMethod` (`PaymentMethod` enum: `ONLINE` | `COD`)
+  - `VerifyPaymentDto` — required: `gatewayOrderId` (1-255 chars), `gatewayPaymentId` (1-255 chars), `gatewaySignature` (1-1000 chars)
+  - `CreateRefundDto` — required: `paymentId` (UUID), `amount` (number, 0.01-99999999.99); optional: `reason` (string)
+  - `PaymentResponseDto` — `id`, `orderId`, `paymentMethod`, `gateway`, `paymentStatus`, `payableAmount` (number), `currency`, `paidAt`, `createdAt`, `updatedAt`
+
+- Added `PaymentsMapper` (static class):
+  - `static toResponse(payment: Payment | PaymentWithTransactions): PaymentResponseDto` — maps Prisma Decimal `payableAmount` to JavaScript number
+
+- Added `PaymentsService`:
+  - `create(userId, orderId, dto)`: `$transaction` — validates order exists and belongs to user; rejects if order is `CANCELLED` or `FAILED`; rejects if a payment already exists for the order; derives `gateway` from `paymentMethod` (`COD` → `CASH`, otherwise → `RAZORPAY`); creates `Payment` with `paymentStatus: PENDING`, `payableAmount: order.totalAmount`, `paidAmount: 0`, `refundedAmount: 0`, `currency: 'INR'`; creates initial `PaymentTransaction` with `transactionStatus: INITIATED`; re-fetches and returns DTO. COD payments start as `PENDING` to reflect that cash is not yet collected.
+  - `findByOrder(userId, orderId)`: scoped lookup via `{ orderId, order: { userId, deletedAt: null } }`; throws `NotFoundException` if absent
+  - `verifyRazorpayPayment(userId, paymentId, dto)`: `$transaction` — validates payment belongs to user and gateway is `RAZORPAY`; returns existing DTO if already `PAID` (idempotent); finds the most recent `INITIATED` transaction (matching `gatewayPaymentId` or null); updates transaction with `gatewayOrderId`, `gatewayPaymentId`, `gatewaySignature`, `gatewayResponse`; does not set payment to `PAID` — Razorpay HMAC signature verification is deferred until the gateway client is configured
+  - `markCodAsPaid(userId, paymentId)`: `$transaction` — validates payment is COD and belongs to user; returns existing DTO if already `PAID` (idempotent); rejects non-`PENDING` status with `ConflictException`; sets `paymentStatus: PAID`, `paidAmount = payableAmount`, `paidAt = new Date()`; appends new `PaymentTransaction` with `transactionStatus: SUCCESS`; updates `Order.paymentStatus` to `PAID`
+  - `createRefund(userId, dto)`: `$transaction` — validates payment belongs to user; rejects if status is not `PAID` or `PARTIALLY_REFUNDED`; validates `dto.amount <= paidAmount - refundedAmount`; creates `Refund` record with `refundStatus: PENDING`; returns plain refund object. Payment `refundedAmount` and `paymentStatus` will be updated by a future webhook handler.
+
+- Added `PaymentsController` at `payments` (class-level `SupabaseAuthGuard`):
+  - `POST /payments/orders/:orderId`, `GET /payments/orders/:orderId`, `POST /payments/:paymentId/verify`, `PATCH /payments/:paymentId/cod-paid`, `POST /payments/refunds`
+
+- Updated `AppModule` (`src/app.module.ts`):
+  - Registered `PaymentsModule` in `imports` array — `/payments` routes active
+
+---
+
 ### Server — Orders Module Implementation & AppModule Registration
 
 #### Orders Module (`OrdersModule`) Implementation

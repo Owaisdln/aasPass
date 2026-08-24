@@ -23,6 +23,7 @@ This section documents the **actual, implemented** NestJS server application —
 | [Module — Inventory](./07-module-inventory.md) | Stock management: OCC-safe adjustments, transaction ledger (`inventory/me`) |
 | [Module — Wishlist](./08-module-wishlist.md) | User wishlists: named bookmark lists with items, default promotion (`wishlists`) |
 | [Module — Orders](./09-module-orders.md) | Order placement & management: checkout from cart, address snapshot, stock deduction, cancellation (`orders`) |
+| [Module — Payments](./10-module-payments.md) | Payment creation, COD confirmation, Razorpay verification flow, refund initiation (`payments`) |
 
 ---
 
@@ -39,7 +40,8 @@ AppModule
   ├── CatalogModule  (catalog master data — categories, brands, units, master products, product images, store products)
   ├── InventoryModule (stock tracking — OCC-safe adjustments, transaction ledger)
   ├── WishlistModule (user bookmark lists — default promotion, items management)
-  └── OrdersModule   (order placement, address snapshot, OCC stock deduction, cancellation)
+  ├── OrdersModule   (order placement, address snapshot, OCC stock deduction, cancellation)
+  └── PaymentsModule (payment creation, COD confirmation, Razorpay verification, refund initiation)
 ```
 
 `AuthorizationModule` is implemented and available as an importable module — feature modules import it as needed when they require RBAC guards.
@@ -117,6 +119,11 @@ AppModule
 | `GET` | `/orders` | `SupabaseAuthGuard` | Lists all orders placed by the user (newest first) |
 | `GET` | `/orders/:id` | `SupabaseAuthGuard` | Returns a single order by ID with line items |
 | `POST` | `/orders/:id/cancel` | `SupabaseAuthGuard` | Cancels an order and restores inventory stock |
+| `POST` | `/payments/orders/:orderId` | `SupabaseAuthGuard` | Creates a payment record for an order (COD or Razorpay) |
+| `GET` | `/payments/orders/:orderId` | `SupabaseAuthGuard` | Returns the payment associated with an order |
+| `POST` | `/payments/:paymentId/verify` | `SupabaseAuthGuard` | Records Razorpay callback data against a payment transaction |
+| `PATCH` | `/payments/:paymentId/cod-paid` | `SupabaseAuthGuard` | Marks a COD payment as collected and updates order payment status |
+| `POST` | `/payments/refunds` | `SupabaseAuthGuard` | Initiates a refund request against a paid payment |
 
 ---
 
