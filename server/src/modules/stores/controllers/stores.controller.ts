@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Patch,
   Post,
   UseGuards,
@@ -18,13 +19,25 @@ import { UpdateStoreDto } from '../dto/update-store.dto';
 import { StoresService } from '../services/stores.service';
 
 @Controller('stores')
-@UseGuards(SupabaseAuthGuard)
 export class StoresController {
   constructor(
     private readonly storesService: StoresService,
   ) {}
 
+  /** Public — no auth needed: browse all active stores */
+  @Get('browse')
+  async browse() {
+    return this.storesService.browseStores();
+  }
+
+  /** Public — no auth needed: list products for a store */
+  @Get(':storeId/products')
+  async getProducts(@Param('storeId') storeId: string) {
+    return this.storesService.getStoreProducts(storeId);
+  }
+
   @Post()
+  @UseGuards(SupabaseAuthGuard)
   async createStore(
     @AuthenticatedUser()
     currentUser: CurrentUser,
@@ -38,6 +51,7 @@ export class StoresController {
   }
 
   @Get('me')
+  @UseGuards(SupabaseAuthGuard)
   async getMyStore(
     @AuthenticatedUser()
     currentUser: CurrentUser,
@@ -48,6 +62,7 @@ export class StoresController {
   }
 
   @Patch('me')
+  @UseGuards(SupabaseAuthGuard)
   async updateStore(
     @AuthenticatedUser()
     currentUser: CurrentUser,

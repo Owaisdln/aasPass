@@ -3,8 +3,11 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 
@@ -13,6 +16,7 @@ import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 
 import { CurrentUser } from '../../../common/identity/current-user.model';
 
+import { CreateAddressDto } from '../dto/create-address.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { UserSessionResponseDto } from '../dto/user-session-response.dto';
@@ -81,5 +85,31 @@ export class UsersController {
     return this.usersService.revokeAllSessions(
       currentUser.id,
     );
+  }
+
+  // ── Addresses ─────────────────────────────────────────────────────────────
+
+  @Get('me/addresses')
+  async listAddresses(
+    @AuthenticatedUser() currentUser: CurrentUser,
+  ) {
+    return this.usersService.listAddresses(currentUser.id);
+  }
+
+  @Post('me/addresses')
+  async createAddress(
+    @AuthenticatedUser() currentUser: CurrentUser,
+    @Body() dto: CreateAddressDto,
+  ) {
+    return this.usersService.createAddress(currentUser.id, dto);
+  }
+
+  @Delete('me/addresses/:addressId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAddress(
+    @AuthenticatedUser() currentUser: CurrentUser,
+    @Param('addressId') addressId: string,
+  ): Promise<void> {
+    return this.usersService.deleteAddress(currentUser.id, addressId);
   }
 }

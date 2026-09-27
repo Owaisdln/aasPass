@@ -128,6 +128,54 @@ export class UsersService {
     });
   }
 
+  async listAddresses(userId: string) {
+    return this.prisma.address.findMany({
+      where: { userId, deletedAt: null },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async createAddress(userId: string, dto: any) {
+    if (dto.isDefault) {
+      await this.prisma.address.updateMany({
+        where: { userId, deletedAt: null },
+        data: { isDefault: false },
+      });
+    }
+    return this.prisma.address.create({
+      data: {
+        userId,
+        label: dto.label,
+        receiverName: dto.receiverName,
+        receiverPhone: dto.receiverPhone,
+        houseNo: dto.houseNo,
+        street: dto.street,
+        area: dto.area,
+        landmark: dto.landmark,
+        city: dto.city,
+        state: dto.state,
+        country: dto.country,
+        pincode: dto.pincode,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        isDefault: dto.isDefault ?? false,
+        createdBy: userId,
+        updatedBy: userId,
+      },
+    });
+  }
+
+  async deleteAddress(userId: string, addressId: string): Promise<void> {
+    const address = await this.prisma.address.findFirst({
+      where: { id: addressId, userId, deletedAt: null },
+    });
+    if (!address) throw new NotFoundException('Address not found.');
+    await this.prisma.address.update({
+      where: { id: addressId },
+      data: { deletedAt: new Date() },
+    });
+  }
+
   private async findUserById(
     userId: string,
   ): Promise<UserWithRole> {

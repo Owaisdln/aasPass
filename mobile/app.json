@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "aasPass",
+    "slug": "aaspass",
+    "scheme": "aaspass",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/aaspass-mark.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aaspass.customer"
+    },
+    "android": {
+      "package": "com.aaspass.customer",
+      "adaptiveIcon": {
+        "backgroundColor": "#3a8f52",
+        "foregroundImage": "./assets/aaspass-mark.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-font"
+    ]
+  }
+}

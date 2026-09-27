@@ -242,4 +242,44 @@ export class StoresService {
 
     return slug || 'store';
   }
+
+  /** Public: list all active, open stores for customer browsing */
+  async browseStores() {
+    return this.prisma.store.findMany({
+      where: { status: 'ACTIVE', deletedAt: null },
+      include: {
+        deliverySetting: true,
+        hours: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /** Public: get all AVAILABLE products for a specific store */
+  async getStoreProducts(storeId: string) {
+    return this.prisma.storeProduct.findMany({
+      where: {
+        storeId,
+        availabilityStatus: 'AVAILABLE',
+        deletedAt: null,
+      },
+      include: {
+        masterProduct: {
+          include: {
+            category: true,
+            brand: true,
+            unit: true,
+            images: {
+              orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+            },
+          },
+        },
+        inventory: true,
+      },
+      orderBy: [
+        { isFeatured: 'desc' },
+        { displayOrder: 'asc' },
+      ],
+    });
+  }
 }

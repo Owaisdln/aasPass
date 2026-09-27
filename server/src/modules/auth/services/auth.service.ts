@@ -91,10 +91,10 @@ export class AuthService {
     return this.prisma.user.create({
       data: {
         id: supabaseUser.id,
-        email: supabaseUser.email,
-        phone: supabaseUser.phone,
-        firstName: '',
-        lastName: '',
+        email: supabaseUser.email || null,
+        phone: supabaseUser.phone || null,
+        firstName: (supabaseUser.user_metadata?.first_name as string) || (supabaseUser.user_metadata?.firstName as string) || '',
+        lastName: (supabaseUser.user_metadata?.last_name as string) || (supabaseUser.user_metadata?.lastName as string) || '',
         status: UserStatus.ACTIVE,
         roleId: customerRole.id,
       },
