@@ -15,7 +15,7 @@ import Toast from "react-native-toast-message";
 import { colors, radius, spacing } from "../theme";
 import { Empty, ScreenHeader, Section, Timeline } from "../components";
 import { getProduct, getStore } from "../data";
-import { formatMoney, type OrderItemReplacement } from "../model";
+import { formatMoney, isOrderCancellable, type OrderItemReplacement } from "../model";
 import { useAppStore, useSelectedAddress } from "../store";
 import { deliveryInstructionOptions } from "./CheckoutScreen";
 
@@ -40,7 +40,8 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
     );
   }
 
-  const pending = order.status === "PENDING";
+  const canCancel = isOrderCancellable(order.status);
+  const isCancelled = order.status === "CANCELLED" || order.status === "FAILED";
 
   const handleCancel = () => {
     Alert.alert(
@@ -51,9 +52,19 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
         {
           text: "Cancel order",
           style: "destructive",
-          onPress: () => {
-            cancelOrder(order.id);
-            Toast.show({ type: "success", text1: "Order cancelled" });
+          onPress: async () => {
+            try {
+              const cancelled = await cancelOrder(order.id);
+              if (cancelled) {
+                Toast.show({ type: "success", text1: "Order cancelled" });
+              }
+            } catch (error) {
+              Toast.show({
+                type: "error",
+                text1: "Could not cancel order",
+                text2: error instanceof Error ? error.message : "Please try again.",
+              });
+            }
           },
         },
       ]
@@ -76,16 +87,16 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Status Hero */}
-        <View style={[styles.statusHero, pending ? styles.statusHeroPlaced : styles.statusHeroCancelled]}>
-          <View style={[styles.statusIconCircle, pending ? styles.statusIconPlaced : styles.statusIconCancelled]}>
-            {pending ? (
+        <View style={[styles.statusHero, isCancelled ? styles.statusHeroCancelled : styles.statusHeroPlaced]}>
+          <View style={[styles.statusIconCircle, isCancelled ? styles.statusIconCancelled : styles.statusIconPlaced]}>
+            {!isCancelled ? (
               <Check size={28} color={colors.primaryForeground} />
             ) : (
               <X size={28} color={colors.card} />
             )}
           </View>
           <Text style={styles.statusHeroTitle}>
-            {pending ? "Order placed" : "Order cancelled"}
+            {order.statusLabel ?? (isCancelled ? "Order cancelled" : "Order placed")}
           </Text>
           <Text style={styles.statusHeroStore}>{store?.name}</Text>
         </View>
@@ -104,7 +115,7 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
         ) : null}
 
         {/* Item substitutions / replacements */}
-        {pending &&
+        {canCancel &&
           order.replacements.map((replacement) => (
             <ReplacementBanner
               key={replacement.id}
@@ -115,11 +126,11 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
 
         {/* Order Status Timeline */}
         <Section title="Order status">
-          <Timeline cancelled={!pending} />
+          <Timeline cancelled={isCancelled} />
         </Section>
 
         {/* Delivery PIN Code */}
-        {pending && order.deliveryPin ? (
+        {canCancel && order.deliveryPin ? (
           <View style={styles.pinCard}>
             <Text style={styles.pinEyebrow}>Delivery PIN</Text>
             <Text style={styles.pinCode}>{order.deliveryPin}</Text>
@@ -205,7 +216,7 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
         ) : null}
 
         {/* Cancel Order Action */}
-        {pending ? (
+        {canCancel ? (
           <View style={styles.cancelWrap}>
             <Pressable
               onPress={handleCancel}

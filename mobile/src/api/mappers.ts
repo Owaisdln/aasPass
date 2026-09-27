@@ -39,7 +39,7 @@ export const mapOrder = (order: OrderResponse, fallbackStoreId: string): DemoOrd
     price: Number(item.sellingPriceSnapshot),
   })),
   total: Number(order.totalAmount),
-  status: order.status === "CANCELLED" || order.status === "FAILED" ? "CANCELLED" : "PENDING",
+  status: order.status,
   statusLabel: STATUS_LABELS[order.status] ?? order.status,
   placedAt: order.placedAt,
   fulfilment: order.fulfillmentType === "PICKUP" ? "pickup" : "delivery",

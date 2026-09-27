@@ -35,7 +35,7 @@ export const getMyCart = () =>
 
 /** PUT /carts/items — add / update / remove (quantity=0) an item */
 export const upsertCartItem = (storeProductId: string, quantity: number) =>
-  apiFetch<CartResponse>("/carts/items", {
+  apiFetch<CartResponse | null>("/carts/items", {
     method: "PUT",
     body: JSON.stringify({ storeProductId, quantity }),
   });

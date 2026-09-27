@@ -6,29 +6,29 @@ import { create } from "zustand";
 import { isBackendConfigured, setApiAccessToken } from "./api/client";
 import { addWishlistItem, getOrCreateDefaultWishlist, removeWishlistItem } from "./api/wishlist";
 import { createPaymentForOrder } from "./api/payments";
-import { initConnection, isAuthConfigured } from "./api/config";
-import { restoreSession, signOutRemote } from "./api/auth";
+import { initConnection } from "./api/config";
+import { signOutRemote } from "./api/auth";
 import { getMe, listMySessions, revokeMySession, updateMe } from "./api/users";
 import { cancelOrder as cancelOrderApi, createOrder as createOrderApi, listOrders } from "./api/orders";
 import { clearCart as clearCartApi, getMyCart, upsertCartItem } from "./api/carts";
 import { createAddress as createAddressApi, deleteAddress as deleteAddressApi, listAddresses as listAddressesApi } from "./api/addresses";
 import { mapOrder, mapSession } from "./api/mappers";
 import { getProduct, stores } from "./data";
-import { getStockStatus, type Address, type CartLine, type DemoOrder, type Session } from "./model";
+import { getStockStatus, isOrderCancellable, type Address, type CartLine, type DemoOrder, type Session } from "./model";
 
-export type AddToCartResult = "added" | "conflict" | "stock-limit";
+export type AddToCartResult = "added" | "conflict" | "stock-limit" | "unavailable";
 
 type AppState = {
   // cart
   cart: CartLine[];
   cartStoreId: string | null;
-  addToCart: (productId: string, forceSwitch?: boolean) => AddToCartResult;
+  addToCart: (productId: string, forceSwitch?: boolean) => Promise<AddToCartResult>;
   setQuantity: (productId: string, quantity: number) => void;
 
   // orders
   orders: DemoOrder[];
   placeOrder: (fulfilment: "delivery" | "pickup", deliveryInstructions?: string) => Promise<string | null>;
-  cancelOrder: (orderId: string) => void;
+  cancelOrder: (orderId: string) => Promise<boolean>;
   repeatOrder: (orderId: string) => "added" | "unavailable";
   respondToReplacement: (orderId: string, replacementId: string, accept: boolean) => void;
   storeFeedback: Record<string, { rating: number; tags: string[]; comment: string }>;
@@ -81,10 +81,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   // --- cart ---------------------------------------------------------------
   cart: [],
   cartStoreId: null,
-  addToCart: (productId, forceSwitch = false) => {
+  addToCart: async (productId, forceSwitch = false) => {
     const product = getProduct(productId);
     const stock = getStockStatus(product);
-    if (!product || !stock.available) return "conflict";
+    if (!product || !stock.available) return "unavailable";
     const state = get();
     if (state.cartStoreId && state.cartStoreId !== product.storeId && !forceSwitch) return "conflict";
     const existing = forceSwitch ? undefined : state.cart.find((line) => line.productId === productId);
@@ -97,7 +97,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         : [...(forceSwitch ? [] : current.cart), { productId, quantity: 1 }],
     }));
     if (isBackendConfigured() && get().isSignedIn) {
-      void upsertCartItem(productId, nextQty).catch(() => {});
+      try {
+        await upsertCartItem(productId, nextQty);
+      } catch (error) {
+        set((current) => {
+          const currentLine = current.cart.find((line) => line.productId === productId);
+          if (current.cartStoreId !== product.storeId || currentLine?.quantity !== nextQty) {
+            return {};
+          }
+
+          return { cart: state.cart, cartStoreId: state.cartStoreId };
+        });
+        throw error;
+      }
     }
     return "added";
   },
@@ -180,22 +192,29 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     return liveOrder.id;
   },
-  cancelOrder: (orderId) => {
+  cancelOrder: async (orderId) => {
     const order = get().orders.find((item) => item.id === orderId);
-    if (order?.serverId && isBackendConfigured()) {
-      void cancelOrderApi(order.serverId, "Cancelled by customer")
-        .then(() => get().syncOrders())
-        .catch(() => undefined);
+    if (!order || !isOrderCancellable(order.status)) return false;
+
+    if (order.serverId) {
+      if (!isBackendConfigured()) {
+        throw new Error("Sign in and connect to the server before cancelling this order.");
+      }
+      await cancelOrderApi(order.serverId, "Cancelled by customer");
     }
-    return set((state) => ({
-      orders: state.orders.map((o) => o.id === orderId && o.status === "PENDING"
+
+    set((state) => ({
+      orders: state.orders.map((o) => o.id === orderId && isOrderCancellable(o.status)
         ? {
           ...o,
           status: "CANCELLED",
+          statusLabel: "Cancelled",
           replacements: o.replacements.map((item) => item.status === "PENDING" ? { ...item, status: "CANCELLED" as const } : item),
         }
         : o),
     }));
+    if (order.serverId) void get().syncOrders().catch(() => {});
+    return true;
   },
   repeatOrder: (orderId) => {
     const state = get();
@@ -394,14 +413,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   sync: { profile: "local", sessions: "local", orders: "local", wishlist: "local" },
   bootstrap: async () => {
     await initConnection();
-    if (!isAuthConfigured()) return;
-    const session = await restoreSession().catch(() => null);
-    if (!session) {
-      set({ isSignedIn: false });
-      return;
-    }
-    set({ isSignedIn: true });
-    await get().refreshAccount();
   },
   refreshAccount: async () => {
     if (!isBackendConfigured()) return;

@@ -126,7 +126,17 @@ export type Session = {
 // --- Cart & orders ---------------------------------------------------------
 
 export type CartLine = { productId: string; quantity: number };
-export type OrderStatus = "PENDING" | "CANCELLED";
+export type OrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "PREPARING"
+  | "READY_FOR_PICKUP"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "FAILED";
+export const isOrderCancellable = (status: OrderStatus) =>
+  status === "PENDING" || status === "CONFIRMED" || status === "PREPARING";
 /** A line copied from a backend order (name/price snapshots, not demo ids). */
 export type OrderLineSnapshot = { name: string; unit: string; quantity: number; price: number };
 export type ReplacementStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED";

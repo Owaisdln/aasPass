@@ -1,10 +1,15 @@
 import React from "react";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Heart, Home, Package, Search, UserRound } from "lucide-react-native";
 import { Platform } from "react-native";
 import { colors } from "../../src/theme";
+import { useAppStore } from "../../src/store";
 
 export default function TabLayout() {
+  const isSignedIn = useAppStore((state) => state.isSignedIn);
+
+  if (!isSignedIn) return <Redirect href="/sign-in" />;
+
   return (
     <Tabs
       screenOptions={{
