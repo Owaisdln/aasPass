@@ -86,20 +86,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     const stock = getStockStatus(product);
     if (!product || !stock.available) return "unavailable";
     const state = get();
-    if (state.cartStoreId && state.cartStoreId !== product.storeId && !forceSwitch) return "conflict";
-    const existing = forceSwitch ? undefined : state.cart.find((line) => line.productId === productId);
+    const isSwitchingStore = Boolean(state.cartStoreId && state.cartStoreId !== product.storeId);
+    if (isSwitchingStore && !forceSwitch) return "conflict";
+    if (isSwitchingStore && isBackendConfigured() && state.isSignedIn) {
+      await clearCartApi();
+    }
+    const existing = isSwitchingStore ? undefined : state.cart.find((line) => line.productId === productId);
     if (existing && existing.quantity >= stock.quantity) return "stock-limit";
     const nextQty = existing ? existing.quantity + 1 : 1;
     set((current) => ({
       cartStoreId: product.storeId,
       cart: existing
         ? current.cart.map((line) => line.productId === productId ? { ...line, quantity: line.quantity + 1 } : line)
-        : [...(forceSwitch ? [] : current.cart), { productId, quantity: 1 }],
+        : [...(isSwitchingStore ? [] : current.cart), { productId, quantity: 1 }],
     }));
     if (isBackendConfigured() && get().isSignedIn) {
       try {
         await upsertCartItem(productId, nextQty);
       } catch (error) {
+        if (isSwitchingStore) {
+          set({ cart: [], cartStoreId: null });
+          throw error;
+        }
         set((current) => {
           const currentLine = current.cart.find((line) => line.productId === productId);
           if (current.cartStoreId !== product.storeId || currentLine?.quantity !== nextQty) {
@@ -393,7 +401,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   signIn: async (accessToken) => {
     setApiAccessToken(accessToken ?? null);
     set({ isSignedIn: true });
-    await get().refreshAccount();
+    void get().refreshAccount().catch(() => {});
   },
   signOut: () => {
     setApiAccessToken(null);

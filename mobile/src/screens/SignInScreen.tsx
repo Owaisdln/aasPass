@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -16,7 +16,14 @@ import Toast from "react-native-toast-message";
 import { colors, radius, spacing } from "../theme";
 import { logoMark } from "../data";
 import { isAuthConfigured } from "../api/config";
-import { sendPhoneOtp, verifyPhoneOtp, signInWithPassword } from "../api/auth";
+import {
+  listDemoUsers,
+  sendPhoneOtp,
+  signInDemoUser,
+  signInWithPassword,
+  verifyPhoneOtp,
+  type DemoUser,
+} from "../api/auth";
 import { useAppStore } from "../store";
 
 export function SignInScreen() {
@@ -30,13 +37,32 @@ export function SignInScreen() {
   const [otpSent, setOtpSent] = useState(false);
 
   // ── Test / email-password state ────────────────────────────────────────────
-  const [testMode, setTestMode] = useState(false);
+  const [testMode, setTestMode] = useState(true);
+  const [testUsers, setTestUsers] = useState<DemoUser[]>([]);
+  const [demoUsersError, setDemoUsersError] = useState("");
   const [testEmail, setTestEmail] = useState("");
   const [testPassword, setTestPassword] = useState("");
 
   const [busy, setBusy] = useState(false);
 
-  const finish = async (token?: string) => {
+  useEffect(() => {
+    let mounted = true;
+    listDemoUsers().then((users) => {
+      if (!mounted) return;
+      setTestUsers(users);
+      setTestEmail((current) => current || users[0]?.email || "");
+    }).catch((error: unknown) => {
+      if (mounted) {
+        setDemoUsersError(error instanceof Error ? error.message : "Could not load demo accounts.");
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  const finish = async (token?: string, isDemoSignIn = false) => {
+    if (live && !token && !isDemoSignIn) {
+      throw new Error("Authentication did not return an active session. Please try again.");
+    }
     await signIn(token);
     router.replace("/");
   };
@@ -58,7 +84,7 @@ export function SignInScreen() {
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSendOtp = () =>
     run(async () => {
-      if (!live) return finish();
+      if (!live) throw new Error("Choose a database demo account below to sign in.");
       await sendPhoneOtp(`+91${mobile}`);
       setOtpSent(true);
       Toast.show({ type: "success", text1: "OTP sent via SMS" });
@@ -66,9 +92,9 @@ export function SignInScreen() {
 
   const handleVerifyOtp = () =>
     run(async () => {
-      if (!live) return finish();
+      if (!live) throw new Error("Authentication is not configured.");
       const session = await verifyPhoneOtp(`+91${mobile}`, otp);
-      finish(session?.access_token);
+      await finish(session?.access_token);
     });
 
   const handleBack = () => {
@@ -78,25 +104,24 @@ export function SignInScreen() {
 
   const handleTestSignIn = () =>
     run(async () => {
-      if (!live) return finish();
-      const session = await signInWithPassword(testEmail.trim(), testPassword);
-      finish(session?.access_token);
+      const email = testEmail.trim().toLowerCase();
+      if (!email) throw new Error("Choose a demo account or enter your account email.");
+      setTestEmail(email);
+      if (testUsers.some((user) => user.email.toLowerCase() === email)) {
+        const session = await signInDemoUser(email);
+        return finish(session.access_token, true);
+      }
+
+      if (!live) throw new Error("This email is not a database demo account.");
+      if (!testPassword) throw new Error("Enter your account password.");
+      const session = await signInWithPassword(email, testPassword);
+      await finish(session?.access_token);
     });
 
-  const fillTestUser = (email: string, password: string) => {
+  const fillTestUser = (email: string) => {
     setTestEmail(email);
-    setTestPassword(password);
+    setTestPassword("");
   };
-
-  // ── Test user quick-fill buttons ───────────────────────────────────────────
-  const testUsers = [
-    { label: "Fardeen", email: "fardeen@aaspass.test" },
-    { label: "Ayesha",  email: "ayesha@aaspass.test" },
-    { label: "Rahul",   email: "rahul@aaspass.test" },
-    { label: "Priya",   email: "priya@aaspass.test" },
-    { label: "Arjun",   email: "arjun@aaspass.test" },
-  ];
-  const TEST_PASSWORD = "Test@123456";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -126,8 +151,8 @@ export function SignInScreen() {
             </Text>
             <Text style={styles.subheading}>
               {live
-                ? "Enter your mobile number to receive a one-time code."
-                : "Running on sample data — tap Continue to explore in demo mode."}
+                ? "Sign in with your account, or choose a database-backed demo account below."
+                : "Choose a database-backed demo account below to get started."}
             </Text>
           </View>
 
@@ -237,53 +262,51 @@ export function SignInScreen() {
 
           {testMode && (
             <View style={styles.testPanel}>
-              <Text style={styles.testPanelTitle}>Quick-fill a test user</Text>
+              <Text style={styles.testPanelTitle}>Database demo accounts</Text>
+              {demoUsersError ? <Text style={styles.subheading}>{demoUsersError}</Text> : null}
 
-              {/* Quick-fill buttons */}
+              {/* Demo accounts are loaded from active database users by the API. */}
               <View style={styles.testUserGrid}>
-                {testUsers.map((u) => (
+                {testUsers.map((user) => (
                   <Pressable
-                    key={u.email}
-                    onPress={() => fillTestUser(u.email, TEST_PASSWORD)}
+                    key={user.id}
+                    onPress={() => fillTestUser(user.email)}
                     style={({ pressed }) => [
                       styles.testUserChip,
-                      testEmail === u.email && styles.testUserChipActive,
+                      testEmail === user.email && styles.testUserChipActive,
                       pressed && styles.pressed,
                     ]}
                     accessibilityRole="button"
-                    accessibilityLabel={`Fill ${u.label} test user`}
+                    accessibilityLabel={`Select ${user.firstName} demo account`}
                   >
                     <Text
                       style={[
                         styles.testUserChipText,
-                        testEmail === u.email && styles.testUserChipTextActive,
+                        testEmail === user.email && styles.testUserChipTextActive,
                       ]}
                     >
-                      {u.label}
+                      {`${user.firstName} ${user.lastName ?? ""}`.trim()}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
-              {/* Credentials table */}
               <View style={styles.credTable}>
                 <View style={styles.credRow}>
-                  <Text style={styles.credHeader}>User</Text>
+                  <Text style={styles.credHeader}>Database user</Text>
                   <Text style={styles.credHeader}>Email</Text>
-                  <Text style={styles.credHeader}>Password</Text>
                 </View>
-                {testUsers.map((u) => (
+                {testUsers.map((user) => (
                   <Pressable
-                    key={u.email}
-                    onPress={() => fillTestUser(u.email, TEST_PASSWORD)}
+                    key={user.id}
+                    onPress={() => fillTestUser(user.email)}
                     style={({ pressed }) => [
                       styles.credRow,
                       pressed && styles.pressed,
                     ]}
                   >
-                    <Text style={styles.credName}>{u.label}</Text>
-                    <Text style={styles.credEmail}>{u.email}</Text>
-                    <Text style={styles.credPass}>{TEST_PASSWORD}</Text>
+                    <Text style={styles.credName}>{`${user.firstName} ${user.lastName ?? ""}`.trim()}</Text>
+                    <Text style={styles.credEmail}>{user.email}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -303,30 +326,42 @@ export function SignInScreen() {
               />
 
               {/* Password field */}
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.textInput}
-                secureTextEntry
-                placeholder="••••••••••••"
-                placeholderTextColor={colors.mutedForeground}
-                value={testPassword}
-                onChangeText={setTestPassword}
-                accessibilityLabel="Test password input"
-              />
+              {testUsers.some((user) => user.email.toLowerCase() === testEmail.trim().toLowerCase())
+                ? <Text style={styles.subheading}>Demo sign-in uses this database account; no password is required.</Text>
+                : (
+                  <>
+                    <Text style={styles.label}>Password</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      secureTextEntry
+                      placeholder="Enter your account password"
+                      placeholderTextColor={colors.mutedForeground}
+                      value={testPassword}
+                      onChangeText={setTestPassword}
+                      accessibilityLabel="Test password input"
+                    />
+                  </>
+                )}
 
               <Pressable
                 onPress={handleTestSignIn}
-                disabled={busy || !testEmail || testPassword.length < 6}
+                disabled={busy || !testEmail || (
+                  !testUsers.some((user) => user.email.toLowerCase() === testEmail.trim().toLowerCase())
+                  && (!live || testPassword.length < 6)
+                )}
                 style={({ pressed }) => [
                   styles.testSignInBtn,
-                  (busy || !testEmail || testPassword.length < 6) && styles.btnDisabled,
+                  (busy || !testEmail || (
+                    !testUsers.some((user) => user.email.toLowerCase() === testEmail.trim().toLowerCase())
+                    && (!live || testPassword.length < 6)
+                  )) && styles.btnDisabled,
                   pressed && styles.pressed,
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel="Test sign in button"
               >
                 <Text style={styles.testSignInBtnText}>
-                  {busy ? "Signing in…" : "Sign in (test)"}
+                  {busy ? "Signing in…" : "Sign in"}
                 </Text>
               </Pressable>
             </View>

@@ -34,6 +34,9 @@ const envConnection = (): Connection => ({
   supabaseAnonKey: envValue("EXPO_PUBLIC_SUPABASE_ANON_KEY") || envValue("VITE_AASPASS_SUPABASE_ANON_KEY"),
 });
 
+const isLocalApiUrl = (url: string) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/i.test(url);
+
 let cached: Connection = envConnection();
 let isInitialized = false;
 const listeners = new Set<() => void>();
@@ -46,10 +49,11 @@ export const initConnection = async (): Promise<Connection> => {
       const stored = JSON.parse(raw) as Partial<Connection>;
       const env = envConnection();
       const storedApiUrl = (stored.apiUrl ?? env.apiUrl).replace(/\/$/, "");
-      const storedIsLoopback = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(storedApiUrl);
-      const envIsRemote = Boolean(env.apiUrl) && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(env.apiUrl);
+      const storedIsLocal = isLocalApiUrl(storedApiUrl);
+      const envIsConfigured = Boolean(env.apiUrl);
+      const shouldUseEnvironmentUrl = envIsConfigured && storedApiUrl !== env.apiUrl && storedIsLocal;
       cached = {
-        apiUrl: storedIsLoopback && envIsRemote ? env.apiUrl : storedApiUrl,
+        apiUrl: shouldUseEnvironmentUrl ? env.apiUrl : storedApiUrl,
         supabaseUrl: (stored.supabaseUrl ?? env.supabaseUrl).replace(/\/$/, ""),
         supabaseAnonKey: stored.supabaseAnonKey ?? env.supabaseAnonKey,
       };

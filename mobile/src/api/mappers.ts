@@ -31,7 +31,10 @@ export const mapOrder = (order: OrderResponse, fallbackStoreId: string): DemoOrd
   serverId: order.id,
   orderNumber: order.orderNumber,
   storeId: order.storeId || fallbackStoreId,
-  items: [],
+  items: order.items.map((item) => ({
+    productId: item.storeProductId,
+    quantity: item.quantity,
+  })),
   lines: order.items.map((item) => ({
     name: item.productNameSnapshot,
     unit: item.unitSnapshot,
