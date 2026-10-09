@@ -31,7 +31,10 @@ export const mapOrder = (order: OrderResponse, fallbackStoreId: string): DemoOrd
   serverId: order.id,
   orderNumber: order.orderNumber,
   storeId: order.storeId || fallbackStoreId,
-  items: [],
+  items: order.items.map((item) => ({
+    productId: item.storeProductId,
+    quantity: item.quantity,
+  })),
   lines: order.items.map((item) => ({
     name: item.productNameSnapshot,
     unit: item.unitSnapshot,
@@ -39,7 +42,7 @@ export const mapOrder = (order: OrderResponse, fallbackStoreId: string): DemoOrd
     price: Number(item.sellingPriceSnapshot),
   })),
   total: Number(order.totalAmount),
-  status: order.status === "CANCELLED" || order.status === "FAILED" ? "CANCELLED" : "PENDING",
+  status: order.status,
   statusLabel: STATUS_LABELS[order.status] ?? order.status,
   placedAt: order.placedAt,
   fulfilment: order.fulfillmentType === "PICKUP" ? "pickup" : "delivery",

@@ -12,11 +12,13 @@ export function RepeatOrderCard({ orderId }: { orderId: string }) {
   const router = useRouter();
   const order = useAppStore((state) => state.orders.find((item) => item.id === orderId));
   const repeatOrder = useAppStore((state) => state.repeatOrder);
+  const syncOrders = useAppStore((state) => state.syncOrders);
 
   if (!order) return null;
   const store = getStore(order.storeId);
 
-  const handleRepeat = () => {
+  const handleRepeat = async () => {
+    if (order.serverId) await syncOrders();
     const result = repeatOrder(order.id);
     if (result === "added") {
       Toast.show({

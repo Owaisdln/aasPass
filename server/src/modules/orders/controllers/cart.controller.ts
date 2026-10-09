@@ -35,7 +35,7 @@ export class CartController {
   async upsertItem(
     @AuthenticatedUser() currentUser: CurrentUser,
     @Body() dto: UpsertCartItemDto,
-  ): Promise<CartResponseDto> {
+  ): Promise<CartResponseDto | null> {
     return this.cartService.upsertItem(currentUser.id, dto);
   }
 

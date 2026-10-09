@@ -31,19 +31,23 @@ export function QuantityControl({
   const stock = getStockStatus(product);
   const atLimit = quantity >= stock.quantity;
 
-  const handleAdd = () => {
-    const result = addToCart(productId);
-    if (result === "conflict") {
-      setConflictOpen(true);
-    } else if (result === "stock-limit") {
+  const handleAdd = async () => {
+    try {
+      const result = await addToCart(productId);
+      if (result === "conflict") {
+        setConflictOpen(true);
+      } else if (result === "stock-limit") {
+        Toast.show({ type: "error", text1: `Only ${stock.quantity} left in stock` });
+      } else if (result === "unavailable") {
+        Toast.show({ type: "error", text1: "This product is out of stock" });
+      } else {
+        Toast.show({ type: "success", text1: "Added to cart" });
+      }
+    } catch (error) {
       Toast.show({
         type: "error",
-        text1: `Only ${stock.quantity} left in stock`,
-      });
-    } else {
-      Toast.show({
-        type: "success",
-        text1: "Added to cart",
+        text1: "Could not add to cart",
+        text2: error instanceof Error ? error.message : "Please try again.",
       });
     }
   };
@@ -134,13 +138,22 @@ function CartConflictModal({
   const newStore = product ? getStore(product.storeId) : undefined;
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
 
-  const handleDiscard = () => {
-    addToCart(productId, true);
-    onClose();
-    Toast.show({
-      type: "success",
-      text1: `Cart switched to ${newStore?.name ?? "this store"}`,
-    });
+  const handleDiscard = async () => {
+    try {
+      const result = await addToCart(productId, true);
+      if (result === "unavailable") {
+        Toast.show({ type: "error", text1: "This product is out of stock" });
+        return;
+      }
+      onClose();
+      Toast.show({ type: "success", text1: `Cart switched to ${newStore?.name ?? "this store"}` });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Could not add to cart",
+        text2: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
   };
 
   return (

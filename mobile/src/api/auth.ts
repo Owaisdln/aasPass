@@ -5,7 +5,21 @@
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getConnection, isAuthConfigured } from "./config";
-import { setApiAccessToken } from "./client";
+import { apiFetch, setApiAccessToken } from "./client";
+
+export type DemoUser = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string | null;
+};
+
+type DemoSession = {
+  access_token: string;
+  token_type: "bearer";
+  expires_in: number;
+  user: Pick<DemoUser, "id" | "email">;
+};
 
 let client: SupabaseClient | null = null;
 let clientKey = "";
@@ -56,6 +70,14 @@ export const signInWithPassword = async (email: string, password: string) => {
   if (error) throw new Error(error.message);
   return remember(data.session);
 };
+
+export const listDemoUsers = () => apiFetch<DemoUser[]>("/auth/demo-users");
+
+export const signInDemoUser = (email: string) =>
+  apiFetch<DemoSession>("/auth/demo-login", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
 
 export const signUpWithPassword = async (email: string, password: string) => {
   const supabase = getSupabase();

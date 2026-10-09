@@ -57,7 +57,7 @@ export function OrdersScreen() {
             {orders.map((order) => {
               const store = getStore(order.storeId);
               const itemCount = (order.lines ?? order.items).length;
-              const isCancelled = order.status === "CANCELLED";
+              const isCancelled = order.status === "CANCELLED" || order.status === "FAILED";
 
               return (
                 <Pressable
