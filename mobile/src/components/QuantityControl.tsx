@@ -10,7 +10,7 @@ import { Minus, Plus, ShoppingBasket } from "lucide-react-native";
 import Toast from "react-native-toast-message";
 import { colors, radius, spacing } from "../theme";
 import { getProduct, getStore } from "../data";
-import { getStockStatus } from "../model";
+import { getStockStatus, MAX_PRODUCT_QUANTITY } from "../model";
 import { useAppStore } from "../store";
 
 export function QuantityControl({
@@ -29,13 +29,16 @@ export function QuantityControl({
 
   const product = getProduct(productId);
   const stock = getStockStatus(product);
-  const atLimit = quantity >= stock.quantity;
+  const atQuantityLimit = quantity >= MAX_PRODUCT_QUANTITY;
+  const atLimit = quantity >= stock.quantity || atQuantityLimit;
 
   const handleAdd = async () => {
     try {
       const result = await addToCart(productId);
       if (result === "conflict") {
         setConflictOpen(true);
+      } else if (result === "quantity-limit") {
+        Toast.show({ type: "error", text1: `Maximum ${MAX_PRODUCT_QUANTITY} units per product` });
       } else if (result === "stock-limit") {
         Toast.show({ type: "error", text1: `Only ${stock.quantity} left in stock` });
       } else if (result === "unavailable") {
@@ -107,11 +110,15 @@ export function QuantityControl({
           ]}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="Increase quantity"
+          accessibilityLabel={atQuantityLimit ? "Maximum quantity reached" : "Increase quantity"}
+          accessibilityHint={atQuantityLimit ? `Maximum ${MAX_PRODUCT_QUANTITY} units per product` : undefined}
         >
           <Plus size={compact ? 12 : 14} color={colors.primaryForeground} />
         </Pressable>
       </View>
+      {atQuantityLimit ? (
+        <Text style={styles.limitHint}>Max {MAX_PRODUCT_QUANTITY}</Text>
+      ) : null}
       <CartConflictModal
         open={conflictOpen}
         onClose={() => setConflictOpen(false)}
@@ -246,6 +253,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     color: colors.primaryForeground,
+  },
+  limitHint: {
+    marginTop: 2,
+    fontSize: 9,
+    fontWeight: "600",
+    color: colors.mutedForeground,
+    textAlign: "center",
   },
   pressed: {
     opacity: 0.8,

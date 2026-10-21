@@ -27,6 +27,7 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { OrdersModule } from './modules/orders/orders.module';
 
 import { PaymentsModule } from './modules/payments/payments.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -57,6 +58,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
     OrdersModule,
 
     PaymentsModule,
+
+    RealtimeModule,
   ],
 
   controllers: [AppController],

@@ -13,7 +13,7 @@ import {
   StockLabel,
 } from "../components";
 import { getProduct, getStore } from "../data";
-import { formatMoney } from "../model";
+import { formatMoney, MAX_PRODUCT_QUANTITY } from "../model";
 import { useAppStore } from "../store";
 import { findStockIssues, summariseCart } from "../totals";
 
@@ -40,6 +40,8 @@ export function StockIssueNotice({ style }: { style?: any }) {
               <Text style={styles.issueSub}>
                 {issue.kind === "out-of-stock"
                   ? "Out of stock at this store"
+                  : issue.kind === "over-limit"
+                    ? `Maximum ${MAX_PRODUCT_QUANTITY} units per product; you picked ${issue.requested}`
                   : `Only ${issue.available} left, you picked ${issue.requested}`}
               </Text>
             </View>

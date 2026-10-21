@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { CatalogUpdatesGateway } from '../../realtime/catalog-updates.gateway';
 
 import { CreateStoreDto } from '../dto/create-store.dto';
 import { StoreResponseDto } from '../dto/store-response.dto';
@@ -20,73 +21,64 @@ export class StoresService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storeMapper: StoreMapper,
+    private readonly catalogUpdates: CatalogUpdatesGateway,
   ) {}
 
   async createStore(
     userId: string,
     dto: CreateStoreDto,
   ): Promise<StoreResponseDto> {
-    const existingStore =
-      await this.prisma.store.findUnique({
-        where: {
-          ownerId: userId,
-        },
-      });
+    const existingStore = await this.prisma.store.findUnique({
+      where: {
+        ownerId: userId,
+      },
+    });
 
     if (existingStore) {
-      throw new ConflictException(
-        'You already have a store.',
-      );
+      throw new ConflictException('You already have a store.');
     }
 
-    const slug = await this.generateUniqueSlug(
-      dto.name,
-    );
+    const slug = await this.generateUniqueSlug(dto.name);
 
-    const store =
-      await this.prisma.store.create({
-        data: {
-          ownerId: userId,
+    const store = await this.prisma.store.create({
+      data: {
+        ownerId: userId,
 
-          name: dto.name,
-          slug,
-          description: dto.description,
+        name: dto.name,
+        slug,
+        description: dto.description,
 
-          phone: dto.phone,
-          email: dto.email,
+        phone: dto.phone,
+        email: dto.email,
 
-          gstNumber: dto.gstNumber,
-          businessRegistrationNumber:
-            dto.businessRegistrationNumber,
+        gstNumber: dto.gstNumber,
+        businessRegistrationNumber: dto.businessRegistrationNumber,
 
-          addressLine1: dto.addressLine1,
-          addressLine2: dto.addressLine2,
+        addressLine1: dto.addressLine1,
+        addressLine2: dto.addressLine2,
 
-          city: dto.city,
-          state: dto.state,
-          country: dto.country,
-          pincode: dto.pincode,
+        city: dto.city,
+        state: dto.state,
+        country: dto.country,
+        pincode: dto.pincode,
 
-          latitude: dto.latitude,
-          longitude: dto.longitude,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
 
-          timezone:
-            dto.timezone ?? 'Asia/Kolkata',
+        timezone: dto.timezone ?? 'Asia/Kolkata',
 
-          createdBy: userId,
-          updatedBy: userId,
-        },
+        createdBy: userId,
+        updatedBy: userId,
+      },
 
-        include:
-          STORE_WITH_RELATIONS_INCLUDE,
-      });
+      include: STORE_WITH_RELATIONS_INCLUDE,
+    });
 
+    this.catalogUpdates.notifyCatalogUpdated();
     return this.storeMapper.toResponse(store);
   }
 
-  async getMyStore(
-    userId: string,
-  ): Promise<StoreResponseDto> {
+  async getMyStore(userId: string): Promise<StoreResponseDto> {
     const store = await this.resolveOwnStore(userId);
 
     return this.storeMapper.toResponse(store);
@@ -98,118 +90,107 @@ export class StoresService {
   ): Promise<StoreResponseDto> {
     const store = await this.resolveOwnStore(userId);
 
-    const updatedStore =
-      await this.prisma.store.update({
-        where: {
-          id: store.id,
-        },
+    const updatedStore = await this.prisma.store.update({
+      where: {
+        id: store.id,
+      },
 
-        data: {
-          ...(dto.name !== undefined && {
-            name: dto.name,
-          }),
+      data: {
+        ...(dto.name !== undefined && {
+          name: dto.name,
+        }),
 
-          ...(dto.description !== undefined && {
-            description: dto.description,
-          }),
+        ...(dto.description !== undefined && {
+          description: dto.description,
+        }),
 
-          ...(dto.phone !== undefined && {
-            phone: dto.phone,
-          }),
+        ...(dto.phone !== undefined && {
+          phone: dto.phone,
+        }),
 
-          ...(dto.email !== undefined && {
-            email: dto.email,
-          }),
+        ...(dto.email !== undefined && {
+          email: dto.email,
+        }),
 
-          ...(dto.gstNumber !== undefined && {
-            gstNumber: dto.gstNumber,
-          }),
+        ...(dto.gstNumber !== undefined && {
+          gstNumber: dto.gstNumber,
+        }),
 
-          ...(dto.businessRegistrationNumber !==
-            undefined && {
-            businessRegistrationNumber:
-              dto.businessRegistrationNumber,
-          }),
+        ...(dto.businessRegistrationNumber !== undefined && {
+          businessRegistrationNumber: dto.businessRegistrationNumber,
+        }),
 
-          ...(dto.addressLine1 !== undefined && {
-            addressLine1: dto.addressLine1,
-          }),
+        ...(dto.addressLine1 !== undefined && {
+          addressLine1: dto.addressLine1,
+        }),
 
-          ...(dto.addressLine2 !== undefined && {
-            addressLine2: dto.addressLine2,
-          }),
+        ...(dto.addressLine2 !== undefined && {
+          addressLine2: dto.addressLine2,
+        }),
 
-          ...(dto.city !== undefined && {
-            city: dto.city,
-          }),
+        ...(dto.city !== undefined && {
+          city: dto.city,
+        }),
 
-          ...(dto.state !== undefined && {
-            state: dto.state,
-          }),
+        ...(dto.state !== undefined && {
+          state: dto.state,
+        }),
 
-          ...(dto.country !== undefined && {
-            country: dto.country,
-          }),
+        ...(dto.country !== undefined && {
+          country: dto.country,
+        }),
 
-          ...(dto.pincode !== undefined && {
-            pincode: dto.pincode,
-          }),
+        ...(dto.pincode !== undefined && {
+          pincode: dto.pincode,
+        }),
 
-          ...(dto.latitude !== undefined && {
-            latitude: dto.latitude,
-          }),
+        ...(dto.latitude !== undefined && {
+          latitude: dto.latitude,
+        }),
 
-          ...(dto.longitude !== undefined && {
-            longitude: dto.longitude,
-          }),
+        ...(dto.longitude !== undefined && {
+          longitude: dto.longitude,
+        }),
 
-          ...(dto.timezone !== undefined && {
-            timezone: dto.timezone,
-          }),
+        ...(dto.timezone !== undefined && {
+          timezone: dto.timezone,
+        }),
 
-          ...(dto.logoKey !== undefined && {
-            logoKey: dto.logoKey,
-          }),
+        ...(dto.logoKey !== undefined && {
+          logoKey: dto.logoKey,
+        }),
 
-          ...(dto.bannerKey !== undefined && {
-            bannerKey: dto.bannerKey,
-          }),
+        ...(dto.bannerKey !== undefined && {
+          bannerKey: dto.bannerKey,
+        }),
 
-          updatedBy: userId,
-        },
+        updatedBy: userId,
+      },
 
-        include:
-          STORE_WITH_RELATIONS_INCLUDE,
-      });
+      include: STORE_WITH_RELATIONS_INCLUDE,
+    });
 
+    this.catalogUpdates.notifyCatalogUpdated();
     return this.storeMapper.toResponse(updatedStore);
   }
 
-  private async resolveOwnStore(
-    userId: string,
-  ): Promise<StoreWithRelations> {
-    const store =
-      await this.prisma.store.findUnique({
-        where: {
-          ownerId: userId,
-        },
+  private async resolveOwnStore(userId: string): Promise<StoreWithRelations> {
+    const store = await this.prisma.store.findUnique({
+      where: {
+        ownerId: userId,
+      },
 
-        include:
-          STORE_WITH_RELATIONS_INCLUDE,
-      });
+      include: STORE_WITH_RELATIONS_INCLUDE,
+    });
 
     if (!store) {
-      throw new NotFoundException(
-        'Store not found.',
-      );
+      throw new NotFoundException('Store not found.');
     }
 
     return store;
   }
 
-  private async generateUniqueSlug(
-    name: string,
-  ): Promise<string> {
+  private async generateUniqueSlug(name: string): Promise<string> {
     const baseSlug = this.slugify(name);
 
     let slug = baseSlug;
@@ -276,10 +257,7 @@ export class StoresService {
         },
         inventory: true,
       },
-      orderBy: [
-        { isFeatured: 'desc' },
-        { displayOrder: 'asc' },
-      ],
+      orderBy: [{ isFeatured: 'desc' }, { displayOrder: 'asc' }],
     });
   }
 }

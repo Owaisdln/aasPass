@@ -14,9 +14,9 @@ import { clearCart as clearCartApi, getMyCart, upsertCartItem } from "./api/cart
 import { createAddress as createAddressApi, deleteAddress as deleteAddressApi, listAddresses as listAddressesApi } from "./api/addresses";
 import { mapOrder, mapSession } from "./api/mappers";
 import { getProduct, stores } from "./data";
-import { getStockStatus, isOrderCancellable, type Address, type CartLine, type DemoOrder, type Session } from "./model";
+import { getStockStatus, isOrderCancellable, MAX_PRODUCT_QUANTITY, type Address, type CartLine, type DemoOrder, type Session } from "./model";
 
-export type AddToCartResult = "added" | "conflict" | "stock-limit" | "unavailable";
+export type AddToCartResult = "added" | "conflict" | "quantity-limit" | "stock-limit" | "unavailable";
 
 type AppState = {
   // cart
@@ -92,6 +92,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await clearCartApi();
     }
     const existing = isSwitchingStore ? undefined : state.cart.find((line) => line.productId === productId);
+    if (existing && existing.quantity >= MAX_PRODUCT_QUANTITY) return "quantity-limit";
     if (existing && existing.quantity >= stock.quantity) return "stock-limit";
     const nextQty = existing ? existing.quantity + 1 : 1;
     set((current) => ({
@@ -123,7 +124,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setQuantity: (productId, quantity) => {
     const available = getStockStatus(getProduct(productId)).quantity;
-    const capped = Math.min(quantity, available);
+    const capped = Math.min(quantity, available, MAX_PRODUCT_QUANTITY);
     set((state) => {
       const cart = capped <= 0
         ? state.cart.filter((line) => line.productId !== productId)
@@ -229,7 +230,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const order = state.orders.find((item) => item.id === orderId);
     if (!order) return "unavailable";
     const items = order.items
-      .map((line) => ({ ...line, quantity: Math.min(line.quantity, getStockStatus(getProduct(line.productId)).quantity) }))
+      .map((line) => ({ ...line, quantity: Math.min(line.quantity, getStockStatus(getProduct(line.productId)).quantity, MAX_PRODUCT_QUANTITY) }))
       .filter((line) => line.quantity > 0);
     if (!items.length) return "unavailable";
     set({ cart: items, cartStoreId: order.storeId });

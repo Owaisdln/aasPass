@@ -18,24 +18,31 @@ export type Connection = {
 
 const STORAGE_KEY = "aaspass.connection.v1";
 
-const envValue = (name: string) => (process.env[name] ?? "").trim();
+const envValue = (value: string | undefined) => (value ?? "").trim();
 
 export const normalizeApiUrl = (url: string): string => {
   const trimmed = url.trim().replace(/\/$/, "");
   if (Platform.OS === "android") {
-    return trimmed.replace("localhost", "10.0.2.2").replace("127.0.0.1", "10.0.2.2");
+    return trimmed
+      .replace("localhost", "10.0.2.2")
+      .replace("127.0.0.1", "10.0.2.2");
   }
   return trimmed;
 };
 
 const envConnection = (): Connection => ({
-  apiUrl: normalizeApiUrl(envValue("EXPO_PUBLIC_API_URL") || envValue("VITE_AASPASS_API_URL")),
-  supabaseUrl: (envValue("EXPO_PUBLIC_SUPABASE_URL") || envValue("VITE_AASPASS_SUPABASE_URL")).replace(/\/$/, ""),
-  supabaseAnonKey: envValue("EXPO_PUBLIC_SUPABASE_ANON_KEY") || envValue("VITE_AASPASS_SUPABASE_ANON_KEY"),
+  apiUrl: normalizeApiUrl(envValue(process.env.EXPO_PUBLIC_API_URL)),
+  supabaseUrl: envValue(process.env.EXPO_PUBLIC_SUPABASE_URL).replace(
+    /\/$/,
+    "",
+  ),
+  supabaseAnonKey: envValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY),
 });
 
 const isLocalApiUrl = (url: string) =>
-  /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/i.test(url);
+  /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/i.test(
+    url,
+  );
 
 let cached: Connection = envConnection();
 let isInitialized = false;
@@ -51,7 +58,8 @@ export const initConnection = async (): Promise<Connection> => {
       const storedApiUrl = (stored.apiUrl ?? env.apiUrl).replace(/\/$/, "");
       const storedIsLocal = isLocalApiUrl(storedApiUrl);
       const envIsConfigured = Boolean(env.apiUrl);
-      const shouldUseEnvironmentUrl = envIsConfigured && storedApiUrl !== env.apiUrl && storedIsLocal;
+      const shouldUseEnvironmentUrl =
+        envIsConfigured && storedApiUrl !== env.apiUrl && storedIsLocal;
       cached = {
         apiUrl: shouldUseEnvironmentUrl ? env.apiUrl : storedApiUrl,
         supabaseUrl: (stored.supabaseUrl ?? env.supabaseUrl).replace(/\/$/, ""),
@@ -71,7 +79,9 @@ export const initConnection = async (): Promise<Connection> => {
 
 export const getConnection = (): Connection => cached;
 
-export const saveConnection = async (next: Partial<Connection>): Promise<Connection> => {
+export const saveConnection = async (
+  next: Partial<Connection>,
+): Promise<Connection> => {
   const merged: Connection = {
     ...getConnection(),
     ...next,

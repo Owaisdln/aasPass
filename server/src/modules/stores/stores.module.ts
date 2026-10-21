@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 import { StoresController } from './controllers/stores.controller';
 import { StoreHoursController } from './controllers/hours/store-hours.controller';
@@ -16,10 +17,7 @@ import { StoreDeliverySettingsService } from './services/delivery-settings/store
 import { StoreImagesService } from './services/images/store-images.service';
 
 @Module({
-  imports: [
-    PrismaModule,
-    AuthModule,
-  ],
+  imports: [PrismaModule, AuthModule, RealtimeModule],
   controllers: [
     StoresController,
     StoreHoursController,

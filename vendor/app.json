@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "aasPass Partner",
+    "slug": "aaspass-partner",
+    "scheme": "aaspass-partner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./src/assets/aaspass-mark.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aaspass.vendor"
+    },
+    "android": {
+      "package": "com.aaspass.vendor",
+      "adaptiveIcon": {
+        "backgroundColor": "#2F855A",
+        "foregroundImage": "./src/assets/aaspass-mark.png"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

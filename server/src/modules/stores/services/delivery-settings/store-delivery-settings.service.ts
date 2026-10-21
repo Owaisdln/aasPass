@@ -1,9 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../../../infrastructure/prisma/prisma.service';
+import { CatalogUpdatesGateway } from '../../../realtime/catalog-updates.gateway';
 
 import { UpdateStoreDeliverySettingsDto } from '../../dto/delivery-settings/update-store-delivery-settings.dto';
 import { StoreDeliverySettingsResponseDto } from '../../dto/delivery-settings/store-delivery-settings-response.dto';
@@ -12,6 +10,7 @@ import { StoreDeliverySettingsResponseDto } from '../../dto/delivery-settings/st
 export class StoreDeliverySettingsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly catalogUpdates: CatalogUpdatesGateway,
   ) {}
 
   async getMyDeliverySettings(
@@ -27,22 +26,17 @@ export class StoreDeliverySettingsService {
     });
 
     if (!store) {
-      throw new NotFoundException(
-        'Store not found.',
-      );
+      throw new NotFoundException('Store not found.');
     }
 
-    const settings =
-      await this.prisma.storeDeliverySetting.findUnique({
-        where: {
-          storeId: store.id,
-        },
-      });
+    const settings = await this.prisma.storeDeliverySetting.findUnique({
+      where: {
+        storeId: store.id,
+      },
+    });
 
     if (!settings) {
-      throw new NotFoundException(
-        'Store delivery settings not found.',
-      );
+      throw new NotFoundException('Store delivery settings not found.');
     }
 
     return this.toResponse(settings);
@@ -62,136 +56,112 @@ export class StoreDeliverySettingsService {
     });
 
     if (!store) {
-      throw new NotFoundException(
-        'Store not found.',
-      );
+      throw new NotFoundException('Store not found.');
     }
 
-    const settings =
-      await this.prisma.storeDeliverySetting.upsert({
-        where: {
-          storeId: store.id,
-        },
+    const settings = await this.prisma.storeDeliverySetting.upsert({
+      where: {
+        storeId: store.id,
+      },
 
-        create: {
-          storeId: store.id,
+      create: {
+        storeId: store.id,
 
-          ...(dto.isDeliveryAvailable !== undefined && {
-            isDeliveryAvailable:
-              dto.isDeliveryAvailable,
-          }),
+        ...(dto.isDeliveryAvailable !== undefined && {
+          isDeliveryAvailable: dto.isDeliveryAvailable,
+        }),
 
-          ...(dto.isPickupAvailable !== undefined && {
-            isPickupAvailable:
-              dto.isPickupAvailable,
-          }),
+        ...(dto.isPickupAvailable !== undefined && {
+          isPickupAvailable: dto.isPickupAvailable,
+        }),
 
-          ...(dto.minimumOrderAmount !== undefined && {
-            minimumOrderAmount:
-              dto.minimumOrderAmount,
-          }),
+        ...(dto.minimumOrderAmount !== undefined && {
+          minimumOrderAmount: dto.minimumOrderAmount,
+        }),
 
-          ...(dto.deliveryRadiusKm !== undefined && {
-            deliveryRadiusKm:
-              dto.deliveryRadiusKm,
-          }),
+        ...(dto.deliveryRadiusKm !== undefined && {
+          deliveryRadiusKm: dto.deliveryRadiusKm,
+        }),
 
-          ...(dto.deliveryCharge !== undefined && {
-            deliveryCharge:
-              dto.deliveryCharge,
-          }),
+        ...(dto.deliveryCharge !== undefined && {
+          deliveryCharge: dto.deliveryCharge,
+        }),
 
-          ...(dto.freeDeliveryAbove !== undefined && {
-            freeDeliveryAbove:
-              dto.freeDeliveryAbove,
-          }),
+        ...(dto.freeDeliveryAbove !== undefined && {
+          freeDeliveryAbove: dto.freeDeliveryAbove,
+        }),
 
-          ...(dto.estimatedDeliveryTime !== undefined && {
-            estimatedDeliveryTime:
-              dto.estimatedDeliveryTime,
-          }),
-        },
+        ...(dto.estimatedDeliveryTime !== undefined && {
+          estimatedDeliveryTime: dto.estimatedDeliveryTime,
+        }),
+      },
 
-        update: {
-          ...(dto.isDeliveryAvailable !== undefined && {
-            isDeliveryAvailable:
-              dto.isDeliveryAvailable,
-          }),
+      update: {
+        ...(dto.isDeliveryAvailable !== undefined && {
+          isDeliveryAvailable: dto.isDeliveryAvailable,
+        }),
 
-          ...(dto.isPickupAvailable !== undefined && {
-            isPickupAvailable:
-              dto.isPickupAvailable,
-          }),
+        ...(dto.isPickupAvailable !== undefined && {
+          isPickupAvailable: dto.isPickupAvailable,
+        }),
 
-          ...(dto.minimumOrderAmount !== undefined && {
-            minimumOrderAmount:
-              dto.minimumOrderAmount,
-          }),
+        ...(dto.minimumOrderAmount !== undefined && {
+          minimumOrderAmount: dto.minimumOrderAmount,
+        }),
 
-          ...(dto.deliveryRadiusKm !== undefined && {
-            deliveryRadiusKm:
-              dto.deliveryRadiusKm,
-          }),
+        ...(dto.deliveryRadiusKm !== undefined && {
+          deliveryRadiusKm: dto.deliveryRadiusKm,
+        }),
 
-          ...(dto.deliveryCharge !== undefined && {
-            deliveryCharge:
-              dto.deliveryCharge,
-          }),
+        ...(dto.deliveryCharge !== undefined && {
+          deliveryCharge: dto.deliveryCharge,
+        }),
 
-          ...(dto.freeDeliveryAbove !== undefined && {
-            freeDeliveryAbove:
-              dto.freeDeliveryAbove,
-          }),
+        ...(dto.freeDeliveryAbove !== undefined && {
+          freeDeliveryAbove: dto.freeDeliveryAbove,
+        }),
 
-          ...(dto.estimatedDeliveryTime !== undefined && {
-            estimatedDeliveryTime:
-              dto.estimatedDeliveryTime,
-          }),
-        },
-      });
+        ...(dto.estimatedDeliveryTime !== undefined && {
+          estimatedDeliveryTime: dto.estimatedDeliveryTime,
+        }),
+      },
+    });
 
+    this.catalogUpdates.notifyCatalogUpdated();
     return this.toResponse(settings);
   }
 
-  private toResponse(
-    settings: {
-      id: string;
-      isDeliveryAvailable: boolean;
-      isPickupAvailable: boolean;
-      minimumOrderAmount: unknown;
-      deliveryRadiusKm: unknown;
-      deliveryCharge: unknown;
-      freeDeliveryAbove: unknown;
-      estimatedDeliveryTime: number;
-      createdAt: Date;
-      updatedAt: Date;
-    },
-  ): StoreDeliverySettingsResponseDto {
+  private toResponse(settings: {
+    id: string;
+    isDeliveryAvailable: boolean;
+    isPickupAvailable: boolean;
+    minimumOrderAmount: unknown;
+    deliveryRadiusKm: unknown;
+    deliveryCharge: unknown;
+    freeDeliveryAbove: unknown;
+    estimatedDeliveryTime: number;
+    createdAt: Date;
+    updatedAt: Date;
+  }): StoreDeliverySettingsResponseDto {
     return {
       id: settings.id,
 
-      isDeliveryAvailable:
-        settings.isDeliveryAvailable,
+      isDeliveryAvailable: settings.isDeliveryAvailable,
 
-      isPickupAvailable:
-        settings.isPickupAvailable,
+      isPickupAvailable: settings.isPickupAvailable,
 
-      minimumOrderAmount:
-        Number(settings.minimumOrderAmount),
+      minimumOrderAmount: Number(settings.minimumOrderAmount),
 
-      deliveryRadiusKm:
-        Number(settings.deliveryRadiusKm),
+      deliveryRadiusKm: Number(settings.deliveryRadiusKm),
 
-      deliveryCharge:
-        Number(settings.deliveryCharge),
+      deliveryCharge: Number(settings.deliveryCharge),
 
       freeDeliveryAbove:
         settings.freeDeliveryAbove === null
           ? null
           : Number(settings.freeDeliveryAbove),
 
-      estimatedDeliveryTime:
-        settings.estimatedDeliveryTime,
+      estimatedDeliveryTime: settings.estimatedDeliveryTime,
 
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,

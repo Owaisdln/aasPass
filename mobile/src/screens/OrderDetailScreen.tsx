@@ -8,21 +8,30 @@ import {
   TextInput,
   Linking,
   Alert,
+  Platform,
 } from "react-native";
-import { Check, Package, PackageSearch, Phone, ShieldCheck, Star, X } from "lucide-react-native";
+import { Check, FileDown, Package, PackageSearch, Phone, ShieldCheck, Star, X } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import { colors, radius, spacing } from "../theme";
 import { Empty, ScreenHeader, Section, Timeline } from "../components";
 import { getProduct, getStore } from "../data";
 import { formatMoney, isOrderCancellable, type OrderItemReplacement } from "../model";
 import { useAppStore, useSelectedAddress } from "../store";
 import { deliveryInstructionOptions } from "./CheckoutScreen";
+import { buildInvoiceHtml, downloadInvoicePdf } from "../utils/invoice";
 
 export function OrderDetailScreen({ orderId }: { orderId: string }) {
   const order = useAppStore((state) => state.orders.find((item) => item.id === orderId));
   const cancelOrder = useAppStore((state) => state.cancelOrder);
+  const firstName = useAppStore((state) => state.firstName);
+  const lastName = useAppStore((state) => state.lastName);
+  const email = useAppStore((state) => state.email);
+  const phone = useAppStore((state) => state.phone);
   const address = useSelectedAddress();
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const store = order ? getStore(order.storeId) : undefined;
 
   if (!order) {
@@ -79,6 +88,69 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
     }
   };
 
+  const handleDownloadInvoice = async () => {
+    setIsGeneratingInvoice(true);
+    try {
+      const lines = order.lines ?? order.items.map((line) => {
+        const product = getProduct(line.productId);
+        return {
+          name: product?.name ?? "Item",
+          unit: product?.unit ?? "",
+          quantity: line.quantity,
+          price: product?.price ?? 0,
+        };
+      });
+      const invoice = {
+        orderNumber: order.orderNumber ?? order.id,
+        placedAt: new Date(order.placedAt).toLocaleString("en-IN"),
+        status: order.statusLabel ?? order.status,
+        storeName: store?.name ?? "aasPass store",
+        storePhone: store?.phone,
+        customerName: [firstName, lastName].filter(Boolean).join(" ") || "Customer",
+        customerEmail: email,
+        customerPhone: phone,
+        fulfilment: order.fulfilment,
+        paymentMethod: order.payment?.method === "COD" ? "Cash on delivery" : "Online payment",
+        paymentStatus: order.payment?.status ?? "Pending",
+        lines,
+        total: order.total,
+        subtotal: order.subtotal,
+        discountAmount: order.discountAmount,
+        taxAmount: order.taxAmount,
+        deliveryFee: order.deliveryFee,
+      };
+
+      if (Platform.OS === "web") {
+        await downloadInvoicePdf(invoice);
+        Toast.show({
+          type: "success",
+          text1: "Invoice downloaded",
+          text2: "The PDF has been saved to your downloads.",
+        });
+        return;
+      }
+
+      const html = buildInvoiceHtml(invoice);
+      const { uri } = await Print.printToFileAsync({ html });
+      if (!(await Sharing.isAvailableAsync())) {
+        throw new Error("Sharing is unavailable on this device.");
+      }
+      await Sharing.shareAsync(uri, {
+        dialogTitle: "Share order invoice",
+        mimeType: "application/pdf",
+        UTI: ".pdf",
+      });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Could not generate invoice",
+        text2: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <SafeAreaView edges={["top"]} style={styles.safeHeader}>
@@ -99,6 +171,24 @@ export function OrderDetailScreen({ orderId }: { orderId: string }) {
             {order.statusLabel ?? (isCancelled ? "Order cancelled" : "Order placed")}
           </Text>
           <Text style={styles.statusHeroStore}>{store?.name}</Text>
+        </View>
+
+        <View style={styles.invoiceWrap}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Download invoice"
+            disabled={isGeneratingInvoice}
+            onPress={() => void handleDownloadInvoice()}
+            style={({ pressed }) => [
+              styles.invoiceBtn,
+              (pressed || isGeneratingInvoice) && styles.pressed,
+            ]}
+          >
+            <FileDown size={18} color={colors.primary} />
+            <Text style={styles.invoiceBtnText}>
+              {isGeneratingInvoice ? "Preparing invoice…" : "Download invoice"}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Call Store Button */}
@@ -506,6 +596,26 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   callStoreText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  invoiceWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  invoiceBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 48,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
+    gap: spacing.sm,
+  },
+  invoiceBtnText: {
     fontSize: 14,
     fontWeight: "700",
     color: colors.primary,

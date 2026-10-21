@@ -12,9 +12,12 @@
     "expo-constants": "~57.0.19",
     "expo-font": "~57.0.4",
     "expo-linking": "~57.0.10",
+    "expo-print": "~57.0.2",
     "expo-router": "~57.0.22",
     "expo-secure-store": "~57.0.4",
+    "expo-sharing": "~57.0.22",
     "expo-status-bar": "~57.0.1",
+    "jspdf": "^4.2.1",
     "lucide-react-native": "^1.47.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -24,6 +27,7 @@
     "react-native-svg": "15.15.4",
     "react-native-toast-message": "^2.5.2",
     "react-native-web": "^0.21.2",
+    "socket.io-client": "^4.8.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

@@ -10,6 +10,7 @@ import { CartStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { CartResponseDto, CartItemResponseDto } from '../dto/cart-response.dto';
 import { UpsertCartItemDto } from '../dto/upsert-cart-item.dto';
+import { MAX_PRODUCT_QUANTITY } from '../constants';
 
 const CART_INCLUDE = {
   items: {
@@ -110,6 +111,12 @@ export class CartService {
     userId: string,
     dto: UpsertCartItemDto,
   ): Promise<CartResponseDto | null> {
+    if (dto.quantity > MAX_PRODUCT_QUANTITY) {
+      throw new BadRequestException(
+        `A maximum of ${MAX_PRODUCT_QUANTITY} units per product can be ordered`,
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       if (dto.quantity === 0) {
         const cart = await tx.cart.findFirst({
