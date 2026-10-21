@@ -23,6 +23,7 @@ import { OrdersMapper } from '../mappers/orders.mapper';
 import {
   ORDER_WITH_ITEMS_INCLUDE,
 } from '../types/orders.types';
+import { MAX_PRODUCT_QUANTITY } from '../constants';
 
 @Injectable()
 export class OrdersService {
@@ -64,6 +65,15 @@ export class OrdersService {
         if (!cart.items.length) {
           throw new BadRequestException(
             'Cannot create an order from an empty cart',
+          );
+        }
+
+        const overLimitItem = cart.items.find(
+          (item) => item.quantity > MAX_PRODUCT_QUANTITY,
+        );
+        if (overLimitItem) {
+          throw new BadRequestException(
+            `A maximum of ${MAX_PRODUCT_QUANTITY} units per product can be ordered`,
           );
         }
 

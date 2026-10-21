@@ -1,0 +1,44 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/native/**/*.ts",
+    "src/native/**/*.tsx",
+    "src/features/vendor/api/**/*.ts",
+    "src/features/vendor/model.ts",
+    "src/features/vendor/rules.ts",
+    "src/features/vendor/demo-data.ts",
+    "src/features/vendor/session.ts",
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/routes",
+    "src/components",
+    "src/lib",
+    "src/hooks",
+    "src/features/vendor/components.tsx",
+    "src/features/vendor/product-form.tsx",
+    "src/features/vendor/queries.ts",
+    "src/features/vendor/rules.test.ts",
+    "src/test"
+  ]
+}

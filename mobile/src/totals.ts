@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import { getProduct, getStore } from "./data";
-import { getStockStatus, type CartLine } from "./model";
+import { getStockStatus, MAX_PRODUCT_QUANTITY, type CartLine } from "./model";
 
 export type CartSummary = {
   subtotal: number;
@@ -56,11 +56,11 @@ export const summariseCart = (
   };
 };
 
-/** A cart line the store cannot fulfil right now. */
+/** A cart line that exceeds stock or the per-product order quantity limit. */
 export type StockIssue = {
   productId: string;
   name: string;
-  kind: "out-of-stock" | "not-enough";
+  kind: "out-of-stock" | "not-enough" | "over-limit";
   requested: number;
   available: number;
 };
@@ -74,8 +74,15 @@ export const findStockIssues = (lines: CartLine[]): StockIssue[] => {
     const stock = getStockStatus(product);
     if (!stock.available) {
       issues.push({ productId: product.id, name: product.name, kind: "out-of-stock", requested: line.quantity, available: 0 });
-    } else if (line.quantity > stock.quantity) {
-      issues.push({ productId: product.id, name: product.name, kind: "not-enough", requested: line.quantity, available: stock.quantity });
+    } else if (line.quantity > Math.min(stock.quantity, MAX_PRODUCT_QUANTITY)) {
+      const available = Math.min(stock.quantity, MAX_PRODUCT_QUANTITY);
+      issues.push({
+        productId: product.id,
+        name: product.name,
+        kind: line.quantity > MAX_PRODUCT_QUANTITY ? "over-limit" : "not-enough",
+        requested: line.quantity,
+        available,
+      });
     }
   }
   return issues;

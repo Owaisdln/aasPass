@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../../../../infrastructure/prisma/prisma.service';
+import { CatalogUpdatesGateway } from '../../../realtime/catalog-updates.gateway';
 
 import {
   StoreHourInputDto,
@@ -16,27 +17,23 @@ import { StoreHourResponseDto } from '../../dto/hours/store-hour-response.dto';
 export class StoreHoursService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly catalogUpdates: CatalogUpdatesGateway,
   ) {}
 
-  async getMyHours(
-    userId: string,
-  ): Promise<StoreHourResponseDto[]> {
+  async getMyHours(userId: string): Promise<StoreHourResponseDto[]> {
     const store = await this.prisma.store.findUnique({
       where: { ownerId: userId },
       select: { id: true },
     });
 
     if (!store) {
-      throw new NotFoundException(
-        'Store not found.',
-      );
+      throw new NotFoundException('Store not found.');
     }
 
-    const hours =
-      await this.prisma.storeHour.findMany({
-        where: { storeId: store.id },
-        orderBy: { weekDay: 'asc' },
-      });
+    const hours = await this.prisma.storeHour.findMany({
+      where: { storeId: store.id },
+      orderBy: { weekDay: 'asc' },
+    });
 
     return hours.map((hour) => ({
       id: hour.id,
@@ -59,9 +56,7 @@ export class StoreHoursService {
     });
 
     if (!store) {
-      throw new NotFoundException(
-        'Store not found.',
-      );
+      throw new NotFoundException('Store not found.');
     }
 
     this.validateHours(dto.hours);
@@ -102,12 +97,11 @@ export class StoreHoursService {
       }
     });
 
+    this.catalogUpdates.notifyCatalogUpdated();
     return this.getMyHours(userId);
   }
 
-  private validateHours(
-    hours: StoreHourInputDto[],
-  ): void {
+  private validateHours(hours: StoreHourInputDto[]): void {
     const weekDays = new Set<string>();
 
     for (const hour of hours) {
@@ -123,10 +117,7 @@ export class StoreHoursService {
         continue;
       }
 
-      if (
-        !hour.openingTime ||
-        !hour.closingTime
-      ) {
+      if (!hour.openingTime || !hour.closingTime) {
         throw new BadRequestException(
           `Opening and closing times are required when ${hour.weekDay} is not closed.`,
         );
@@ -135,17 +126,11 @@ export class StoreHoursService {
   }
 
   private timeToDate(time: string): Date {
-    const [hours, minutes] =
-      time.split(':').map(Number);
+    const [hours, minutes] = time.split(':').map(Number);
 
     const date = new Date(1970, 0, 1);
 
-    date.setHours(
-      hours,
-      minutes,
-      0,
-      0,
-    );
+    date.setHours(hours, minutes, 0, 0);
 
     return date;
   }

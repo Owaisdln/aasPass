@@ -6,6 +6,8 @@ import { colors } from "./theme";
 
 export type Category = string;
 
+export const MAX_PRODUCT_QUANTITY = 5;
+
 export const categoryColors: Record<string, { bg: string; text: string }> = {
   "Fruits & Veggies": { bg: colors.freshSoft, text: colors.freshText },
   Dairy: { bg: colors.dairySoft, text: colors.dairyText },
@@ -184,6 +186,10 @@ export type DemoOrder = {
   statusLabel?: string | undefined;
   /** Price snapshots from the backend order items (live orders only). */
   lines?: OrderLineSnapshot[] | undefined;
+  subtotal?: number | undefined;
+  discountAmount?: number | undefined;
+  taxAmount?: number | undefined;
+  deliveryFee?: number | undefined;
 };
 
 export type PaymentMethod = {

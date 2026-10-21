@@ -15,6 +15,7 @@ import {
 import { colors } from "../src/theme";
 import { logoMark } from "../src/data";
 import { useAppStore } from "../src/store";
+import { subscribeToCatalogUpdates } from "../src/api/realtime";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,11 @@ export default function RootLayout() {
   useEffect(() => {
     // Bootstrap backend connection & session on app start
     void useAppStore.getState().bootstrap();
+
+    const stopCatalogUpdates = subscribeToCatalogUpdates(() => {
+      void queryClient.invalidateQueries({ queryKey: ["stores"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+    });
 
     // Start splash screen animation
     Animated.parallel([
@@ -69,7 +75,10 @@ export default function RootLayout() {
       });
     }, 1100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      stopCatalogUpdates();
+      clearTimeout(timer);
+    };
   }, [fadeAnim, scaleAnim, textFadeAnim]);
 
   return (
@@ -84,9 +93,18 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="store/[storeId]" options={{ headerShown: false }} />
-          <Stack.Screen name="product/[productId]" options={{ headerShown: false }} />
-          <Stack.Screen name="order/[orderId]" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="store/[storeId]"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="product/[productId]"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="order/[orderId]"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="cart" options={{ headerShown: false }} />
           <Stack.Screen name="checkout" options={{ headerShown: false }} />
           <Stack.Screen name="sessions" options={{ headerShown: false }} />
@@ -96,20 +114,31 @@ export default function RootLayout() {
 
         {/* Custom aasPass Splash Screen matching web */}
         {!splashFinished && (
-          <Animated.View style={[styles.splashContainer, { opacity: fadeAnim }]} pointerEvents="none">
+          <Animated.View
+            style={[styles.splashContainer, { opacity: fadeAnim }]}
+            pointerEvents="none"
+          >
             <Animated.View
               style={[
                 styles.splashContent,
                 { transform: [{ scale: scaleAnim }] },
               ]}
             >
-              <Image source={logoMark} style={styles.splashLogo} resizeMode="contain" />
-              <Animated.View style={{ opacity: textFadeAnim, alignItems: "center" }}>
+              <Image
+                source={logoMark}
+                style={styles.splashLogo}
+                resizeMode="contain"
+              />
+              <Animated.View
+                style={{ opacity: textFadeAnim, alignItems: "center" }}
+              >
                 <View style={styles.brandTitleRow}>
                   <Text style={styles.brandAas}>aas</Text>
                   <Text style={styles.brandPass}>Pass</Text>
                 </View>
-                <Text style={styles.brandTagline}>Sab Kuch Milega, AasPass</Text>
+                <Text style={styles.brandTagline}>
+                  Sab Kuch Milega, AasPass
+                </Text>
               </Animated.View>
             </Animated.View>
           </Animated.View>

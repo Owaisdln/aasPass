@@ -4,12 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  Inventory,
   InventoryReferenceType,
   InventoryTransactionType,
   Prisma,
 } from '@prisma/client';
 
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
+import { CatalogUpdatesGateway } from '../../realtime/catalog-updates.gateway';
 import { CreateInventoryDto } from '../dto/create-inventory.dto';
 import { UpdateInventoryDto } from '../dto/update-inventory.dto';
 import { AdjustInventoryDto } from '../dto/adjust-inventory.dto';
@@ -19,7 +21,10 @@ import { InventoryMapper } from '../mappers/inventory.mapper';
 
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly catalogUpdates: CatalogUpdatesGateway,
+  ) {}
 
   async create(
     userId: string,
@@ -72,8 +77,9 @@ export class InventoryService {
       );
     }
 
+    let inventory: Inventory;
     try {
-      const inventory = await this.prisma.$transaction(async (tx) => {
+      inventory = await this.prisma.$transaction(async (tx) => {
         const createdInventory = await tx.inventory.create({
           data: {
             storeProductId: dto.storeProductId,
@@ -105,8 +111,6 @@ export class InventoryService {
 
         return createdInventory;
       });
-
-      return InventoryMapper.toResponse(inventory);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -119,6 +123,8 @@ export class InventoryService {
 
       throw error;
     }
+    this.catalogUpdates.notifyCatalogUpdated();
+    return InventoryMapper.toResponse(inventory);
   }
 
   async findAll(userId: string): Promise<InventoryResponseDto[]> {
@@ -169,16 +175,12 @@ export class InventoryService {
     inventoryId: string,
     dto: UpdateInventoryDto,
   ): Promise<InventoryResponseDto> {
-    const inventory = await this.findOwnedInventory(
-      userId,
-      inventoryId,
-    );
+    const inventory = await this.findOwnedInventory(userId, inventoryId);
 
     const lowStockThreshold =
       dto.lowStockThreshold ?? inventory.lowStockThreshold;
 
-    const reorderLevel =
-      dto.reorderLevel ?? inventory.reorderLevel;
+    const reorderLevel = dto.reorderLevel ?? inventory.reorderLevel;
 
     if (reorderLevel < lowStockThreshold) {
       throw new ConflictException(
@@ -200,6 +202,7 @@ export class InventoryService {
       },
     });
 
+    this.catalogUpdates.notifyCatalogUpdated();
     return InventoryMapper.toResponse(updated);
   }
 
@@ -208,10 +211,7 @@ export class InventoryService {
     inventoryId: string,
     dto: AdjustInventoryDto,
   ): Promise<InventoryResponseDto> {
-    const inventory = await this.findOwnedInventory(
-      userId,
-      inventoryId,
-    );
+    const inventory = await this.findOwnedInventory(userId, inventoryId);
 
     if (inventory.version !== dto.expectedVersion) {
       throw new ConflictException(
@@ -221,13 +221,10 @@ export class InventoryService {
 
     const quantityDelta = this.getQuantityDelta(dto);
 
-    const newStockQuantity =
-      inventory.stockQuantity + quantityDelta;
+    const newStockQuantity = inventory.stockQuantity + quantityDelta;
 
     if (newStockQuantity < 0) {
-      throw new ConflictException(
-        'Stock quantity cannot become negative',
-      );
+      throw new ConflictException('Stock quantity cannot become negative');
     }
 
     if (inventory.reservedQuantity > newStockQuantity) {
@@ -264,8 +261,7 @@ export class InventoryService {
           transactionType: dto.transactionType,
           quantity: dto.quantity,
           balanceAfterTransaction: newStockQuantity,
-          referenceType:
-            dto.referenceType ?? InventoryReferenceType.MANUAL,
+          referenceType: dto.referenceType ?? InventoryReferenceType.MANUAL,
           referenceId: dto.referenceId,
           source: dto.source,
           notes: dto.notes,
@@ -280,6 +276,7 @@ export class InventoryService {
       });
     });
 
+    this.catalogUpdates.notifyCatalogUpdated();
     return InventoryMapper.toResponse(updated);
   }
 
@@ -289,25 +286,19 @@ export class InventoryService {
   ): Promise<InventoryTransactionResponseDto[]> {
     await this.findOwnedInventory(userId, inventoryId);
 
-    const transactions =
-      await this.prisma.inventoryTransaction.findMany({
-        where: {
-          inventoryId,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
+    const transactions = await this.prisma.inventoryTransaction.findMany({
+      where: {
+        inventoryId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-    return transactions.map(
-      InventoryMapper.toTransactionResponse,
-    );
+    return transactions.map(InventoryMapper.toTransactionResponse);
   }
 
-  private async findOwnedInventory(
-    userId: string,
-    inventoryId: string,
-  ) {
+  private async findOwnedInventory(userId: string, inventoryId: string) {
     const inventory = await this.prisma.inventory.findFirst({
       where: {
         id: inventoryId,
@@ -346,9 +337,7 @@ export class InventoryService {
         );
 
       default:
-        throw new ConflictException(
-          'Unsupported inventory transaction type',
-        );
+        throw new ConflictException('Unsupported inventory transaction type');
     }
   }
 }
