@@ -8,56 +8,56 @@
 
 ```mermaid
 graph TB
- subgraph Client["Client Layer (Planned)"]
- WEB[Web App]
- MOB[Mobile App]
- end
+  subgraph Clients["Client Layer"]
+    MOB["Customer Mobile App<br/>(React Native / Expo)"]
+    VEN["Vendor Portal App<br/>(Expo + TanStack Start)"]
+    MCP["MCP AI Server<br/>(Context Engine & Agent)"]
+  end
 
- subgraph API["API Layer — NestJS Server :3000"]
- MAIN[main.ts · Bootstrap]
- APP[AppModule · Root]
+  subgraph API["API Layer — NestJS Server :3000"]
+    MAIN["main.ts · Bootstrap"]
+    APP["AppModule · Root"]
 
- subgraph Modules["Feature Modules"]
- AUTH[Auth Module]
- STORE[Store Module]
- CATALOG[Catalog Module]
- CART[Cart Module]
- ORDER[Order Module]
- PAYMENT[Payment Module]
- end
+    subgraph Modules["Feature Modules"]
+      AUTH["Auth Module"]
+      STORE["Store Module"]
+      CATALOG["Catalog & Inventory"]
+      WISHLIST["Wishlist Module"]
+      ORDER["Order Module"]
+      PAYMENT["Payment Module"]
+    end
 
- subgraph CrossCutting["Cross-Cutting Concerns"]
- GUARD[JWT Guard · Role Guard]
- PIPE[Validation Pipes]
- FILTER[Exception Filters]
- INTER[Interceptors]
- end
+    subgraph CrossCutting["Cross-Cutting Concerns"]
+      GUARD["Supabase JWT Guard · RBAC"]
+      PIPE["Validation Pipes"]
+      FILTER["Exception Filters"]
+    end
 
- subgraph Infra["Infrastructure"]
- QUEUE[BullMQ · Job Queues]
- WS[Socket.io · WebSockets]
- SWAGGER[Swagger · API Docs]
- end
- end
+    subgraph Infra["Infrastructure"]
+      WS["Socket.io · /catalog Realtime"]
+      SWAGGER["Swagger · API Docs"]
+    end
+  end
 
- subgraph DataLayer["Data Layer"]
- PRISMA[Prisma ORM]
- PG[(PostgreSQL\naaspass DB)]
- REDIS[(Redis)]
- end
+  subgraph DataLayer["Data Layer"]
+    PRISMA["Prisma ORM"]
+    PG[("PostgreSQL Database")]
+    SUPA[("Supabase Auth")]
+  end
 
- WEB --> API
- MOB --> API
- MAIN --> APP
- APP --> Modules
- APP --> CrossCutting
- APP --> Infra
- Modules --> PRISMA
- QUEUE --> REDIS
- PRISMA --> PG
+  MOB -->|"HTTP API & /catalog WS"| API
+  VEN -->|"HTTP API & /catalog WS"| API
+  MCP -->|"MCP Tools & Workspace"| API
+  MAIN --> APP
+  APP --> Modules
+  APP --> CrossCutting
+  APP --> Infra
+  Modules --> PRISMA
+  PRISMA --> PG
+  API -.-> SUPA
 ```
 
-Module implementation status: Auth, Store, Catalog, Inventory, Wishlist, Orders, and Payments modules are fully implemented. Cart Module is planned (schema exists). Cross-cutting concerns (Helmet, Rate Limiting, BullMQ, Socket.io, Swagger) are planned infrastructure.
+Module implementation status: Auth, Store, Catalog, Inventory, Wishlist, Orders, and Payments modules are fully implemented on the server. Customer Mobile App (`mobile/`), Vendor Portal (`vendor/`), and MCP Server (`mcp-server/`) are active. Cart Module schema is defined. Real-time `/catalog` Socket.IO broadcast is operational.
 
 ---
 

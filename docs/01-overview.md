@@ -47,9 +47,13 @@
 | **Validation** | class-validator + class-transformer | ^0.15.1 |
 | **Unique IDs** | uuid | ^14.0.1 |
 
-### Frontend
+### Clients & Extended Platform
 
-> **Status:** Directory exists — implementation not yet started.
+| Component | Technology | Directory | Status | Description |
+|---|---|---|---|---|
+| **Customer Mobile App** | React Native, Expo Router, Zustand, TanStack Query | `mobile/` | Active | Customer storefront, store browsing, cart, checkout, orders, address management |
+| **Vendor Portal App** | React Native / Expo + TanStack Start, Tailwind v4, Radix UI | `vendor/` | Active | Merchant dashboard, store hours, delivery radius, catalog onboarding, OCC stock adjustments, order queue |
+| **MCP AI Server** | Node.js, TypeScript, Model Context Protocol, Multi-LLM | `mcp-server/` | Active | AI assistant server with 53 registered tools, context engine, conversation memory, workspace scanner |
 
 ---
 

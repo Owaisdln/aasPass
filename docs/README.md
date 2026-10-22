@@ -1,7 +1,7 @@
 # aasPass Documentation
 
 > **Platform:** aasPass — Hyperlocal commerce platform
-> **Last Updated:** 2026-08-24
+> **Last Updated:** 2026-10-23
 
 ---
 
@@ -22,6 +22,46 @@
 | [Module — Wishlist](./server/08-module-wishlist.md) | — | Active | User wishlists: named bookmark lists with items, default promotion |
 | [Module — Orders](./server/09-module-orders.md) | — | Active | Order placement & management: checkout from cart, address snapshot, stock deduction, cancellation |
 | [Module — Payments](./server/10-module-payments.md) | — | Active | Payment creation, COD confirmation, Razorpay verification flow, refund initiation |
+
+### Mobile App
+
+| Document | Version | Status | Description |
+|---|---|---|---|
+| [Mobile Index](./mobile/README.md) | — | Active | App overview, technology stack, and document index |
+| [Bootstrap & Layout](./mobile/01-bootstrap-layout.md) | — | Active | Root layout, splash screen, providers, startup sequence |
+| [Navigation & Routing](./mobile/02-navigation-routing.md) | — | Active | Expo Router file-system routing, tab layout, screen hierarchy |
+| [State Management](./mobile/03-state-management.md) | — | Active | Zustand store slices, sync architecture, add-to-cart rules |
+| [Domain Models](./mobile/04-domain-models.md) | — | Active | Core TypeScript types and pure helpers (model.ts) |
+| [API Layer](./mobile/05-api-layer.md) | — | Active | HTTP client, Supabase auth, all domain API modules |
+| [Components](./mobile/06-components.md) | — | Active | Shared UI component reference |
+| [Screens](./mobile/07-screens.md) | — | Active | Screen-by-screen feature reference (13 screens) |
+
+### Vendor App
+
+| Document | Version | Status | Description |
+|---|---|---|---|
+| [Vendor Index](./vendor/README.md) | — | Active | Vendor portal overview, dual-target architecture, scripts |
+| [Bootstrap & Layout](./vendor/01-bootstrap-layout.md) | — | Active | Root layout, providers, theme palette, native UI primitives |
+| [Navigation & Routing](./vendor/02-navigation-routing.md) | — | Active | Dual-engine routing: Expo Router and TanStack Start route trees |
+| [Session & State Management](./vendor/03-session-state.md) | — | Active | Zustand `useSession`, persistence, live vs demo modes |
+| [Domain Models & Business Rules](./vendor/04-domain-models-rules.md) | — | Active | Core TypeScript types, pricing rules, stock deltas, order states |
+| [API Layer & Integration](./vendor/05-api-layer.md) | — | Active | HTTP client, Supabase auth, REST endpoints, real-time sync |
+| [Screens & Feature Reference](./vendor/06-screens-features.md) | — | Active | Screen walkthrough: connect, profile, hours, delivery, stock, orders |
+
+### MCP Server
+
+| Document | Version | Status | Description |
+|---|---|---|---|
+| [MCP Server Index](./mcp-server/README.md) | — | Active | Service overview, architecture tree, running endpoints |
+| [Entry Point & Bootstrap](./mcp-server/01-entry-bootstrap.md) | — | Active | `index.ts`, startup sequence, service wiring |
+| [Core — BaseTool & ServiceContainer](./mcp-server/02-core.md) | — | Active | Tool base class, service container, tool registry |
+| [Agent & AI Layer](./mcp-server/03-agent-ai.md) | — | Active | Agent loop, AIManager, multi-provider fallback, tool orchestration |
+| [Context Engine](./mcp-server/04-context-engine.md) | — | Active | TaskSnapshot, ContextStore, ContextIndex, ContextBuilder |
+| [Conversation & Memory](./mcp-server/05-conversation-memory.md) | — | Active | ConversationService, MemoryService, short/long-term memory |
+| [Session & Workspace](./mcp-server/06-session-workspace.md) | — | Active | SessionManager, WorkspaceManager, WorkspaceScanner |
+| [MCP Protocol Layer](./mcp-server/07-mcp-protocol.md) | — | Active | MCPManager, MCPClient, MCPConnection, transports |
+| [API Server & WebSocket Gateway](./mcp-server/08-api-gateway.md) | — | Active | ApiServer, Controllers, Routes, WebSocketGateway, EventBus |
+| [Tool Reference](./mcp-server/09-tools.md) | — | Active | All 53 registered tools grouped by category |
 
 ### Architecture & Design
 
